@@ -47,17 +47,27 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       return
     }
     
-    // Explicitly get the current origin
-    const currentOrigin = window.location.origin
+    // Explicitly get the current origin - ALWAYS use the Railway URL in production
+    let currentOrigin = window.location.origin
+    
+    // If we're on Railway, force the Railway URL
+    if (window.location.hostname.includes('railway.app') || window.location.hostname.includes('railway')) {
+      currentOrigin = 'https://parking-simulator-production.up.railway.app'
+    }
+    
     const redirectUrl = `${currentOrigin}/auth/callback`
     
     // Log everything for debugging
     console.log('🔐 Sign in attempt:', {
       currentOrigin: currentOrigin,
+      windowOrigin: window.location.origin,
       fullUrl: window.location.href,
       redirectUrl: redirectUrl,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
     })
+    
+    // Alert for immediate visibility
+    alert(`Redirect URL: ${redirectUrl}\nWindow Origin: ${window.location.origin}`)
     
     try {
       const { error, data } = await supabase.auth.signInWithOAuth({
@@ -79,6 +89,10 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       
       if (data?.url) {
         console.log('🔐 Redirecting to:', data.url)
+        // Check if the URL contains localhost:8080
+        if (data.url.includes('localhost:8080')) {
+          alert(`ERROR: Supabase is redirecting to localhost:8080!\nURL: ${data.url}`)
+        }
       }
 
       if (error) {
