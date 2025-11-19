@@ -288,7 +288,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
 
             <p className="text-tracksuit-purple-700 font-quicksand">
-              Another day, another victory in the dawg-eat-dawg world of office parking. While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination. The spot is his. It has always been his 🌭
+              While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination. The spot is his. It has always been his 🌭
             </p>
           </div>
 
