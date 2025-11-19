@@ -74,6 +74,7 @@ export default function Home() {
   const themeAudioRef = useRef<HTMLAudioElement | null>(null)
   const slackAudioRef = useRef<HTMLAudioElement | null>(null)
   const slackIntervalRef = useRef<number | null>(null)
+  const menuThemeStoppedRef = useRef<boolean>(false) // Track if menu theme has been stopped
 
   // Game area boundaries - used to keep drivers on screen
   const gameBounds = {
@@ -400,6 +401,7 @@ ${file}
     // Stop menu theme music first - do this before anything else
     console.log("Stopping menu theme music before starting game...")
     audioManager.stop("menuTheme")
+    menuThemeStoppedRef.current = true // Mark as stopped
     
     // Also try to stop all sounds to be safe
     try {
@@ -408,9 +410,13 @@ ${file}
       console.error("Error stopping audio:", error)
     }
     
-    // Always initialize audio to ensure it's ready
-    console.log("Initializing audio manager...")
-    audioManager.initialize()
+    // Only initialize audio if not already initialized
+    if (!audioManager.initialized) {
+      console.log("Initializing audio manager...")
+      audioManager.initialize()
+    } else {
+      console.log("Audio manager already initialized, skipping...")
+    }
 
     // Clear any existing Slack sound interval
     if (slackIntervalRef.current) {
@@ -1186,7 +1192,7 @@ ${file}
         ) {
           // Hit Luke
           setLukeHealth((prev) => {
-            const newHealth = prev - 2 // Reduced damage from 10 to 2
+            const newHealth = prev - 4 // Doubled damage from 2 to 4
             if (newHealth <= 0) {
               endGame(false)
               return 0
@@ -1418,6 +1424,9 @@ ${file}
   // Play menu theme music when on start screen (after user interaction from intro screen)
   useEffect(() => {
     if (gameState === "start") {
+      // Reset the stopped flag when returning to start screen
+      menuThemeStoppedRef.current = false
+      
       // Initialize audio if not already done
       if (!audioManager.initialized) {
         audioManager.initialize()
@@ -1427,9 +1436,12 @@ ${file}
       console.log("Starting menu theme music...")
       audioManager.play("menuTheme")
     } else {
-      // Stop menu theme when leaving start screen
-      console.log("Stopping menu theme music...")
-      audioManager.stop("menuTheme")
+      // Stop menu theme when leaving start screen (only if not already stopped)
+      if (!menuThemeStoppedRef.current) {
+        console.log("Stopping menu theme music...")
+        audioManager.stop("menuTheme")
+        menuThemeStoppedRef.current = true
+      }
     }
   }, [gameState, audioManager]) // Include audioManager to ensure it's available
 
