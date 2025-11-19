@@ -70,13 +70,16 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     alert(`Redirect URL: ${redirectUrl}\nWindow Origin: ${window.location.origin}`)
     
     try {
+      // Use the full URL with explicit protocol and domain
+      const fullRedirectUrl = redirectUrl
+      
+      console.log('🔐 Full redirect URL being sent:', fullRedirectUrl)
+      
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            redirect_to: redirectUrl,
-          },
+          redirectTo: fullRedirectUrl,
+          skipBrowserRedirect: false,
         },
       })
       
