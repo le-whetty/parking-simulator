@@ -34,7 +34,7 @@ export default function DefeatScreen({ onRestart }: DefeatScreenProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center font-quicksand">
       <div className="w-[300px] mx-auto mb-6">
-        <img src="/images/tracksuit-logo-purple.png" alt="Tracksuit" className="w-full h-auto" />
+        <img src="/logos/logo.png" alt="Tracksuit" className="w-full h-auto" />
       </div>
 
       <h1 className="text-4xl font-bold text-ts-pink-600">DEFEAT!</h1>

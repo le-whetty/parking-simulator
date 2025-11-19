@@ -47,7 +47,7 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
   return (
     <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
       <div className="mb-4">
-        <img src="/images/tracksuit-logo-purple.png" alt="Tracksuit" className="w-[300px] mx-auto" />
+        <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
       </div>
       <h1 className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">Parking Simulator</h1>
 

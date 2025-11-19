@@ -1460,7 +1460,7 @@ ${file}
       >
         <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
           <div className="mb-4">
-            <img src="/images/tracksuit-logo-purple.png" alt="Tracksuit" className="w-[300px] mx-auto" />
+            <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
           </div>
           <h1 className="text-6xl font-bold text-red-500 mb-4">Parking Simulator</h1>
           <p className="text-2xl text-gray-300 mb-8">Click anywhere to begin</p>
@@ -1474,7 +1474,7 @@ ${file}
       <div className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand">
         <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
           <div className="mb-4">
-            <img src="/images/tracksuit-logo-purple.png" alt="Tracksuit" className="w-[300px] mx-auto" />
+            <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
           </div>
           <h1 className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">Parking Simulator</h1>
 
