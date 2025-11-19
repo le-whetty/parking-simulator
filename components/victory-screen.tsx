@@ -17,7 +17,6 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userRank, setUserRank] = useState<number | null>(null)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [showMerch, setShowMerch] = useState(false)
   const [scoreSaved, setScoreSaved] = useState(false)
   const [murcaSongs, setMurcaSongs] = useState<string[]>([])
   const currentMurcaAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -309,12 +308,14 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
                 Top 3 scores by Wednesday, Nov 26 at 1pm NZT win the coveted{" "}
-                <button
-                  onClick={() => setShowMerch(true)}
+                <a
+                  href="/images/im-parkin-here.jpg"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="text-tracksuit-purple-600 hover:text-tracksuit-purple-800 underline font-semibold"
                 >
                   "I'm parkin' here"
-                </button>{" "}
+                </a>{" "}
                 merch.
               </p>
             </div>
@@ -368,37 +369,6 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         </div>
       )}
 
-      {/* Merch Modal */}
-      {showMerch && (
-        <div className="fixed inset-0 z-[60] bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="relative max-w-2xl w-full">
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-tracksuit-purple-200/50 relative overflow-hidden">
-              <button
-                onClick={() => setShowMerch(false)}
-                className="absolute top-4 right-4 text-tracksuit-purple-700 hover:text-tracksuit-purple-600 text-4xl font-bold z-[70] w-12 h-12 flex items-center justify-center rounded-full bg-white hover:bg-gray-50 shadow-xl border-2 border-tracksuit-purple-300 transition-colors"
-                aria-label="Close merch"
-              >
-                ×
-              </button>
-              <div className="text-center mb-6">
-                <h2 className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-2">
-                  "I'm parkin' here" Merch
-                </h2>
-                <p className="text-sm text-tracksuit-purple-600 font-quicksand">
-                  Top 3 scores by Wednesday, Nov 26 at 1pm NZT
-                </p>
-              </div>
-              <div className="flex justify-center">
-                <img 
-                  src="/images/im-parkin-here.jpg" 
-                  alt="I'm parkin' here merch" 
-                  className="max-w-full h-auto rounded-lg shadow-lg"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
