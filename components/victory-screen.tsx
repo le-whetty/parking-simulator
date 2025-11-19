@@ -20,6 +20,8 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const [scoreSaved, setScoreSaved] = useState(false)
   const [murcaSongs, setMurcaSongs] = useState<string[]>([])
   const currentMurcaAudioRef = useRef<HTMLAudioElement | null>(null)
+  const playedSongsRef = useRef<string[]>([]) // Track which songs have been played
+  const shuffledQueueRef = useRef<string[]>([]) // Current shuffle queue
 
   // Check authentication and save score
   useEffect(() => {
@@ -73,20 +75,32 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         const data = await response.json()
         if (data.songs && data.songs.length > 0) {
           setMurcaSongs(data.songs)
+          // Initialize shuffle queue with all songs
+          shuffledQueueRef.current = [...data.songs]
+          // Shuffle the queue
+          for (let i = shuffledQueueRef.current.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffledQueueRef.current[i], shuffledQueueRef.current[j]] = [shuffledQueueRef.current[j], shuffledQueueRef.current[i]]
+          }
+          playedSongsRef.current = []
         } else {
           // Fallback to anthem if no murca songs found
           setMurcaSongs(["/music/anthem.mp3"])
+          shuffledQueueRef.current = ["/music/anthem.mp3"]
+          playedSongsRef.current = []
         }
       } catch (error) {
         console.error("Error fetching murca songs:", error)
         // Fallback to anthem if error
         setMurcaSongs(["/music/anthem.mp3"])
+        shuffledQueueRef.current = ["/music/anthem.mp3"]
+        playedSongsRef.current = []
       }
     }
     fetchMurcaSongs()
   }, [])
 
-  // Play a random murca song
+  // Play a random murca song with Spotify-style shuffle
   const playRandomMurcaSong = useCallback(() => {
     if (murcaSongs.length === 0) return
 
@@ -96,11 +110,26 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       currentMurcaAudioRef.current.currentTime = 0
     }
 
-    // Pick a random song
-    const randomSong = murcaSongs[Math.floor(Math.random() * murcaSongs.length)]
+    // If queue is empty, reshuffle all songs
+    if (shuffledQueueRef.current.length === 0) {
+      shuffledQueueRef.current = [...murcaSongs]
+      // Shuffle the queue
+      for (let i = shuffledQueueRef.current.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledQueueRef.current[i], shuffledQueueRef.current[j]] = [shuffledQueueRef.current[j], shuffledQueueRef.current[i]]
+      }
+      playedSongsRef.current = []
+      console.log("🎵 Shuffle queue reset - all songs reshuffled")
+    }
+
+    // Get next song from queue
+    const nextSong = shuffledQueueRef.current.shift()!
+    playedSongsRef.current.push(nextSong)
+    
+    console.log(`🎵 Playing: ${nextSong} (${playedSongsRef.current.length}/${murcaSongs.length} played)`)
     
     // Create and play new audio
-    const audio = new Audio(randomSong)
+    const audio = new Audio(nextSong)
     audio.volume = 0.5
     audio.play().catch((e) => {
       console.error("Error playing murca song:", e)
@@ -269,7 +298,11 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <Button
               size="lg"
               onClick={playRandomMurcaSong}
-              className="bg-gradient-to-r from-red-600 via-white to-blue-600 hover:from-red-700 hover:via-white hover:to-blue-700 text-white relative z-50 font-chapeau transition-colors shadow-lg font-bold"
+              className="bg-gradient-to-r from-red-600 via-white to-blue-600 hover:from-red-700 hover:via-white hover:to-blue-700 relative z-50 font-chapeau transition-colors shadow-lg font-bold text-gray-900"
+              style={{ 
+                textShadow: '2px 2px 4px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.5)',
+                WebkitTextStroke: '0.5px rgba(0,0,0,0.2)'
+              }}
             >
               Increase 'murca 🇺🇸
             </Button>
