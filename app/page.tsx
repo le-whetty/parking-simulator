@@ -1429,13 +1429,11 @@ ${file}
       console.log("Starting menu theme music...")
       audioManager.play("menuTheme")
     } else {
-      // Stop menu theme when leaving start screen (only stop if going to playing/victory/defeat)
-      if (gameState === "playing" || gameState === "victory" || gameState === "defeat") {
-        console.log("Stopping menu theme music...")
-        audioManager.stop("menuTheme")
-      }
+      // Stop menu theme when leaving start screen
+      console.log("Stopping menu theme music...")
+      audioManager.stop("menuTheme")
     }
-  }, [gameState]) // Only depend on gameState to avoid loops
+  }, [gameState, audioManager]) // Include audioManager to ensure it's available
 
   // Render login screen
   if (gameState === "auth") {

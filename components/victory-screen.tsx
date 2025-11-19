@@ -22,6 +22,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const currentMurcaAudioRef = useRef<HTMLAudioElement | null>(null)
   const playedSongsRef = useRef<string[]>([]) // Track which songs have been played
   const shuffledQueueRef = useRef<string[]>([]) // Current shuffle queue
+  const initialSongPlayedRef = useRef<boolean>(false) // Track if initial song has been played
 
   // Check authentication and save score
   useEffect(() => {
@@ -108,6 +109,8 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     if (currentMurcaAudioRef.current) {
       currentMurcaAudioRef.current.pause()
       currentMurcaAudioRef.current.currentTime = 0
+      // Remove any existing event listeners
+      currentMurcaAudioRef.current.onended = null
     }
 
     // If queue is empty, reshuffle all songs
@@ -131,6 +134,13 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     // Create and play new audio
     const audio = new Audio(nextSong)
     audio.volume = 0.5
+    
+    // Add event listener for when song ends - play next song
+    audio.addEventListener('ended', () => {
+      console.log("🎵 Song ended, playing next in queue...")
+      playRandomMurcaSong()
+    })
+    
     audio.play().catch((e) => {
       console.error("Error playing murca song:", e)
     })
@@ -138,22 +148,29 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     currentMurcaAudioRef.current = audio
   }, [murcaSongs])
 
+  // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
-    console.log("VictoryScreen mounted - stopping theme and playing random murca song")
+    // Only play initial song once when songs become available
+    if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
+      console.log("VictoryScreen - murca songs loaded, playing initial song")
 
-    // Stop theme music specifically
-    audioManager.stop("theme")
-    
-    // Stop all other sounds
-    audioManager.stopAll()
+      // Stop theme music specifically
+      audioManager.stop("theme")
+      
+      // Stop all other sounds
+      audioManager.stopAll()
 
-    // Play a random murca song if songs are loaded
-    if (murcaSongs.length > 0) {
+      // Play a random murca song
       playRandomMurcaSong()
-    } else {
-      // Fallback to anthem if murca songs not loaded yet
-      audioManager.play("anthem")
+      initialSongPlayedRef.current = true
     }
+  }, [murcaSongs, audioManager, playRandomMurcaSong])
+
+  useEffect(() => {
+    // Stop theme music when component mounts
+    console.log("VictoryScreen mounted - stopping theme music")
+    audioManager.stop("theme")
+    audioManager.stopAll()
 
     // Animate the flag
     const canvas = canvasRef.current
@@ -220,10 +237,11 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       if (currentMurcaAudioRef.current) {
         currentMurcaAudioRef.current.pause()
         currentMurcaAudioRef.current.currentTime = 0
+        currentMurcaAudioRef.current.onended = null
       }
       cancelAnimationFrame(animationId)
     }
-  }, [audioManager, murcaSongs, playRandomMurcaSong])
+  }, [audioManager]) // Only depend on audioManager - don't re-run when murcaSongs or playRandomMurcaSong changes
 
   // Handle restart with page refresh
   const handleRestart = () => {
