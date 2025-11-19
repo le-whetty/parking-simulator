@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import DefeatScreen from "@/components/defeat-screen"
 import VictoryScreen from "@/components/victory-screen"
 import LoginScreen from "@/components/login-screen"
+import StartScreen from "@/components/start-screen"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
 
@@ -1470,81 +1471,7 @@ ${file}
   }
 
   if (gameState === "start") {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand">
-        <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto w-full">
-          {/* Header with logo and title */}
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <img src="/logos/logo.png" alt="Tracksuit" className="h-12 w-auto" />
-            <h1 className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">
-              Parking Simulator
-            </h1>
-          </div>
-
-          {/* Main content area - two column layout */}
-          <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
-            {/* Left column - Luke image and description */}
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <div className="relative w-32 h-32">
-                <img src="/images/luke.png" alt="Luke Amundson" className="w-full h-full object-contain" />
-              </div>
-              <div className="space-y-2 text-center">
-                <p className="text-sm font-quicksand text-tracksuit-purple-800 leading-relaxed">
-                  Play as Luke Amundson, Head of Sales ANZ at Tracksuit, in his daily battle for the priority parking space - normally reserved for expectant parents and the temporarily injured!
-                </p>
-                <p className="text-sm font-quicksand text-tracksuit-purple-700 leading-relaxed">
-                  Your first meeting is at 8:30 AM, but it's 8:28 AM and there's only one spot left. Defeat your colleagues by throwing Kirkland™ hot dogs at their cars before they take your spot!
-                </p>
-              </div>
-            </div>
-
-            {/* Right column - How to Play */}
-            <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
-              <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">How to Play</h3>
-              <ul className="text-sm space-y-1.5 font-quicksand text-tracksuit-purple-700">
-                <li className="flex items-start gap-2">
-                  <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-                  <span>Use WASD keys to move Luke's car (W=up, A=left, S=down, D=right)</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-                  <span>Press SPACE to throw hot dogs at the approaching cars</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-                  <span>Defeat all drivers AND park in the green spot</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-                  <span>Don't let your health reach zero!</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-                  <span>Land that sweet alpha parking spot before 8:30 AM!</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Action button - always visible */}
-          <Button
-            size="lg" 
-            onClick={(e) => {
-              console.log("Button clicked!", e)
-              e.preventDefault()
-              e.stopPropagation()
-              console.log("About to call startGame")
-              startGame()
-              console.log("startGame returned")
-            }} 
-            type="button"
-            className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau shadow-lg px-8"
-          >
-            Start Game
-          </Button>
-        </div>
-      </div>
-    )
+    return <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} />
   }
 
   // Render defeat screen

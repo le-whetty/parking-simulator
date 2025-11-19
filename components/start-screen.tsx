@@ -1,8 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { useAudioManager } from "@/hooks/use-audio-manager"
+import Menu from "./menu"
 
 interface StartScreenProps {
   onStart: () => void
@@ -45,14 +46,8 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto">
-      {/* Header with logo and title */}
-      <div className="flex items-center justify-center gap-4 mb-6">
-        <img src="/logos/logo.png" alt="Tracksuit" className="h-12 w-auto" />
-        <h1 className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">
-          Parking Simulator
-        </h1>
-      </div>
+    <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
+      <Menu onStartGame={handleStart} />
 
       {/* Main content area - two column layout */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
@@ -107,14 +102,6 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
           disabled={audioInitialized || isCheckingAudio}
         >
           {isCheckingAudio ? "Initializing..." : audioInitialized ? "Sound Enabled ✓" : "Enable Sound"}
-        </Button>
-
-        <Button 
-          size="lg" 
-          onClick={handleStart} 
-          className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau shadow-lg px-8"
-        >
-          Start Game
         </Button>
       </div>
 
