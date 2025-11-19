@@ -47,38 +47,28 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       return
     }
     
-    // Explicitly get the current origin - ALWAYS use the Railway URL in production
-    let currentOrigin = window.location.origin
-    
-    // If we're on Railway, force the Railway URL
-    if (window.location.hostname.includes('railway.app') || window.location.hostname.includes('railway')) {
-      currentOrigin = 'https://parking-simulator-production.up.railway.app'
-    }
-    
-    const redirectUrl = `${currentOrigin}/auth/callback`
+    // ALWAYS use the environment variable or fallback to production URL
+    // Never rely on window.location.origin as it can be unreliable in OAuth flows
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parking-simulator-production.up.railway.app'
+    const redirectUrl = `${siteUrl}/auth/callback`
     
     // Log everything for debugging
     console.log('🔐 Sign in attempt:', {
-      currentOrigin: currentOrigin,
+      siteUrl: siteUrl,
       windowOrigin: window.location.origin,
       fullUrl: window.location.href,
       redirectUrl: redirectUrl,
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL
     })
     
-    // Alert for immediate visibility
-    alert(`Redirect URL: ${redirectUrl}\nWindow Origin: ${window.location.origin}`)
-    
     try {
-      // Use the full URL with explicit protocol and domain
-      const fullRedirectUrl = redirectUrl
-      
-      console.log('🔐 Full redirect URL being sent:', fullRedirectUrl)
+      console.log('🔐 Full redirect URL being sent:', redirectUrl)
       
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: fullRedirectUrl,
+          redirectTo: redirectUrl,
           skipBrowserRedirect: false,
         },
       })
@@ -94,7 +84,10 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         console.log('🔐 Redirecting to:', data.url)
         // Check if the URL contains localhost:8080
         if (data.url.includes('localhost:8080')) {
-          alert(`ERROR: Supabase is redirecting to localhost:8080!\nURL: ${data.url}`)
+          console.error('ERROR: Supabase is redirecting to localhost:8080!', data.url)
+          setError(`Configuration error: Redirect URL contains localhost:8080. Please check Supabase settings.`)
+          setIsAuthenticating(false)
+          return
         }
       }
 

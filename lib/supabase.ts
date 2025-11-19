@@ -10,3 +10,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 })
 
+/**
+ * Create an authenticated Supabase client for server-side use
+ * Pass the access token from the client to authenticate the request
+ */
+export function createAuthenticatedClient(accessToken: string) {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  })
+}
+

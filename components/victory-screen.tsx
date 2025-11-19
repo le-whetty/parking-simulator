@@ -31,12 +31,16 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
           
           // Save the score
           if (!scoreSaved) {
+            // Get the access token for authentication
+            const accessToken = session.access_token
+            
             const response = await fetch("/api/save-score", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 userEmail: session.user.email,
                 score: score,
+                accessToken: accessToken,
               }),
             })
             
@@ -44,6 +48,9 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               const data = await response.json()
               setUserRank(data.rank)
               setScoreSaved(true)
+            } else {
+              const errorData = await response.json().catch(() => ({}))
+              console.error("Failed to save score:", errorData)
             }
           }
         }
@@ -194,11 +201,12 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
       {/* Leaderboard Modal */}
       {showLeaderboard && (
-        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-4">
-          <div className="relative max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+          <div className="relative max-w-5xl w-full max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowLeaderboard(false)}
-              className="absolute top-4 right-4 text-white hover:text-gray-300 text-2xl font-bold z-10"
+              className="absolute top-6 right-6 text-white hover:text-gray-300 text-3xl font-bold z-10 w-10 h-10 flex items-center justify-center rounded-full bg-gray-800/80 hover:bg-gray-700/80 transition-colors"
+              aria-label="Close leaderboard"
             >
               ×
             </button>

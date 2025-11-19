@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
     await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // Redirect to home page (which will show the game)
-  return NextResponse.redirect(new URL("/", requestUrl.origin))
+  // Use environment variable or hardcode production URL
+  const redirectUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parking-simulator-production.up.railway.app'
+  return NextResponse.redirect(new URL("/", redirectUrl))
 }
 
