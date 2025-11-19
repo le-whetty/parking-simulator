@@ -164,10 +164,12 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       playRandomMurcaSong()
       initialSongPlayedRef.current = true
     }
-  }, [murcaSongs, audioManager, playRandomMurcaSong])
+    // Only depend on murcaSongs - don't re-run when audioManager or playRandomMurcaSong changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [murcaSongs])
 
   useEffect(() => {
-    // Stop theme music when component mounts
+    // Stop theme music when component mounts (only once)
     console.log("VictoryScreen mounted - stopping theme music")
     audioManager.stop("theme")
     audioManager.stopAll()
@@ -233,6 +235,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     const animationId = requestAnimationFrame(animate)
 
     return () => {
+      // Only clean up on unmount - don't stop music on re-renders
       audioManager.stop("anthem")
       if (currentMurcaAudioRef.current) {
         currentMurcaAudioRef.current.pause()
@@ -241,7 +244,9 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       }
       cancelAnimationFrame(animationId)
     }
-  }, [audioManager]) // Only depend on audioManager - don't re-run when murcaSongs or playRandomMurcaSong changes
+    // Empty dependency array - only run once on mount, never re-run
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Handle restart with page refresh
   const handleRestart = () => {

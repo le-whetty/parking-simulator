@@ -187,8 +187,15 @@ export function useAudioManager() {
     try {
       const sound = soundsRef.current.get(type)
       if (sound) {
+        console.log(`Stopping ${type} sound - paused: ${sound.paused}, currentTime: ${sound.currentTime}`)
         sound.pause()
         sound.currentTime = 0
+        // Also remove any event listeners that might restart it
+        sound.onended = null
+        sound.onplay = null
+        console.log(`Stopped ${type} sound successfully`)
+      } else {
+        console.log(`Sound ${type} not found in map when trying to stop`)
       }
     } catch (e) {
       console.log(`Error stopping ${type} sound:`, e)

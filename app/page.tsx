@@ -397,19 +397,20 @@ ${file}
   const startGame = () => {
     console.log("startGame called!")
     
-    // Stop menu theme music first
+    // Stop menu theme music first - do this before anything else
+    console.log("Stopping menu theme music before starting game...")
     audioManager.stop("menuTheme")
     
-    // Always initialize audio to ensure it's ready
-    console.log("Initializing audio manager...")
-    audioManager.initialize()
-    
+    // Also try to stop all sounds to be safe
     try {
-      // Stop all sounds (including menu theme)
       audioManager.stopAll()
     } catch (error) {
       console.error("Error stopping audio:", error)
     }
+    
+    // Always initialize audio to ensure it's ready
+    console.log("Initializing audio manager...")
+    audioManager.initialize()
 
     // Clear any existing Slack sound interval
     if (slackIntervalRef.current) {
@@ -425,9 +426,6 @@ ${file}
 
     // Hide Slack message
     setShowSlackMessage(false)
-
-    // Stop menu theme when starting game
-    audioManager.stop("menuTheme")
     
     // Reset game state
     setGameState("playing")

@@ -51,27 +51,37 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
 
         {/* Right column - How to Play */}
         <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
-          <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">How to play</h3>
+          <h3 className="font-bold mb-4 text-tracksuit-purple-800 font-chapeau text-center">How to play</h3>
           <div className="space-y-2">
-            <div className="flex gap-4 text-sm font-quicksand">
-              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Drive</div>
-              <div className="text-tracksuit-purple-700">Use WASD keys to drive</div>
+            <div className="bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm rounded-xl px-4 py-3 transition-all duration-200">
+              <div className="flex items-center gap-3">
+                <div className="font-semibold text-tracksuit-purple-800 text-sm font-chapeau w-20 flex-shrink-0">Drive</div>
+                <div className="text-tracksuit-purple-700 text-sm font-quicksand flex-1">Use WASD keys to drive</div>
+              </div>
             </div>
-            <div className="flex gap-4 text-sm font-quicksand">
-              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Attack</div>
-              <div className="text-tracksuit-purple-700">Press SPACE to throw hot dogs</div>
+            <div className="bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm rounded-xl px-4 py-3 transition-all duration-200">
+              <div className="flex items-center gap-3">
+                <div className="font-semibold text-tracksuit-purple-800 text-sm font-chapeau w-20 flex-shrink-0">Attack</div>
+                <div className="text-tracksuit-purple-700 text-sm font-quicksand flex-1">Press SPACE to throw hot dogs</div>
+              </div>
             </div>
-            <div className="flex gap-4 text-sm font-quicksand">
-              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Win</div>
-              <div className="text-tracksuit-purple-700">Defeat all drivers AND park in the green spot</div>
+            <div className="bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm rounded-xl px-4 py-3 transition-all duration-200">
+              <div className="flex items-center gap-3">
+                <div className="font-semibold text-tracksuit-purple-800 text-sm font-chapeau w-20 flex-shrink-0">Win</div>
+                <div className="text-tracksuit-purple-700 text-sm font-quicksand flex-1">Defeat all drivers AND park in the green spot</div>
+              </div>
             </div>
-            <div className="flex gap-4 text-sm font-quicksand">
-              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Health</div>
-              <div className="text-tracksuit-purple-700">Don't let your health reach zero!</div>
+            <div className="bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm rounded-xl px-4 py-3 transition-all duration-200">
+              <div className="flex items-center gap-3">
+                <div className="font-semibold text-tracksuit-purple-800 text-sm font-chapeau w-20 flex-shrink-0">Health</div>
+                <div className="text-tracksuit-purple-700 text-sm font-quicksand flex-1">Don't let your health reach zero!</div>
+              </div>
             </div>
-            <div className="flex gap-4 text-sm font-quicksand">
-              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Time</div>
-              <div className="text-tracksuit-purple-700">Don't let the time run out!</div>
+            <div className="bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm rounded-xl px-4 py-3 transition-all duration-200">
+              <div className="flex items-center gap-3">
+                <div className="font-semibold text-tracksuit-purple-800 text-sm font-chapeau w-20 flex-shrink-0">Time</div>
+                <div className="text-tracksuit-purple-700 text-sm font-quicksand flex-1">Don't let the time run out!</div>
+              </div>
             </div>
           </div>
         </div>
