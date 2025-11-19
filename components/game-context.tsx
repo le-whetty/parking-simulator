@@ -319,15 +319,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
 
         // Driver attacks Luke (throw projectile)
-        // On smaller screens, reduce attack frequency and speed to compensate for harder gameplay
-        const attackFrequency = 0.02 * Math.max(0.5, gameState.scale) // Lower frequency on small screens
+        // On smaller screens, massively reduce attack frequency and speed
+        const isSmallScreen = gameState.scale < 0.9
+        const attackFrequency = isSmallScreen ? 0.005 : 0.02 // 75% less attacks on small screens
         
         if (driver.attackCooldown <= 0 && Math.random() < attackFrequency) {
           const projectileType = driver.type === "pregnant" ? "bottle" : "crutch"
           
-          // Reduce projectile speed on smaller screens
+          // Massively reduce projectile speed on smaller screens
           const baseSpeed = -200 - Math.random() * 100
-          const adjustedSpeed = baseSpeed * Math.max(0.6, gameState.scale)
+          const adjustedSpeed = isSmallScreen ? baseSpeed * 0.4 : baseSpeed // 60% slower on small screens
+
+          console.log(`🎯 Enemy attack! Scale: ${gameState.scale.toFixed(2)}, Small screen: ${isSmallScreen}, Speed: ${adjustedSpeed.toFixed(0)}`)
 
           const newProjectile = {
             id: `${projectileType}-${Date.now()}-${Math.random()}`,
@@ -346,9 +349,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
             projectiles: [...prev.projectiles, newProjectile],
           }))
 
-          // Longer cooldown on smaller screens (easier)
-          const cooldownMultiplier = Math.max(1, 2 / gameState.scale)
-          updatedDrivers[index].attackCooldown = (2 + Math.random() * 2) * cooldownMultiplier
+          // Much longer cooldown on smaller screens
+          const cooldown = isSmallScreen ? 8 + Math.random() * 4 : 2 + Math.random() * 2 // 4x longer cooldown
+          updatedDrivers[index].attackCooldown = cooldown
         }
 
         // Check if driver reached parking spot
@@ -397,11 +400,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Check for collisions between projectiles and cars
     let lukeHealth = gameState.lukeHealth
     
-    // Make collision detection more forgiving on smaller screens
+    // Make collision detection MUCH more forgiving on smaller screens
     // For Luke: make hitbox SMALLER (shrink by padding) so it's harder to get hit
     // For enemies: make hitbox BIGGER (grow by padding) so they're easier to hit
-    const lukePadding = gameState.scale < 0.8 ? -10 : 0 // Negative = shrink hitbox (easier for player)
-    const enemyPadding = gameState.scale < 0.8 ? 25 : 15 // Positive = grow hitbox (easier to hit)
+    const isSmallScreen = gameState.scale < 0.9
+    const lukePadding = isSmallScreen ? -25 : 0 // Negative = shrink hitbox (easier for player) - MUCH smaller
+    const enemyPadding = isSmallScreen ? 40 : 15 // Positive = grow hitbox (easier to hit) - MUCH bigger
 
     updatedProjectiles.forEach((projectile) => {
       if (!projectile.isActive) return
@@ -422,6 +426,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
           projectile.position.y <= lukeCar.y + lukeCar.height
         ) {
           // Hit Luke's car
+          console.log(`💥 Luke hit! Health: ${lukeHealth - 10}, Scale: ${gameState.scale.toFixed(2)}, Hitbox padding: ${lukePadding}`)
           lukeHealth = Math.max(0, lukeHealth - 10)
           projectile.isActive = false
         }
