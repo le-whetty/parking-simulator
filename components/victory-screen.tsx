@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { supabase } from "@/lib/supabase"
@@ -18,6 +18,8 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const [userRank, setUserRank] = useState<number | null>(null)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [scoreSaved, setScoreSaved] = useState(false)
+  const [murcaSongs, setMurcaSongs] = useState<string[]>([])
+  const currentMurcaAudioRef = useRef<HTMLAudioElement | null>(null)
 
   // Check authentication and save score
   useEffect(() => {
@@ -63,8 +65,52 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }, [score, scoreSaved])
 
 
+  // Fetch murca songs on mount
   useEffect(() => {
-    console.log("VictoryScreen mounted - stopping theme and playing anthem")
+    async function fetchMurcaSongs() {
+      try {
+        const response = await fetch("/api/murca-songs")
+        const data = await response.json()
+        if (data.songs && data.songs.length > 0) {
+          setMurcaSongs(data.songs)
+        } else {
+          // Fallback to anthem if no murca songs found
+          setMurcaSongs(["/music/anthem.mp3"])
+        }
+      } catch (error) {
+        console.error("Error fetching murca songs:", error)
+        // Fallback to anthem if error
+        setMurcaSongs(["/music/anthem.mp3"])
+      }
+    }
+    fetchMurcaSongs()
+  }, [])
+
+  // Play a random murca song
+  const playRandomMurcaSong = useCallback(() => {
+    if (murcaSongs.length === 0) return
+
+    // Stop current murca song if playing
+    if (currentMurcaAudioRef.current) {
+      currentMurcaAudioRef.current.pause()
+      currentMurcaAudioRef.current.currentTime = 0
+    }
+
+    // Pick a random song
+    const randomSong = murcaSongs[Math.floor(Math.random() * murcaSongs.length)]
+    
+    // Create and play new audio
+    const audio = new Audio(randomSong)
+    audio.volume = 0.5
+    audio.play().catch((e) => {
+      console.error("Error playing murca song:", e)
+    })
+    
+    currentMurcaAudioRef.current = audio
+  }, [murcaSongs])
+
+  useEffect(() => {
+    console.log("VictoryScreen mounted - stopping theme and playing random murca song")
 
     // Stop theme music specifically
     audioManager.stop("theme")
@@ -72,8 +118,13 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     // Stop all other sounds
     audioManager.stopAll()
 
-    // Play anthem (only once)
-    audioManager.play("anthem")
+    // Play a random murca song if songs are loaded
+    if (murcaSongs.length > 0) {
+      playRandomMurcaSong()
+    } else {
+      // Fallback to anthem if murca songs not loaded yet
+      audioManager.play("anthem")
+    }
 
     // Animate the flag
     const canvas = canvasRef.current
@@ -137,9 +188,13 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
     return () => {
       audioManager.stop("anthem")
+      if (currentMurcaAudioRef.current) {
+        currentMurcaAudioRef.current.pause()
+        currentMurcaAudioRef.current.currentTime = 0
+      }
       cancelAnimationFrame(animationId)
     }
-  }, [audioManager])
+  }, [audioManager, murcaSongs, playRandomMurcaSong])
 
   // Handle restart with page refresh
   const handleRestart = () => {
@@ -194,20 +249,29 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             </div>
           )}
 
-          <div className="flex gap-4">
+          <div className="flex flex-col gap-4 w-full">
+            <div className="flex gap-4">
+              <Button
+                size="lg"
+                onClick={() => setShowLeaderboard(true)}
+                className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors shadow-lg flex-1"
+              >
+                View Leaderboard
+              </Button>
+              <Button 
+                size="lg" 
+                onClick={handleRestart} 
+                className="bg-tracksuit-purple-700 hover:bg-tracksuit-purple-800 text-tracksuit-purple-100 relative z-50 font-chapeau transition-colors shadow-lg flex-1"
+              >
+                Play Again
+              </Button>
+            </div>
             <Button
               size="lg"
-              onClick={() => setShowLeaderboard(true)}
-              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors shadow-lg"
+              onClick={playRandomMurcaSong}
+              className="bg-gradient-to-r from-red-600 via-white to-blue-600 hover:from-red-700 hover:via-white hover:to-blue-700 text-white relative z-50 font-chapeau transition-colors shadow-lg font-bold"
             >
-              View Leaderboard
-            </Button>
-            <Button 
-              size="lg" 
-              onClick={handleRestart} 
-              className="bg-tracksuit-purple-700 hover:bg-tracksuit-purple-800 text-tracksuit-purple-100 relative z-50 font-chapeau transition-colors shadow-lg"
-            >
-              Play Again
+              Increase 'murca 🇺🇸
             </Button>
           </div>
         </div>
