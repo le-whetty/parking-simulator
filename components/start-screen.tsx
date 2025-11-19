@@ -37,43 +37,43 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
         {/* Left column - Luke image and description */}
         <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg flex flex-col items-center justify-start space-y-4">
           <div className="relative w-32 h-32">
-            <img src="/images/luke.png" alt="Luke Amundson" className="w-full h-full object-contain" />
+            <img src="/images/luke-rounded.png" alt="Luke Amundson" className="w-full h-full object-contain rounded-full" />
           </div>
           <div className="space-y-3 text-left w-full">
             <p className="text-sm font-quicksand text-tracksuit-purple-700 leading-relaxed">
-              Play as Luke Amundson, Head of Sales ANZ at Tracksuit, in his daily battle for the priority parking space - normally reserved for expectant parents and the temporarily injured!
+              What a start to the day! Play as Luke Amundson, Head of Sales ANZ at Tracksuit, in his daily battle for the priority parking space - normally reserved for expectant parents 🤰 and the temporarily injured 🤕
             </p>
             <p className="text-sm font-quicksand text-tracksuit-purple-700 leading-relaxed">
-              Your first meeting is at 8:30 AM, but it's 8:28 AM and there's only one spot left. Defeat your colleagues by throwing Kirkland™ hot dogs at their cars before they take your spot!
+              Your first meeting is at 8:30 AM, but it's 8:28 AM and there's only one spot left ⏱️ Defeat your colleagues by throwing Kirkland™ hot dogs at their cars before they take your spot 🌭
             </p>
           </div>
         </div>
 
         {/* Right column - How to Play */}
         <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
-          <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">How to Play</h3>
-          <ul className="text-sm space-y-1.5 font-quicksand text-tracksuit-purple-700">
-            <li className="flex items-start gap-2">
-              <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-              <span>Use WASD keys to move Luke's car</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-              <span>Press SPACE to throw hot dogs</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-              <span>Defeat all drivers AND park in the green spot</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-              <span>Don't let your health reach zero!</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-              <span>Land the alpha parking spot before 8:30 AM!</span>
-            </li>
-          </ul>
+          <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">How to play</h3>
+          <div className="space-y-2">
+            <div className="flex gap-4 text-sm font-quicksand">
+              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Drive</div>
+              <div className="text-tracksuit-purple-700">Use WASD keys to drive</div>
+            </div>
+            <div className="flex gap-4 text-sm font-quicksand">
+              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Attack</div>
+              <div className="text-tracksuit-purple-700">Press SPACE to throw hot dogs</div>
+            </div>
+            <div className="flex gap-4 text-sm font-quicksand">
+              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Win</div>
+              <div className="text-tracksuit-purple-700">Defeat all drivers AND park in the green spot</div>
+            </div>
+            <div className="flex gap-4 text-sm font-quicksand">
+              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Health</div>
+              <div className="text-tracksuit-purple-700">Don't let your health reach zero!</div>
+            </div>
+            <div className="flex gap-4 text-sm font-quicksand">
+              <div className="font-semibold text-tracksuit-purple-800 w-20 flex-shrink-0">Time</div>
+              <div className="text-tracksuit-purple-700">Don't let the time run out!</div>
+            </div>
+          </div>
         </div>
       </div>
 
