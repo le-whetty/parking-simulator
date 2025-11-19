@@ -40,10 +40,15 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     setIsAuthenticating(true)
     setError(null)
     try {
+      // Use the current origin (works for both localhost and production)
+      const redirectUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/auth/callback`
+        : '/auth/callback'
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: redirectUrl,
         },
       })
 
