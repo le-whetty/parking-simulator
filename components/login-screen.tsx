@@ -45,12 +45,20 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         ? `${window.location.origin}/auth/callback`
         : '/auth/callback'
       
-      const { error } = await supabase.auth.signInWithOAuth({
+      console.log('🔐 Sign in attempt:', {
+        currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
+        redirectUrl: redirectUrl,
+        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+      })
+      
+      const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
         },
       })
+      
+      console.log('🔐 OAuth response:', { error, data, url: data?.url })
 
       if (error) {
         setError(error.message)
