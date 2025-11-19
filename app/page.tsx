@@ -476,7 +476,7 @@ ${file}
     // Reset the score
     setScore(0)
 
-    // Start the game loop
+    // Start the game loop immediately
     console.log("Starting game loop...")
     if (gameLoopRef.current) {
       cancelAnimationFrame(gameLoopRef.current)
@@ -484,17 +484,14 @@ ${file}
     gameLoopRef.current = requestAnimationFrame(gameLoop)
     console.log("Game loop started, ref:", gameLoopRef.current)
 
-    // Play theme music - wait a bit for audio to initialize
-    setTimeout(() => {
-      try {
-        console.log("Attempting to play theme music...")
-        // Just call play - it will handle initialization if needed
-        audioManager.play("theme")
-        console.log("Theme music play called")
-      } catch (error) {
-        console.error("Error playing theme music:", error)
-      }
-    }, 500)
+    // Play theme music immediately (synchronized with game start)
+    try {
+      console.log("Attempting to play theme music immediately...")
+      audioManager.play("theme")
+      console.log("Theme music play called")
+    } catch (error) {
+      console.error("Error playing theme music:", error)
+    }
   }
 
   // Format time (minutes to MM:SS countdown)
@@ -1436,6 +1433,20 @@ ${file}
     }
   }, [gameState]) // Only depend on gameState to avoid loops
 
+  // Ensure theme music starts immediately when game state changes to playing
+  useEffect(() => {
+    if (gameState === "playing") {
+      // Ensure audio is initialized
+      if (!audioManager.initialized) {
+        audioManager.initialize()
+      }
+      
+      // Start theme music immediately
+      console.log("Game state changed to playing - starting theme music...")
+      audioManager.play("theme")
+    }
+  }, [gameState, audioManager])
+
   // Render login screen
   if (gameState === "auth") {
     return <LoginScreen onAuthenticated={() => setGameState("intro")} />
@@ -1445,7 +1456,7 @@ ${file}
   if (gameState === "intro") {
     return (
       <div 
-        className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-4 font-quicksand cursor-pointer"
+        className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand cursor-pointer"
         onClick={(e) => {
           e.preventDefault()
           e.stopPropagation()
@@ -1462,8 +1473,8 @@ ${file}
           <div className="mb-4">
             <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
           </div>
-          <h1 className="text-6xl font-bold text-red-500 mb-4">Parking Simulator</h1>
-          <p className="text-2xl text-gray-300 mb-8">Click anywhere to begin</p>
+          <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4">Parking Simulator</h1>
+          <p className="text-2xl text-tracksuit-purple-700 mb-8 font-quicksand">Click anywhere to begin</p>
         </div>
       </div>
     )

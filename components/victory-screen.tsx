@@ -159,7 +159,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         </div>
         
         <div className="flex flex-col items-center justify-center gap-8 text-center relative z-10">
-          <h1 className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-green-600 via-tracksuit-green-700 to-tracksuit-green-600">
+          <h1 className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600">
             VICTORY!
           </h1>
 
@@ -168,8 +168,11 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
             {/* Score overlay on the flag */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-white/90 backdrop-blur-sm px-8 py-4 rounded-lg transform rotate-[-5deg] border-2 border-tracksuit-purple-400/70 shadow-lg">
-                <div className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 drop-shadow-lg">{score} dawgs 🌭</div>
+              <div className="bg-white/90 backdrop-blur-sm px-8 py-6 rounded-lg transform rotate-[-5deg] border-2 border-tracksuit-purple-400/70 shadow-lg">
+                <div className="text-5xl font-bold font-chapeau drop-shadow-lg flex items-center gap-2">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">{score} dawgs</span>
+                  <span className="text-5xl">🌭</span>
+                </div>
               </div>
             </div>
           </div>
@@ -202,7 +205,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <Button 
               size="lg" 
               onClick={handleRestart} 
-              className="bg-tracksuit-green-600 hover:bg-tracksuit-green-700 text-white relative z-50 font-chapeau transition-colors shadow-lg"
+              className="bg-tracksuit-purple-700 hover:bg-tracksuit-purple-800 text-tracksuit-purple-100 relative z-50 font-chapeau transition-colors shadow-lg"
             >
               Play Again
             </Button>
