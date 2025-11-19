@@ -1471,31 +1471,31 @@ ${file}
 
   if (gameState === "start") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white p-4 font-quicksand">
+      <div className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand">
         <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
           <div className="mb-4">
             <img src="/images/tracksuit-logo-purple.png" alt="Tracksuit" className="w-[300px] mx-auto" />
           </div>
-          <h1 className="text-4xl font-bold text-red-500">Parking Simulator</h1>
+          <h1 className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">Parking Simulator</h1>
 
           <div className="relative w-[200px] h-[200px] mx-auto">
             <img src="/images/luke.png" alt="Luke Amundson" className="w-full h-full object-contain" />
           </div>
 
           <div className="space-y-4">
-            <p className="text-xl">
+            <p className="text-xl font-quicksand text-tracksuit-purple-800">
               Play as Luke Amundson, Head of Sales ANZ at Tracksuit, in his daily battle for the priority parking space
               - normally reserved for expectant parents and the temporarily injured!
             </p>
-            <p>
+            <p className="font-quicksand text-tracksuit-purple-700">
               Your first meeting is at 8:30 AM, but it's 8:28 AM and there's only one spot left - and it's the closest
               to the office. Defeat your pregnant and injured colleagues by throwing Kirkland™ hot dogs at their cars
               before they take your spot!
             </p>
 
-            <div className="bg-gray-800 p-4 rounded-md">
-              <h3 className="font-bold mb-2">How to Play:</h3>
-              <ul className="text-left list-disc pl-5 space-y-1">
+            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
+              <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau">How to Play:</h3>
+              <ul className="text-left list-disc pl-5 space-y-2 font-quicksand text-tracksuit-purple-700">
                 <li>Use WASD keys to move Luke's car (W=up, A=left, S=down, D=right)</li>
                 <li>Press SPACE to throw hot dogs at the approaching cars</li>
                 <li>Pregnant drivers throw baby bottles, injured drivers throw crutches</li>
@@ -1517,7 +1517,7 @@ ${file}
               console.log("startGame returned")
             }} 
             type="button"
-            className="bg-red-600 hover:bg-red-700"
+            className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau shadow-lg"
           >
             Start Game
           </Button>

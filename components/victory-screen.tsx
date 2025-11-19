@@ -151,10 +151,15 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-tracksuit-neutral-black/90 flex items-center justify-center">
-      <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-gray-700/50">
-        <div className="flex flex-col items-center justify-center gap-8 text-center">
-          <h1 className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-green-500 via-tracksuit-green-600 to-tracksuit-green-700">
+    <div className="fixed inset-0 z-50 bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-tracksuit-purple-200/50 relative overflow-hidden">
+        {/* Magic card border effect */}
+        <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-300">
+          <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-r from-tracksuit-purple-500 via-tracksuit-purple-600 to-tracksuit-purple-500 bg-[length:300%_300%] animate-[shine_3s_linear_infinite]"></div>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center gap-8 text-center relative z-10">
+          <h1 className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-green-600 via-tracksuit-green-700 to-tracksuit-green-600">
             VICTORY!
           </h1>
 
@@ -163,26 +168,26 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
             {/* Score overlay on the flag */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-tracksuit-neutral-black/70 px-8 py-4 rounded-lg transform rotate-[-5deg] border-2 border-tracksuit-purple-500/50">
-                <div className="text-5xl font-bold font-chapeau text-tracksuit-purple-400 drop-shadow-lg">{score} dawgs 🌭</div>
+              <div className="bg-white/90 backdrop-blur-sm px-8 py-4 rounded-lg transform rotate-[-5deg] border-2 border-tracksuit-purple-400/70 shadow-lg">
+                <div className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 drop-shadow-lg">{score} dawgs 🌭</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <p className="text-2xl font-bold font-chapeau text-tracksuit-neutral-white">Luke has secured the alpha parking spot!</p>
+            <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
 
-            <p className="text-gray-300 font-quicksand">
+            <p className="text-tracksuit-purple-700 font-quicksand">
               Another day, another victory in the dawg-eat-dawg world of office parking. The vulnerable and impaired
               colleagues have been defeated, and once again Luke's dominance is unchallenged 🌭
             </p>
           </div>
 
           {userEmail && userRank && (
-            <div className="p-6 bg-gradient-to-r from-tracksuit-purple-700/60 via-tracksuit-purple-600/60 to-tracksuit-purple-700/60 rounded-xl border-2 border-tracksuit-purple-500/70 shadow-lg backdrop-blur-sm">
-              <p className="text-sm uppercase tracking-wider text-tracksuit-purple-200 mb-2 font-semibold font-chapeau">Your Rank</p>
-              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-300">#{userRank}</p>
-              <p className="text-sm text-tracksuit-purple-200 mt-2 font-quicksand">{userEmail}</p>
+            <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
+              <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Your Rank</p>
+              <p className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{userRank}</p>
+              <p className="text-sm text-tracksuit-purple-600 mt-2 font-quicksand">{userEmail}</p>
             </div>
           )}
 
@@ -190,14 +195,14 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <Button
               size="lg"
               onClick={() => setShowLeaderboard(true)}
-              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors"
+              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors shadow-lg"
             >
               View Leaderboard
             </Button>
             <Button 
               size="lg" 
               onClick={handleRestart} 
-              className="bg-tracksuit-green-600 hover:bg-tracksuit-green-700 text-white relative z-50 font-chapeau transition-colors"
+              className="bg-tracksuit-green-600 hover:bg-tracksuit-green-700 text-white relative z-50 font-chapeau transition-colors shadow-lg"
             >
               Play Again
             </Button>
@@ -207,11 +212,11 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
       {/* Leaderboard Modal */}
       {showLeaderboard && (
-        <div className="fixed inset-0 z-[60] bg-tracksuit-neutral-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[60] bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="relative max-w-5xl w-full max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowLeaderboard(false)}
-              className="absolute top-6 right-6 text-tracksuit-neutral-white hover:text-tracksuit-purple-300 text-3xl font-bold z-10 w-10 h-10 flex items-center justify-center rounded-full bg-tracksuit-purple-800/80 hover:bg-tracksuit-purple-700/80 transition-colors"
+              className="absolute top-6 right-6 text-tracksuit-purple-700 hover:text-tracksuit-purple-600 text-3xl font-bold z-10 w-10 h-10 flex items-center justify-center rounded-full bg-white/90 hover:bg-white shadow-lg border border-tracksuit-purple-200 transition-colors"
               aria-label="Close leaderboard"
             >
               ×
