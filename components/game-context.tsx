@@ -245,12 +245,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     // Play throw sound
     audioManager.play("throw")
+    
+    // Scale hotdog velocity to screen size
+    const baseVelocityX = 400
+    const scaledVelocityX = baseVelocityX * gameState.scale
 
     const newProjectile: Projectile = {
       id: `hotdog-${now}`,
       type: "hotdog",
       position: { x: gameState.lukePosition.x + 100, y: gameState.lukePosition.y + 20 },
-      velocity: { x: 400, y: 0 },
+      velocity: { x: scaledVelocityX, y: 0 },
       isActive: true,
       fromPlayer: true,
     }
@@ -275,9 +279,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const timeIsUp = newTime <= 0
 
     // Handle keyboard input for Luke's car
+    // Scale movement speed to keep visual speed consistent across screen sizes
     let lukeVelocityX = 0
     let lukeVelocityY = 0
-    const moveSpeed = 200 // pixels per second
+    const baseMoveSpeed = 200 // base pixels per second
+    const moveSpeed = baseMoveSpeed * gameState.scale // scale to screen size
 
     if (gameState.keys.ArrowLeft) lukeVelocityX = -moveSpeed
     if (gameState.keys.ArrowRight) lukeVelocityX = moveSpeed
@@ -304,9 +310,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (driver.isActive) {
         activeDrivers++
 
-        // Move driver towards parking spot
+        // Move driver towards parking spot - scale speed to screen size
         const targetX = 1100 // Last parking spot X position
-        const moveSpeed = 60 + Math.random() * 20 // Randomize speed slightly
+        const baseMoveSpeed = 60 + Math.random() * 20 // Randomize speed slightly
+        const moveSpeed = baseMoveSpeed * gameState.scale // Scale to screen size
 
         // Update position
         updatedDrivers[index] = {
@@ -321,13 +328,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         // Driver attacks Luke (throw projectile)
         if (driver.attackCooldown <= 0 && Math.random() < 0.02) {
           const projectileType = driver.type === "pregnant" ? "bottle" : "crutch"
+          
+          // Scale projectile velocity to screen size
+          const baseVelocityX = -200 - Math.random() * 100
+          const scaledVelocityX = baseVelocityX * gameState.scale
 
           const newProjectile = {
             id: `${projectileType}-${Date.now()}-${Math.random()}`,
             type: projectileType,
             position: { ...driver.position },
             velocity: {
-              x: -200 - Math.random() * 100,
+              x: scaledVelocityX,
               y: 0,
             },
             isActive: true,
@@ -389,8 +400,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     // Check for collisions between projectiles and cars
     let lukeHealth = gameState.lukeHealth
     
-    // Add collision tolerance based on scale (smaller screens need more tolerance)
-    const collisionPadding = Math.max(20, 40 / gameState.scale)
+    // Add small collision padding for better hit detection
+    const collisionPadding = 15
 
     updatedProjectiles.forEach((projectile) => {
       if (!projectile.isActive) return

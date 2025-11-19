@@ -61,14 +61,17 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
       if (gameContainerRef.current) {
         const container = gameContainerRef.current
         const actualWidth = container.clientWidth
-        const logicalWidth = 1200 // Logical width in game coordinates
+        // Use 896px as baseline (max-w-4xl = 1024px minus padding/constraints)
+        // This represents the "ideal" game width on a standard desktop
+        const logicalWidth = 896
         const scale = actualWidth / logicalWidth
+        console.log(`Game scale: ${scale.toFixed(2)} (width: ${actualWidth}px / ${logicalWidth}px)`)
         setScale(scale)
       }
     }
 
-    // Initial scale calculation
-    updateScale()
+    // Initial scale calculation with a small delay to ensure layout is complete
+    setTimeout(updateScale, 100)
 
     // Recalculate on window resize
     window.addEventListener("resize", updateScale)
