@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import Menu from "./menu"
@@ -11,34 +11,18 @@ interface StartScreenProps {
 }
 
 export default function StartScreen({ onStart, onInitializeAudio }: StartScreenProps) {
-  const [audioInitialized, setAudioInitialized] = useState(false)
-  const [isCheckingAudio, setIsCheckingAudio] = useState(false)
   const audioManager = useAudioManager()
 
-  // Initialize audio when the button is clicked
-  const initializeAudio = () => {
-    setIsCheckingAudio(true)
-
-    // Initialize our audio manager
-    audioManager.initialize()
-
+  // Handle start game
+  const handleStart = () => {
+    // Initialize audio if not already done
+    if (!audioManager.initialized) {
+      audioManager.initialize()
+    }
+    
     // Call the parent's audio initialization function if provided
     if (onInitializeAudio) {
       onInitializeAudio()
-    }
-
-    // Mark as initialized after a short delay
-    setTimeout(() => {
-      setAudioInitialized(true)
-      setIsCheckingAudio(false)
-    }, 500)
-  }
-
-  // Handle start game with audio
-  const handleStart = () => {
-    // Play a sound to confirm audio is working
-    if (audioInitialized) {
-      audioManager.play("theme")
     }
 
     // Start the game
@@ -47,7 +31,7 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu onStartGame={handleStart} />
+      <Menu />
 
       {/* Main content area - two column layout */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
@@ -72,7 +56,7 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
           <ul className="text-sm space-y-1.5 font-quicksand text-tracksuit-purple-700">
             <li className="flex items-start gap-2">
               <span className="text-tracksuit-purple-500 mt-0.5">•</span>
-              <span>Use Arrow keys to move Luke's car</span>
+              <span>Use WASD keys to move Luke's car</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-tracksuit-purple-500 mt-0.5">•</span>
@@ -94,22 +78,16 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
         </div>
       </div>
 
-      {/* Action buttons - always visible */}
+      {/* Start Game button - always visible */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
-        <Button
-          onClick={initializeAudio}
-          className="bg-tracksuit-purple-200 hover:bg-tracksuit-purple-300 text-tracksuit-purple-800 font-chapeau text-sm px-6"
-          disabled={audioInitialized || isCheckingAudio}
+        <Button 
+          size="lg" 
+          onClick={handleStart} 
+          className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau shadow-lg px-8"
         >
-          {isCheckingAudio ? "Initializing..." : audioInitialized ? "Sound Enabled ✓" : "Enable Sound"}
+          Start Game
         </Button>
       </div>
-
-      {!audioInitialized && (
-        <p className="text-xs text-tracksuit-purple-500 mt-2 font-quicksand text-center">
-          Note: Click "Enable Sound" first for the full game experience
-        </p>
-      )}
     </div>
   )
 }

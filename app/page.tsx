@@ -1463,7 +1463,7 @@ ${file}
           <div className="mb-4">
             <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
           </div>
-          <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4">Parking Simulator</h1>
+          <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4" style={{ padding: '10px' }}>Parking Simulator</h1>
           <p className="text-2xl text-tracksuit-purple-700 mb-8 font-quicksand">Click anywhere to begin</p>
         </div>
       </div>

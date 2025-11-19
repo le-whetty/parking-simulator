@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button"
 import Leaderboard from "./leaderboard"
 import { supabase } from "@/lib/supabase"
 
-interface MenuProps {
-  onStartGame: () => void
-}
+interface MenuProps {}
 
-export default function Menu({ onStartGame }: MenuProps) {
+export default function Menu({}: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -45,12 +43,6 @@ export default function Menu({ onStartGame }: MenuProps) {
               className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau text-sm px-4"
             >
               View Leaderboard
-            </Button>
-            <Button
-              onClick={onStartGame}
-              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau text-sm px-6 font-bold"
-            >
-              Start Game
             </Button>
           </div>
         </div>
