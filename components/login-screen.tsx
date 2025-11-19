@@ -107,10 +107,12 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         <div className="mb-4">
           <img src="/images/tracksuit-logo-purple.png" alt="Tracksuit" className="w-[300px] mx-auto" />
         </div>
-        <h1 className="text-6xl font-bold text-red-500 mb-4">Parking Simulator</h1>
+        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-500 via-tracksuit-purple-600 to-tracksuit-purple-700 mb-4">
+          Parking Simulator
+        </h1>
         
         {error && (
-          <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-red-300">
+          <div className="bg-red-900/50 border-2 border-red-500 rounded-lg p-4 text-red-300 font-quicksand">
             {error}
           </div>
         )}
@@ -118,7 +120,7 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         <button
           onClick={handleSignIn}
           disabled={isAuthenticating}
-          className="flex items-center justify-center gap-3 px-8 py-4 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-3 px-8 py-4 bg-tracksuit-purple-600 text-white rounded-lg hover:bg-tracksuit-purple-700 transition-colors font-medium text-lg font-chapeau disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
         >
           <svg className="w-6 h-6" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -129,7 +131,7 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
           {isAuthenticating ? "Signing in..." : "Sign in with Google"}
         </button>
 
-        <p className="text-sm text-gray-400 mt-4">
+        <p className="text-sm text-gray-400 mt-4 font-quicksand">
           Sign in to play and compete on the leaderboard
         </p>
       </div>

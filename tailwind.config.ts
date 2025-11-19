@@ -14,8 +14,39 @@ const config: Config = {
     extend: {
       fontFamily: {
         quicksand: ['Quicksand', 'sans-serif'],
+        chapeau: ['Chapeau', 'sans-serif'],
       },
       colors: {
+        // Tracksuit Purple
+        'tracksuit-purple': {
+          50: '#f8f3ff',
+          100: '#e4dcf8',
+          200: '#d1c6f1',
+          300: '#bdb1e8',
+          400: '#aa9cdb',
+          500: '#8f80cc',
+          600: '#7066a3',
+          700: '#4d3777',
+          800: '#393352',
+        },
+        // Tracksuit Green
+        'tracksuit-green': {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+        },
+        // Tracksuit Neutral
+        'tracksuit-neutral': {
+          cream: '#faf7f0',
+          black: '#000000',
+          white: '#ffffff',
+        },
+        // Existing shadcn colors
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

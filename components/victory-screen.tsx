@@ -151,36 +151,38 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-900/90 flex items-center justify-center">
-      <div className="bg-gray-800 rounded-lg shadow-lg p-8 max-w-2xl w-full mx-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-tracksuit-neutral-black/90 flex items-center justify-center">
+      <div className="bg-gradient-to-br from-gray-800 via-gray-800 to-gray-900 rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-gray-700/50">
         <div className="flex flex-col items-center justify-center gap-8 text-center">
-          <h1 className="text-4xl font-bold text-green-500">VICTORY!</h1>
+          <h1 className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-green-500 via-tracksuit-green-600 to-tracksuit-green-700">
+            VICTORY!
+          </h1>
 
           <div className="relative w-full h-[300px]">
             <canvas ref={canvasRef} width={500} height={300} className="w-full h-full" />
 
             {/* Score overlay on the flag */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="bg-black/60 px-8 py-4 rounded-lg transform rotate-[-5deg]">
-                <div className="text-5xl font-bold text-yellow-400 drop-shadow-lg">{score} dawgs 🌭</div>
+              <div className="bg-tracksuit-neutral-black/70 px-8 py-4 rounded-lg transform rotate-[-5deg] border-2 border-tracksuit-purple-500/50">
+                <div className="text-5xl font-bold font-chapeau text-tracksuit-purple-400 drop-shadow-lg">{score} dawgs 🌭</div>
               </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            <p className="text-2xl font-bold">Luke has secured the alpha parking spot!</p>
+            <p className="text-2xl font-bold font-chapeau text-tracksuit-neutral-white">Luke has secured the alpha parking spot!</p>
 
-            <p className="text-ts-green-700">
+            <p className="text-gray-300 font-quicksand">
               Another day, another victory in the dawg-eat-dawg world of office parking. The vulnerable and impaired
               colleagues have been defeated, and once again Luke's dominance is unchallenged 🌭
             </p>
           </div>
 
           {userEmail && userRank && (
-            <div className="p-4 bg-blue-900/50 rounded-lg border-2 border-blue-500">
-              <p className="text-lg text-blue-300 mb-1">Your Rank</p>
-              <p className="text-3xl font-bold text-blue-400">#{userRank}</p>
-              <p className="text-sm text-blue-300 mt-1">{userEmail}</p>
+            <div className="p-6 bg-gradient-to-r from-tracksuit-purple-700/60 via-tracksuit-purple-600/60 to-tracksuit-purple-700/60 rounded-xl border-2 border-tracksuit-purple-500/70 shadow-lg backdrop-blur-sm">
+              <p className="text-sm uppercase tracking-wider text-tracksuit-purple-200 mb-2 font-semibold font-chapeau">Your Rank</p>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-300">#{userRank}</p>
+              <p className="text-sm text-tracksuit-purple-200 mt-2 font-quicksand">{userEmail}</p>
             </div>
           )}
 
@@ -188,11 +190,15 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <Button
               size="lg"
               onClick={() => setShowLeaderboard(true)}
-              className="bg-purple-600 hover:bg-purple-700 relative z-50"
+              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors"
             >
               View Leaderboard
             </Button>
-            <Button size="lg" onClick={handleRestart} className="bg-blue-600 hover:bg-blue-700 relative z-50">
+            <Button 
+              size="lg" 
+              onClick={handleRestart} 
+              className="bg-tracksuit-green-600 hover:bg-tracksuit-green-700 text-white relative z-50 font-chapeau transition-colors"
+            >
               Play Again
             </Button>
           </div>
@@ -201,11 +207,11 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
       {/* Leaderboard Modal */}
       {showLeaderboard && (
-        <div className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+        <div className="fixed inset-0 z-[60] bg-tracksuit-neutral-black/90 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="relative max-w-5xl w-full max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowLeaderboard(false)}
-              className="absolute top-6 right-6 text-white hover:text-gray-300 text-3xl font-bold z-10 w-10 h-10 flex items-center justify-center rounded-full bg-gray-800/80 hover:bg-gray-700/80 transition-colors"
+              className="absolute top-6 right-6 text-tracksuit-neutral-white hover:text-tracksuit-purple-300 text-3xl font-bold z-10 w-10 h-10 flex items-center justify-center rounded-full bg-tracksuit-purple-800/80 hover:bg-tracksuit-purple-700/80 transition-colors"
               aria-label="Close leaderboard"
             >
               ×

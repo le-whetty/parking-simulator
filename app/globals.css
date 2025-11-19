@@ -2,8 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Tracksuit Fonts */
+@font-face {
+  font-family: 'Chapeau';
+  src: url('/fonts/Chapeau-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Quicksand';
+  src: url('/fonts/Quicksand-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   --font-quicksand: 'Quicksand', sans-serif;
+  --font-chapeau: 'Chapeau', sans-serif;
+  
+  /* Tracksuit Purple */
+  --tracksuit-purple-50: #f8f3ff;
+  --tracksuit-purple-100: #e4dcf8;
+  --tracksuit-purple-200: #d1c6f1;
+  --tracksuit-purple-300: #bdb1e8;
+  --tracksuit-purple-400: #aa9cdb;
+  --tracksuit-purple-500: #8f80cc;
+  --tracksuit-purple-600: #7066a3;
+  --tracksuit-purple-700: #4d3777;
+  --tracksuit-purple-800: #393352;
+  
+  /* Tracksuit Green */
+  --tracksuit-green-50: #f0fdf4;
+  --tracksuit-green-100: #dcfce7;
+  --tracksuit-green-200: #bbf7d0;
+  --tracksuit-green-300: #86efac;
+  --tracksuit-green-500: #22c55e;
+  --tracksuit-green-600: #16a34a;
+  --tracksuit-green-700: #15803d;
+  --tracksuit-green-800: #166534;
+  
+  /* Tracksuit Neutral */
+  --tracksuit-neutral-cream: #faf7f0;
+  --tracksuit-neutral-black: #000000;
+  --tracksuit-neutral-white: #ffffff;
 }
 
 @layer base {
