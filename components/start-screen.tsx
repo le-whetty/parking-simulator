@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import Menu from "./menu"
