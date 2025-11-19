@@ -14,7 +14,7 @@ interface GameScreenProps {
 }
 
 export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
-  const { gameState, throwHotDog, updateGame, setKeyPressed } = useGame()
+  const { gameState, throwHotDog, updateGame, setKeyPressed, setScale } = useGame()
   const requestRef = useRef<number>()
   const previousTimeRef = useRef<number>()
   const [showEffect, setShowEffect] = useState<string | null>(null)
@@ -54,6 +54,29 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
       window.removeEventListener("keyup", handleKeyUp)
     }
   }, [setKeyPressed, throwHotDog])
+
+  // Calculate and set scale factor based on actual rendered size
+  useEffect(() => {
+    const updateScale = () => {
+      if (gameContainerRef.current) {
+        const container = gameContainerRef.current
+        const actualWidth = container.clientWidth
+        const logicalWidth = 1200 // Logical width in game coordinates
+        const scale = actualWidth / logicalWidth
+        setScale(scale)
+      }
+    }
+
+    // Initial scale calculation
+    updateScale()
+
+    // Recalculate on window resize
+    window.addEventListener("resize", updateScale)
+
+    return () => {
+      window.removeEventListener("resize", updateScale)
+    }
+  }, [setScale])
 
   // Handle hit animations
   useEffect(() => {

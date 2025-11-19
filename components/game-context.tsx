@@ -53,6 +53,7 @@ export interface GameState {
     Space: boolean
   }
   lastHotDogTime: number
+  scale: number // Scale factor for responsive gameplay
 }
 
 interface GameContextType {
@@ -62,6 +63,7 @@ interface GameContextType {
   updateGame: (deltaTime: number) => void
   resetGame: () => void
   setKeyPressed: (key: string, isPressed: boolean) => void
+  setScale: (scale: number) => void
 }
 
 const initialDrivers: Driver[] = [
@@ -190,6 +192,7 @@ const initialState: GameState = {
     Space: false,
   },
   lastHotDogTime: 0,
+  scale: 1, // Default scale factor
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -223,6 +226,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
                   ? "Space"
                   : key]: isPressed,
       },
+    }))
+  }
+
+  const setScale = (scale: number) => {
+    setGameState((prev) => ({
+      ...prev,
+      scale,
     }))
   }
 
@@ -378,6 +388,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     // Check for collisions between projectiles and cars
     let lukeHealth = gameState.lukeHealth
+    
+    // Add collision tolerance based on scale (smaller screens need more tolerance)
+    const collisionPadding = Math.max(20, 40 / gameState.scale)
 
     updatedProjectiles.forEach((projectile) => {
       if (!projectile.isActive) return
@@ -385,10 +398,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
       // Check collision with Luke's car
       if (!projectile.fromPlayer) {
         const lukeCar = {
-          x: newLukeX,
-          y: newLukeY,
-          width: 140,
-          height: 80,
+          x: newLukeX - collisionPadding,
+          y: newLukeY - collisionPadding,
+          width: 140 + collisionPadding * 2,
+          height: 80 + collisionPadding * 2,
         }
 
         if (
@@ -407,10 +420,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
           if (!driver.isActive || driver.defeated) return
 
           const driverCar = {
-            x: driver.position.x,
-            y: driver.position.y,
-            width: driver.car.width,
-            height: driver.car.height,
+            x: driver.position.x - collisionPadding,
+            y: driver.position.y - collisionPadding,
+            width: driver.car.width + collisionPadding * 2,
+            height: driver.car.height + collisionPadding * 2,
           }
 
           if (
@@ -478,7 +491,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <GameContext.Provider value={{ gameState, startGame, throwHotDog, updateGame, resetGame, setKeyPressed }}>
+    <GameContext.Provider value={{ gameState, startGame, throwHotDog, updateGame, resetGame, setKeyPressed, setScale }}>
       {children}
     </GameContext.Provider>
   )
