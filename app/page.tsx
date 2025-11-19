@@ -476,7 +476,7 @@ ${file}
     // Reset the score
     setScore(0)
 
-    // Start the game loop immediately
+    // Start the game loop
     console.log("Starting game loop...")
     if (gameLoopRef.current) {
       cancelAnimationFrame(gameLoopRef.current)
@@ -484,14 +484,17 @@ ${file}
     gameLoopRef.current = requestAnimationFrame(gameLoop)
     console.log("Game loop started, ref:", gameLoopRef.current)
 
-    // Play theme music immediately (synchronized with game start)
-    try {
-      console.log("Attempting to play theme music immediately...")
-      audioManager.play("theme")
-      console.log("Theme music play called")
-    } catch (error) {
-      console.error("Error playing theme music:", error)
-    }
+    // Play theme music - wait a bit for audio to initialize
+    setTimeout(() => {
+      try {
+        console.log("Attempting to play theme music...")
+        // Just call play - it will handle initialization if needed
+        audioManager.play("theme")
+        console.log("Theme music play called")
+      } catch (error) {
+        console.error("Error playing theme music:", error)
+      }
+    }, 500)
   }
 
   // Format time (minutes to MM:SS countdown)
@@ -1432,20 +1435,6 @@ ${file}
       }
     }
   }, [gameState]) // Only depend on gameState to avoid loops
-
-  // Ensure theme music starts immediately when game state changes to playing
-  useEffect(() => {
-    if (gameState === "playing") {
-      // Ensure audio is initialized
-      if (!audioManager.initialized) {
-        audioManager.initialize()
-      }
-      
-      // Start theme music immediately
-      console.log("Game state changed to playing - starting theme music...")
-      audioManager.play("theme")
-    }
-  }, [gameState, audioManager])
 
   // Render login screen
   if (gameState === "auth") {
