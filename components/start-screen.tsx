@@ -35,12 +35,12 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
       {/* Main content area - two column layout */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
         {/* Left column - Luke image and description */}
-        <div className="flex flex-col items-center justify-center space-y-4">
+        <div className="bg-white/80 backdrop-blur-sm p-5 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg flex flex-col items-center justify-start space-y-4">
           <div className="relative w-32 h-32">
             <img src="/images/luke.png" alt="Luke Amundson" className="w-full h-full object-contain" />
           </div>
-          <div className="space-y-2 text-center">
-            <p className="text-sm font-quicksand text-tracksuit-purple-800 leading-relaxed">
+          <div className="space-y-3 text-left w-full">
+            <p className="text-sm font-quicksand text-tracksuit-purple-700 leading-relaxed">
               Play as Luke Amundson, Head of Sales ANZ at Tracksuit, in his daily battle for the priority parking space - normally reserved for expectant parents and the temporarily injured!
             </p>
             <p className="text-sm font-quicksand text-tracksuit-purple-700 leading-relaxed">
