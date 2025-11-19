@@ -266,10 +266,6 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         </div>
         
         <div className="flex flex-col items-center justify-center gap-8 text-center relative z-10">
-          <h1 className="text-5xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600">
-            VICTORY!
-          </h1>
-
           <div className="relative w-full h-[300px]">
             <canvas ref={canvasRef} width={500} height={300} className="w-full h-full" />
 
