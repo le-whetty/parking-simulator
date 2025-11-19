@@ -39,26 +39,47 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
   const handleSignIn = async () => {
     setIsAuthenticating(true)
     setError(null)
+    
+    // Force use of current window location
+    if (typeof window === 'undefined') {
+      setError("Cannot sign in - window not available")
+      setIsAuthenticating(false)
+      return
+    }
+    
+    // Explicitly get the current origin
+    const currentOrigin = window.location.origin
+    const redirectUrl = `${currentOrigin}/auth/callback`
+    
+    // Log everything for debugging
+    console.log('🔐 Sign in attempt:', {
+      currentOrigin: currentOrigin,
+      fullUrl: window.location.href,
+      redirectUrl: redirectUrl,
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
+    })
+    
     try {
-      // Use the current origin (works for both localhost and production)
-      const redirectUrl = typeof window !== 'undefined' 
-        ? `${window.location.origin}/auth/callback`
-        : '/auth/callback'
-      
-      console.log('🔐 Sign in attempt:', {
-        currentOrigin: typeof window !== 'undefined' ? window.location.origin : 'N/A',
-        redirectUrl: redirectUrl,
-        supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL
-      })
-      
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
+          queryParams: {
+            redirect_to: redirectUrl,
+          },
         },
       })
       
-      console.log('🔐 OAuth response:', { error, data, url: data?.url })
+      console.log('🔐 OAuth response:', { 
+        error, 
+        data, 
+        url: data?.url,
+        redirectUrl: redirectUrl 
+      })
+      
+      if (data?.url) {
+        console.log('🔐 Redirecting to:', data.url)
+      }
 
       if (error) {
         setError(error.message)
