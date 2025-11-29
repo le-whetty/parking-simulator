@@ -23,6 +23,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const playedSongsRef = useRef<string[]>([]) // Track which songs have been played
   const shuffledQueueRef = useRef<string[]>([]) // Current shuffle queue
   const initialSongPlayedRef = useRef<boolean>(false) // Track if initial song has been played
+  const [currentSongInfo, setCurrentSongInfo] = useState<{ artist: string; title: string } | null>(null)
 
   // Check authentication and save score
   useEffect(() => {
@@ -101,6 +102,29 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     fetchMurcaSongs()
   }, [])
 
+  // Parse song filename to extract artist and title
+  const parseSongFilename = useCallback((filename: string): { artist: string; title: string } => {
+    // Remove .mp3 extension and path
+    const basename = filename.split('/').pop()?.replace('.mp3', '') || filename.replace('.mp3', '')
+    const parts = basename.split('-')
+    
+    if (parts.length < 3) {
+      // Fallback if format is unexpected
+      return { artist: 'Unknown Artist', title: basename.replace(/-/g, ' ') }
+    }
+    
+    // First two parts are firstname-lastname (artist)
+    const artist = `${parts[0].charAt(0).toUpperCase() + parts[0].slice(1)} ${parts[1].charAt(0).toUpperCase() + parts[1].slice(1)}`
+    
+    // Rest is song title (join with spaces and capitalize words)
+    const titleParts = parts.slice(2)
+    const title = titleParts
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ')
+    
+    return { artist, title }
+  }, [])
+
   // Play a random murca song with Spotify-style shuffle
   const playRandomMurcaSong = useCallback(() => {
     if (murcaSongs.length === 0) return
@@ -129,6 +153,10 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     const nextSong = shuffledQueueRef.current.shift()!
     playedSongsRef.current.push(nextSong)
     
+    // Parse and update current song info
+    const songInfo = parseSongFilename(nextSong)
+    setCurrentSongInfo(songInfo)
+    
     console.log(`🎵 Playing: ${nextSong} (${playedSongsRef.current.length}/${murcaSongs.length} played)`)
     
     // Create and play new audio
@@ -146,7 +174,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     })
     
     currentMurcaAudioRef.current = audio
-  }, [murcaSongs])
+  }, [murcaSongs, parseSongFilename])
 
   // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
@@ -361,6 +389,29 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               ×
             </button>
             <Leaderboard userEmail={userEmail || undefined} userScore={score} userRank={userRank || undefined} />
+          </div>
+        </div>
+      )}
+
+      {/* Music Player UI - Bottom Right */}
+      {currentSongInfo && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white/95 backdrop-blur-sm rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg p-4 max-w-xs animate-fadeIn">
+          <div className="flex items-center gap-3">
+            {/* Music Icon */}
+            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-tracksuit-purple-500 to-tracksuit-purple-700 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
+              </svg>
+            </div>
+            {/* Song Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold font-chapeau text-tracksuit-purple-800 truncate">
+                {currentSongInfo.title}
+              </p>
+              <p className="text-xs font-quicksand text-tracksuit-purple-600 truncate">
+                {currentSongInfo.artist}
+              </p>
+            </div>
           </div>
         </div>
       )}

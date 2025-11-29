@@ -350,6 +350,19 @@ ${file}
       directionChangeTimer: Math.random() * 5 + 3,
       carImage: "/images/car-red.png",
     },
+    {
+      id: "sarah",
+      name: "Sarah",
+      type: "pregnant",
+      image: "/images/sarah.png",
+      health: 100,
+      defeated: false,
+      position: { x: 150, y: 250 },
+      speed: 32,
+      direction: { x: 0.5, y: 0.5 },
+      directionChangeTimer: Math.random() * 2 + 1,
+      carImage: "/images/car-purple.png",
+    },
     // Add injured drivers
     {
       id: "dom",
