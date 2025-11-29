@@ -33,7 +33,16 @@ interface Driver {
 
 export default function Home() {
   // Check if we're in dev mode (skip auth)
-  const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true"
+  const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true" || process.env.NEXT_PUBLIC_SKIP_AUTH === "1"
+  
+  // Log for debugging
+  useEffect(() => {
+    console.log('🔧 AUTH CHECK:', {
+      skipAuth: process.env.NEXT_PUBLIC_SKIP_AUTH,
+      isDevMode,
+      allEnvVars: Object.keys(process.env).filter(k => k.includes('SKIP') || k.includes('AUTH'))
+    })
+  }, [isDevMode])
   
   // Game state - skip auth in dev mode
   const [gameState, setGameState] = useState<GameState>(isDevMode ? "intro" : "auth")
