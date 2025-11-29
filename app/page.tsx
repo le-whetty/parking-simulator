@@ -888,7 +888,8 @@ ${file}
       }
       
       // Use ref to track timer (more reliable than state in game loop)
-      parkingSpotTimerRef.current += 0.016 // Add frame time (60fps)
+      // Frame-rate independent: use actual deltaTime in seconds
+      parkingSpotTimerRef.current += deltaTime / 1000
       const currentTimer = parkingSpotTimerRef.current
       
       // Update state for UI display
@@ -896,7 +897,7 @@ ${file}
       
       // Log progress every 0.5 seconds
       const logInterval = Math.floor(currentTimer * 2)
-      const prevLogInterval = Math.floor((currentTimer - 0.016) * 2)
+      const prevLogInterval = Math.floor((currentTimer - deltaTime / 1000) * 2)
       if (logInterval !== prevLogInterval && currentTimer > 0) {
         console.log(`⏱️ Parking timer: ${currentTimer.toFixed(2)}s / 3.0s | inSpot: ${inSpot} | currentAllDefeated: ${currentAllDefeated}`)
       }
