@@ -76,7 +76,6 @@ export default function Home() {
   const lastFrameTimeRef = useRef(performance.now())
   const lastLogTimeRef = useRef(performance.now())
   const smoothedDeltaTimeRef = useRef(16.67) // Start with 60fps equivalent
-  const lastDriverStateUpdateRef = useRef(0) // Track last React state update for drivers
   const [showSlackMessage, setShowSlackMessage] = useState(false) // State to control Slack message visibility
   const slackMessageTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Ref for the Slack message timeout
 
@@ -979,11 +978,8 @@ ${file}
     }
 
     // Update drivers with dynamic movement
-    // Throttle React state updates to reduce flickering (update every ~100ms instead of every frame)
-    // DOM updates happen every frame for smooth movement, but React re-renders are throttled
-    // Reuse 'now' variable from earlier in the function
-    const shouldUpdateReactState = now - lastDriverStateUpdateRef.current >= 100
-    
+    // DOM updates happen every frame for smooth movement
+    // React state is updated every frame but DOM takes precedence (no visual stutter)
     // Compute updated drivers (always happens for game logic)
     const updatedDrivers = driversRef.current.map((driver) => {
         if (driver.defeated) return driver
@@ -1077,8 +1073,8 @@ ${file}
             newDirY = renormalized.y
           }
 
-          // Reset timer (3-8 seconds)
-          newDirectionChangeTimer = Math.random() * 5 + 3
+          // Reset timer (1-3 seconds for more dynamic movement)
+          newDirectionChangeTimer = Math.random() * 2 + 1
         }
 
         // Update driver element position
@@ -1110,11 +1106,8 @@ ${file}
     // Always update driversRef for game logic
     driversRef.current = updatedDrivers
     
-    // Only update React state periodically to reduce flickering
-    if (shouldUpdateReactState) {
-      lastDriverStateUpdateRef.current = now
-      setDrivers(updatedDrivers)
-    }
+    // Update React state every frame (DOM updates happen directly, so React re-renders don't cause stutter)
+    setDrivers(updatedDrivers)
 
     // Move hotdogs
     hotdogsRef.current.forEach((hotdog, index) => {
