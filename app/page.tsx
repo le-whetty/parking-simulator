@@ -981,7 +981,7 @@ ${file}
     // Update drivers with dynamic movement
     // Throttle React state updates to reduce flickering (update every ~100ms instead of every frame)
     // DOM updates happen every frame for smooth movement, but React re-renders are throttled
-    const now = performance.now()
+    // Reuse 'now' variable from earlier in the function
     const shouldUpdateReactState = now - lastDriverStateUpdateRef.current >= 100
     
     // Compute updated drivers (always happens for game logic)
