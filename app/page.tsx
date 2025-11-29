@@ -780,13 +780,9 @@ ${file}
     // Log every second
     if (now - lastLogTimeRef.current >= 1000) {
       const fps = frameCountRef.current / ((now - lastLogTimeRef.current) / 1000)
-      console.log('⏱️ FRAME INFO:', {
-        fps: fps.toFixed(1),
-        deltaTime: deltaTime.toFixed(2) + 'ms',
-        expectedDelta: '16.67ms',
-        activeDrivers: driversRef.current.filter(d => d.isActive && !d.defeated).length,
-        projectiles: enemyProjectilesRef.current.length + hotdogsRef.current.length
-      })
+      const avgDeltaTime = (now - lastLogTimeRef.current) / frameCountRef.current
+      console.log(`⏱️ FRAME INFO: FPS=${fps.toFixed(1)} | DeltaTime=${deltaTime.toFixed(2)}ms | AvgDelta=${avgDeltaTime.toFixed(2)}ms | Drivers=${driversRef.current.filter(d => d.isActive && !d.defeated).length} | Projectiles=${enemyProjectilesRef.current.length + hotdogsRef.current.length}`)
+      console.log(`🎮 MOVEMENT CHECK: Projectile speed=${(0.18 * deltaTime).toFixed(2)}px this frame (should be ~3px at 60fps, ~1.5px at 120fps)`)
       frameCountRef.current = 0
       lastLogTimeRef.current = now
     }
@@ -1242,6 +1238,10 @@ ${file}
       // Convert to px/ms: 3 px / 16.67ms = 0.18 px/ms
       const speedPxPerMs = 0.18
       const movement = speedPxPerMs * deltaTime
+      // Log first projectile movement to verify fix is active
+      if (index === 0 && Math.random() < 0.01) { // Log 1% of frames for first projectile
+        console.log(`🚀 PROJECTILE MOVEMENT: deltaTime=${deltaTime.toFixed(2)}ms, movement=${movement.toFixed(3)}px (should be ~3px at 60fps, ~1.5px at 120fps)`)
+      }
       projectile.style.left = `${currentLeft + dirX * movement}px`
       projectile.style.top = `${currentTop + dirY * movement}px`
 
