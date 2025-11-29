@@ -57,6 +57,7 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
 
   // Set up CSS scaling for fixed canvas size
   useEffect(() => {
+    console.log('🚀 CSS SCALING EFFECT RUNNING!')
     if (gameContainerRef.current) {
       const container = gameContainerRef.current
       const updateScale = () => {
