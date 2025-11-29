@@ -771,7 +771,9 @@ ${file}
 
     // Track frame rate and delta time
     const now = performance.now()
-    const deltaTime = now - lastFrameTimeRef.current
+    let deltaTime = now - lastFrameTimeRef.current
+    // Cap deltaTime to prevent huge jumps on first frame or tab switch
+    if (deltaTime > 100) deltaTime = 16.67 // Cap at ~60fps equivalent
     lastFrameTimeRef.current = now
     frameCountRef.current++
     
@@ -973,10 +975,11 @@ ${file}
       const updated = prevDrivers.map((driver) => {
         if (driver.defeated) return driver
 
-        // Calculate new position based on direction and speed
-        const deltaTime = 0.016 // 60fps
-        const newX = driver.position.x + driver.direction.x * driver.speed * deltaTime
-        const newY = driver.position.y + driver.direction.y * driver.speed * deltaTime
+        // Calculate new position based on direction and speed - frame-rate independent
+        // deltaTime is in ms, convert to seconds for movement calculation
+        const deltaTimeSeconds = deltaTime / 1000
+        const newX = driver.position.x + driver.direction.x * driver.speed * deltaTimeSeconds
+        const newY = driver.position.y + driver.direction.y * driver.speed * deltaTimeSeconds
 
         // Check if driver is going out of bounds
         const isOutOfBounds =
@@ -1084,32 +1087,37 @@ ${file}
     hotdogsRef.current.forEach((hotdog, index) => {
       const currentLeft = Number.parseInt(hotdog.style.left || "0")
       const currentTop = Number.parseInt(hotdog.style.top || "0")
-      const speed = 10
+      
+      // Frame-rate independent movement
+      // Speed was 10 px/frame at 60fps (16.67ms per frame)
+      // Convert to px/ms: 10 px / 16.67ms = 0.6 px/ms
+      const speedPxPerMs = 0.6
+      const movement = speedPxPerMs * deltaTime
 
       // Move based on direction
       if (hotdog.dataset.direction === "left") {
-        hotdog.style.left = `${currentLeft - speed}px`
+        hotdog.style.left = `${currentLeft - movement}px`
         // Remove if out of bounds
         if (currentLeft < -50) {
           hotdog.remove()
           hotdogsRef.current.splice(index, 1)
         }
       } else if (hotdog.dataset.direction === "right") {
-        hotdog.style.left = `${currentLeft + speed}px`
+        hotdog.style.left = `${currentLeft + movement}px`
         // Remove if out of bounds
         if (currentLeft > 1200) {
           hotdog.remove()
           hotdogsRef.current.splice(index, 1)
         }
       } else if (hotdog.dataset.direction === "up") {
-        hotdog.style.top = `${currentTop - speed}px`
+        hotdog.style.top = `${currentTop - movement}px`
         // Remove if out of bounds
         if (currentTop < -50) {
           hotdog.remove()
           hotdogsRef.current.splice(index, 1)
         }
       } else if (hotdog.dataset.direction === "down") {
-        hotdog.style.top = `${currentTop + speed}px`
+        hotdog.style.top = `${currentTop + movement}px`
         // Remove if out of bounds
         if (currentTop > 800) {
           hotdog.remove()
@@ -1229,10 +1237,13 @@ ${file}
       const dirX = Number.parseFloat(projectile.dataset.dirX || "0")
       const dirY = Number.parseFloat(projectile.dataset.dirY || "0")
 
-      // Move projectile towards Luke - reduced speed from 5 to 3
-      const speed = 3
-      projectile.style.left = `${currentLeft + dirX * speed}px`
-      projectile.style.top = `${currentTop + dirY * speed}px`
+      // Move projectile towards Luke - frame-rate independent
+      // Speed was 3 px/frame at 60fps (16.67ms per frame)
+      // Convert to px/ms: 3 px / 16.67ms = 0.18 px/ms
+      const speedPxPerMs = 0.18
+      const movement = speedPxPerMs * deltaTime
+      projectile.style.left = `${currentLeft + dirX * movement}px`
+      projectile.style.top = `${currentTop + dirY * movement}px`
 
       // Remove if out of bounds
       if (currentLeft < -50 || currentLeft > 1200 || currentTop < -50 || currentTop > 800) {
