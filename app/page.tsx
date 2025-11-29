@@ -75,6 +75,7 @@ export default function Home() {
   const frameCountRef = useRef(0)
   const lastFrameTimeRef = useRef(performance.now())
   const lastLogTimeRef = useRef(performance.now())
+  const smoothedDeltaTimeRef = useRef(16.67) // Start with 60fps equivalent
   const [showSlackMessage, setShowSlackMessage] = useState(false) // State to control Slack message visibility
   const slackMessageTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Ref for the Slack message timeout
 
@@ -703,10 +704,15 @@ ${file}
 
   // Find the enemyAttack function and update it to use the bottle and crutches images
 
-  // Enemy attack
-  const enemyAttack = (driver: Driver) => {
-    // Adjust attack probability to 0.01 (1% chance per frame) - in between the original 0.02 and current 0.005
-    if (driver.defeated || Math.random() > 0.01 || hasWon) return
+  // Enemy attack - frame-rate independent
+  const enemyAttack = (driver: Driver, deltaTimeMs: number) => {
+    if (driver.defeated || hasWon) return
+    
+    // Attack rate: 0.6 attacks per second (was 0.01 per frame at 60fps)
+    // Convert to time-based probability: rate * deltaTimeSeconds
+    const attackRatePerSecond = 0.6
+    const attackProbability = attackRatePerSecond * (deltaTimeMs / 1000)
+    if (Math.random() > attackProbability) return
 
     // Create projectile element
     const projectile = document.createElement("div")
@@ -774,6 +780,11 @@ ${file}
     let deltaTime = now - lastFrameTimeRef.current
     // Cap deltaTime to prevent huge jumps on first frame or tab switch
     if (deltaTime > 100) deltaTime = 16.67 // Cap at ~60fps equivalent
+    
+    // Smooth deltaTime to reduce flickering (exponential moving average)
+    const smoothingFactor = 0.1 // Lower = more smoothing
+    smoothedDeltaTimeRef.current = smoothedDeltaTimeRef.current * (1 - smoothingFactor) + deltaTime * smoothingFactor
+    
     lastFrameTimeRef.current = now
     frameCountRef.current++
     
@@ -972,10 +983,10 @@ ${file}
         if (driver.defeated) return driver
 
         // Calculate new position based on direction and speed - frame-rate independent
-        // deltaTime is in ms, convert to seconds for movement calculation
-        const deltaTimeSeconds = deltaTime / 1000
-        const newX = driver.position.x + driver.direction.x * driver.speed * deltaTimeSeconds
-        const newY = driver.position.y + driver.direction.y * driver.speed * deltaTimeSeconds
+        // Use smoothed deltaTime for driver movement to reduce flickering
+        const smoothedDeltaTimeSeconds = smoothedDeltaTimeRef.current / 1000
+        const newX = driver.position.x + driver.direction.x * driver.speed * smoothedDeltaTimeSeconds
+        const newY = driver.position.y + driver.direction.y * driver.speed * smoothedDeltaTimeSeconds
 
         // Check if driver is going out of bounds
         const isOutOfBounds =
@@ -986,7 +997,7 @@ ${file}
         let newDirY = driver.direction.y
         let posX = newX
         let posY = newY
-        let newDirectionChangeTimer = driver.directionChangeTimer - deltaTime
+        let newDirectionChangeTimer = driver.directionChangeTimer - smoothedDeltaTimeRef.current
 
         // If driver is going out of bounds, force a direction change toward center
         if (isOutOfBounds) {
@@ -1064,8 +1075,8 @@ ${file}
           }
         }
 
-        // Random chance to attack
-        enemyAttack(driver)
+        // Random chance to attack - pass deltaTime for frame-rate independent attacks
+        enemyAttack(driver, deltaTime)
 
         // Return updated driver
         return {
