@@ -71,6 +71,10 @@ export default function Home() {
   const hotdogsRef = useRef<HTMLDivElement[]>([]) // Hotdogs ref
   const lastHotdogTime = useRef(0) // Last hotdog time
   const enemyProjectilesRef = useRef<HTMLDivElement[]>([]) // Enemy projectiles ref
+  // Frame tracking for diagnostics
+  const frameCountRef = useRef(0)
+  const lastFrameTimeRef = useRef(performance.now())
+  const lastLogTimeRef = useRef(performance.now())
   const [showSlackMessage, setShowSlackMessage] = useState(false) // State to control Slack message visibility
   const slackMessageTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Ref for the Slack message timeout
 
@@ -501,6 +505,18 @@ ${file}
     }
     gameLoopRef.current = requestAnimationFrame(gameLoop)
     console.log("Game loop started, ref:", gameLoopRef.current)
+    
+    // Log container dimensions
+    if (gameContainerRef.current) {
+      const container = gameContainerRef.current
+      console.log('🎮 GAME CONTAINER:', {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
+        boundingRect: container.getBoundingClientRect()
+      })
+    }
 
     // Play theme music - wait a bit for audio to initialize
     setTimeout(() => {
@@ -724,8 +740,20 @@ ${file}
     const distance = Math.sqrt(dx * dx + dy * dy)
 
     // Normalize and store direction
-    projectile.dataset.dirX = (dx / distance).toString()
-    projectile.dataset.dirY = (dy / distance).toString()
+    const dirX = dx / distance
+    const dirY = dy / distance
+    projectile.dataset.dirX = dirX.toString()
+    projectile.dataset.dirY = dirY.toString()
+    
+    // Log enemy attack
+    console.log('🎯 ENEMY ATTACK:', {
+      driver: driver.name,
+      type: driver.type === 'pregnant' ? 'bottle' : 'crutch',
+      projectileVelocity: `(${(dirX * 3).toFixed(1)}, ${(dirY * 3).toFixed(1)})`,
+      projectileSpeed: 3,
+      driverPosition: `(${driver.position.x.toFixed(0)}, ${driver.position.y.toFixed(0)})`,
+      lukePosition: `(${lukePos.x.toFixed(0)}, ${lukePos.y.toFixed(0)})`
+    })
 
     // Add to game container
     gameContainerRef.current?.appendChild(projectile)
@@ -739,6 +767,26 @@ ${file}
     // Skip if game is over
     if (hasWon || victoryRef.current) {
       return
+    }
+
+    // Track frame rate and delta time
+    const now = performance.now()
+    const deltaTime = now - lastFrameTimeRef.current
+    lastFrameTimeRef.current = now
+    frameCountRef.current++
+    
+    // Log every second
+    if (now - lastLogTimeRef.current >= 1000) {
+      const fps = frameCountRef.current / ((now - lastLogTimeRef.current) / 1000)
+      console.log('⏱️ FRAME INFO:', {
+        fps: fps.toFixed(1),
+        deltaTime: deltaTime.toFixed(2) + 'ms',
+        expectedDelta: '16.67ms',
+        activeDrivers: driversRef.current.filter(d => d.isActive && !d.defeated).length,
+        projectiles: enemyProjectilesRef.current.length + hotdogsRef.current.length
+      })
+      frameCountRef.current = 0
+      lastLogTimeRef.current = now
     }
 
     // Calculate elapsed time since game start
@@ -1206,6 +1254,13 @@ ${file}
           // Hit Luke
           setLukeHealth((prev) => {
             const newHealth = prev - 4 // Doubled damage from 2 to 4
+            console.log('💥 LUKE HIT!', {
+              healthBefore: prev,
+              healthAfter: newHealth,
+              projectileVelocity: `(${dirX.toFixed(1)}, ${dirY.toFixed(1)})`,
+              projectileSpeed: speed,
+              lukePosition: `(${lukeX.toFixed(0)}, ${lukeY.toFixed(0)})`
+            })
             if (newHealth <= 0) {
               endGame(false)
               return 0
