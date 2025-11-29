@@ -32,8 +32,11 @@ interface Driver {
 }
 
 export default function Home() {
-  // Game state
-  const [gameState, setGameState] = useState<GameState>("auth")
+  // Check if we're in dev mode (skip auth)
+  const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true"
+  
+  // Game state - skip auth in dev mode
+  const [gameState, setGameState] = useState<GameState>(isDevMode ? "intro" : "auth")
   const [displayTime, setDisplayTime] = useState(508) // 8:28 AM (in minutes) - display only
   const [lukeHealth, setLukeHealth] = useState(100)
   const [message, setMessage] = useState("")
