@@ -1265,11 +1265,14 @@ ${file}
           // Hit Luke
           setLukeHealth((prev) => {
             const newHealth = prev - 4 // Doubled damage from 2 to 4
+            // Calculate actual projectile speed for logging (0.18 px/ms)
+            const projectileSpeedPxPerMs = 0.18
+            const actualSpeed = projectileSpeedPxPerMs * deltaTime
             console.log('💥 LUKE HIT!', {
               healthBefore: prev,
               healthAfter: newHealth,
               projectileVelocity: `(${dirX.toFixed(1)}, ${dirY.toFixed(1)})`,
-              projectileSpeed: speed,
+              projectileSpeed: `${actualSpeed.toFixed(2)}px/frame`,
               lukePosition: `(${lukeX.toFixed(0)}, ${lukeY.toFixed(0)})`
             })
             if (newHealth <= 0) {
