@@ -1,0 +1,5 @@
+{
+  "buildCommand": "rm -rf .next .vercel/cache && pnpm run build",
+  "framework": "nextjs"
+}
+
