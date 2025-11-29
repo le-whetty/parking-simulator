@@ -55,16 +55,36 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
     }
   }, [setKeyPressed, throwHotDog])
 
-  // Log game container dimensions
+  // Set up CSS scaling for fixed canvas size
   useEffect(() => {
     if (gameContainerRef.current) {
       const container = gameContainerRef.current
-      console.log('🎮 GAME CONTAINER:', {
-        width: container.clientWidth,
-        height: container.clientHeight,
-        windowWidth: window.innerWidth,
-        windowHeight: window.innerHeight
-      })
+      const updateScale = () => {
+        const wrapper = container.parentElement
+        if (!wrapper) return
+        
+        const availableWidth = wrapper.clientWidth
+        const availableHeight = wrapper.clientHeight
+        
+        // Calculate scale to fit 896x560 into available space
+        const scaleX = availableWidth / 896
+        const scaleY = availableHeight / 560
+        const scale = Math.min(scaleX, scaleY, 1) // Don't scale up beyond 1x
+        
+        container.style.setProperty('--game-scale', scale.toString())
+        
+        console.log('🎮 GAME CONTAINER:', {
+          logicalSize: '896x560',
+          visualScale: scale.toFixed(3),
+          availableSpace: `${availableWidth}x${availableHeight}`,
+          windowSize: `${window.innerWidth}x${window.innerHeight}`,
+          containerReportsWidth: container.clientWidth
+        })
+      }
+      
+      updateScale()
+      window.addEventListener('resize', updateScale)
+      return () => window.removeEventListener('resize', updateScale)
     }
   }, [])
 
@@ -195,37 +215,44 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
   const [hitAnimation, setHitAnimation] = useState(false)
 
   return (
-    <div
-      ref={gameContainerRef}
-      className="relative w-full max-w-4xl h-[850px] bg-gray-800 overflow-hidden focus:outline-none font-quicksand"
-      tabIndex={0}
-    >
+    <div className="relative w-full max-w-4xl mx-auto" style={{ aspectRatio: '896 / 560', maxHeight: '560px' }}>
+      <div
+        ref={gameContainerRef}
+        className="absolute inset-0 bg-gray-800 focus:outline-none font-quicksand"
+        tabIndex={0}
+        style={{
+          width: '896px',
+          height: '560px',
+          transformOrigin: 'top left',
+          transform: 'scale(var(--game-scale, 1))',
+        }}
+      >
       {/* Office building background */}
       <div className="absolute top-0 left-0 w-full h-full z-0">
         {/* Sky */}
-        <div className="absolute top-0 left-0 w-full h-[500px] bg-gray-700">
+        <div className="absolute top-0 left-0 w-full h-[300px] bg-gray-700">
           {/* Tracksuit building */}
-          <div className="absolute top-0 right-0 w-[500px] h-[250px] bg-gray-500">
+          <div className="absolute top-0 right-0 w-[500px] h-[150px] bg-gray-500">
             <div className="absolute top-[20px] left-[20px] text-white font-bold text-2xl">Tracksuit</div>
             <div className="absolute bottom-0 left-[200px] w-[100px] h-[50px] bg-gray-800">{/* Door */}</div>
           </div>
         </div>
 
         {/* Road */}
-        <div className="absolute bottom-0 left-0 w-full h-[350px] bg-gray-900">
+        <div className="absolute bottom-0 left-0 w-full h-[260px] bg-gray-900">
           {/* Parking spots */}
           {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="absolute bottom-10 h-[100px] w-[150px] border border-white/30"
-              style={{ left: `${i * 180 + 50}px` }}
+              className="absolute bottom-5 h-[70px] w-[100px] border border-white/30"
+              style={{ left: `${i * 120 + 30}px` }}
             />
           ))}
 
           {/* Last spot */}
           <div
-            className="absolute bottom-10 h-[100px] w-[150px] border border-white/30"
-            style={{ left: `${6 * 180 + 50}px` }}
+            className="absolute bottom-5 h-[70px] w-[100px] border border-white/30"
+            style={{ left: `${6 * 120 + 30}px` }}
           >
             <div className="absolute inset-0 bg-green-500/20 animate-pulse">
               <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white font-bold text-xs">
@@ -319,6 +346,7 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/70 px-4 py-2 rounded-md text-white text-center">
         <div className="font-bold mb-1">Controls:</div>
         <div>Arrow keys to move • SPACE to throw hot dogs 🌭</div>
+      </div>
       </div>
     </div>
   )

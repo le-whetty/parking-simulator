@@ -101,7 +101,7 @@ const initialDrivers: Driver[] = [
     health: 100,
     maxHealth: 100,
     defeated: false,
-    position: { x: -900, y: 250 },
+    position: { x: -900, y: 200 }, // Adjusted for 560px height
     velocity: { x: 0, y: 0 },
     car: { color: "purple", width: 120, height: 70, image: "/images/car-yellow.png" },
     attackCooldown: 0,
@@ -115,7 +115,7 @@ const initialDrivers: Driver[] = [
     health: 100,
     maxHealth: 100,
     defeated: false,
-    position: { x: -1200, y: 400 },
+    position: { x: -1200, y: 250 }, // Adjusted for 560px height
     velocity: { x: 0, y: 0 },
     car: { color: "yellow", width: 120, height: 70, image: "/images/car-red.png" },
     attackCooldown: 0,
@@ -129,7 +129,7 @@ const initialDrivers: Driver[] = [
     health: 100,
     maxHealth: 100,
     defeated: false,
-    position: { x: -1500, y: 300 },
+    position: { x: -1500, y: 150 }, // Adjusted for 560px height
     velocity: { x: 0, y: 0 },
     car: { color: "green", width: 120, height: 70, image: "/images/car-green.png" },
     attackCooldown: 0,
@@ -143,7 +143,7 @@ const initialDrivers: Driver[] = [
     health: 100,
     maxHealth: 100,
     defeated: false,
-    position: { x: -1800, y: 350 },
+    position: { x: -1800, y: 300 }, // Adjusted for 560px height
     velocity: { x: 0, y: 0 },
     car: { color: "red", width: 120, height: 70, image: "/images/car-blue.png" },
     attackCooldown: 0,
@@ -157,7 +157,7 @@ const initialDrivers: Driver[] = [
     health: 100,
     maxHealth: 100,
     defeated: false,
-    position: { x: -2100, y: 250 },
+    position: { x: -2100, y: 200 }, // Adjusted for 560px height
     velocity: { x: 0, y: 0 },
     car: { color: "orange", width: 120, height: 70, image: "/images/car-purple.png" },
     attackCooldown: 0,
@@ -169,7 +169,7 @@ const initialState: GameState = {
   time: 8 * 60 - 1, // 7:59 AM in minutes (31 minutes until meeting)
   lukeHealth: 100,
   lukeMaxHealth: 100,
-  lukePosition: { x: 150, y: 750 },
+  lukePosition: { x: 150, y: 450 }, // Adjusted for 560px height
   lukeVelocity: { x: 0, y: 0 },
   drivers: initialDrivers.map((driver) => ({
     ...driver,
@@ -276,7 +276,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     // Update Luke's position
     const newLukeX = Math.max(50, Math.min(500, gameState.lukePosition.x + lukeVelocityX * dt))
-    const newLukeY = Math.max(250, Math.min(800, gameState.lukePosition.y + lukeVelocityY * dt))
+    const newLukeY = Math.max(100, Math.min(480, gameState.lukePosition.y + lukeVelocityY * dt)) // Adjusted for 560px height
 
     // Update drivers
     const updatedDrivers = [...gameState.drivers]
@@ -295,7 +295,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         activeDrivers++
 
         // Move driver towards parking spot
-        const targetX = 1100 // Last parking spot X position
+        const targetX = 750 // Last parking spot X position (896px width)
         const moveSpeed = 60 + Math.random() * 20 // Randomize speed slightly
 
         // Update position
@@ -373,8 +373,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
         const newX = projectile.position.x + projectile.velocity.x * dt
         const newY = projectile.position.y + projectile.velocity.y * dt
 
-        // Check if projectile is out of bounds
-        if (newX < -50 || newX > 1300 || newY < -50 || newY > 850) {
+        // Check if projectile is out of bounds (896x560 canvas)
+        if (newX < -50 || newX > 950 || newY < -50 || newY > 610) {
           return { ...projectile, isActive: false }
         }
 
