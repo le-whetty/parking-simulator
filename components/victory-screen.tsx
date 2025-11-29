@@ -286,35 +286,8 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }
 
   return (
-    <>
-      {/* Music Player UI - Bottom Right (outside scrollable container for true fixed positioning) */}
-      {currentSongInfo && (
-        <div className="fixed bottom-6 right-6 z-[60] bg-white/95 backdrop-blur-sm rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg p-4 max-w-xs animate-fadeIn">
-          <div className="flex items-center gap-3">
-            {/* Animated Music Icon */}
-            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-tracksuit-purple-500 to-tracksuit-purple-700 rounded-lg flex items-center justify-center">
-              <div className="flex items-end gap-1 h-6">
-                <div className="w-1 h-4 bg-white rounded-full animate-musicBar1 origin-bottom"></div>
-                <div className="w-1 h-6 bg-white rounded-full animate-musicBar2 origin-bottom"></div>
-                <div className="w-1 h-5 bg-white rounded-full animate-musicBar3 origin-bottom"></div>
-                <div className="w-1 h-3 bg-white rounded-full animate-musicBar4 origin-bottom"></div>
-              </div>
-            </div>
-            {/* Song Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold font-chapeau text-tracksuit-purple-800 truncate">
-                {currentSongInfo.title}
-              </p>
-              <p className="text-xs font-quicksand text-tracksuit-purple-600 truncate">
-                {currentSongInfo.artist}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="fixed inset-0 z-50 bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-8">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-tracksuit-purple-200/50 relative overflow-hidden my-auto">
+    <div className="fixed inset-0 z-50 bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-8">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-tracksuit-purple-200/50 relative overflow-hidden my-auto">
         {/* Magic card border effect */}
         <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-300">
           <div className="absolute inset-0 rounded-2xl p-[1px] bg-gradient-to-r from-tracksuit-purple-500 via-tracksuit-purple-600 to-tracksuit-purple-500 bg-[length:300%_300%] animate-[shine_3s_linear_infinite]"></div>
@@ -420,7 +393,29 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         </div>
       )}
 
-      </div>
-    </>
+      {/* Music Player UI - Bottom Right */}
+      {currentSongInfo && (
+        <div className="fixed bottom-6 right-6 z-50 bg-white/95 backdrop-blur-sm rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg p-4 max-w-xs animate-fadeIn">
+          <div className="flex items-center gap-3">
+            {/* Music Icon */}
+            <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-tracksuit-purple-500 to-tracksuit-purple-700 rounded-lg flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z" />
+              </svg>
+            </div>
+            {/* Song Info */}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold font-chapeau text-tracksuit-purple-800 truncate">
+                {currentSongInfo.title}
+              </p>
+              <p className="text-xs font-quicksand text-tracksuit-purple-600 truncate">
+                {currentSongInfo.artist}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+    </div>
   )
 }

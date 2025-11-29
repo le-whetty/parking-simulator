@@ -125,31 +125,11 @@ const config: Config = {
           '50%': { backgroundPosition: '100% 50%' },
           '100%': { backgroundPosition: '0% 50%' },
         },
-        'musicBar1': {
-          '0%, 100%': { transform: 'scaleY(0.33)' },
-          '50%': { transform: 'scaleY(1)' },
-        },
-        'musicBar2': {
-          '0%, 100%': { transform: 'scaleY(0.5)' },
-          '50%': { transform: 'scaleY(1)' },
-        },
-        'musicBar3': {
-          '0%, 100%': { transform: 'scaleY(0.75)' },
-          '50%': { transform: 'scaleY(1)' },
-        },
-        'musicBar4': {
-          '0%, 100%': { transform: 'scaleY(0.4)' },
-          '50%': { transform: 'scaleY(1)' },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
         'shine': 'shine 3s linear infinite',
-        'musicBar1': 'musicBar1 1s ease-in-out infinite',
-        'musicBar2': 'musicBar2 1s ease-in-out infinite 0.1s',
-        'musicBar3': 'musicBar3 1s ease-in-out infinite 0.2s',
-        'musicBar4': 'musicBar4 1s ease-in-out infinite 0.3s',
       },
     },
   },
