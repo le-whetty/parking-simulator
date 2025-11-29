@@ -1003,7 +1003,8 @@ ${file}
         let newDirY = driver.direction.y
         let posX = newX
         let posY = newY
-        let newDirectionChangeTimer = driver.directionChangeTimer - smoothedDeltaTimeRef.current
+        // Timer is in seconds, so convert smoothedDeltaTime from ms to seconds
+        let newDirectionChangeTimer = driver.directionChangeTimer - (smoothedDeltaTimeRef.current / 1000)
 
         // If driver is going out of bounds, force a direction change toward center
         if (isOutOfBounds) {
@@ -1062,6 +1063,19 @@ ${file}
           const normalized = normalizeDirection(newDirX, newDirY)
           newDirX = normalized.x
           newDirY = normalized.y
+          
+          // Prevent rapid direction flips (180-degree turns)
+          // Check if new direction is opposite to current direction (dot product < -0.5 means >90 degrees)
+          const dotProduct = driver.direction.x * newDirX + driver.direction.y * newDirY
+          if (dotProduct < -0.3) {
+            // New direction is too close to opposite, blend with current direction to smooth the change
+            newDirX = driver.direction.x * 0.5 + newDirX * 0.5
+            newDirY = driver.direction.y * 0.5 + newDirY * 0.5
+            // Re-normalize
+            const renormalized = normalizeDirection(newDirX, newDirY)
+            newDirX = renormalized.x
+            newDirY = renormalized.y
+          }
 
           // Reset timer (3-8 seconds)
           newDirectionChangeTimer = Math.random() * 5 + 3
