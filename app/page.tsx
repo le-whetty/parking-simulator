@@ -1,5 +1,6 @@
 "use client"
 
+// Cache break comment - deployment trigger
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import DefeatScreen from "@/components/defeat-screen"
