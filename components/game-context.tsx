@@ -311,13 +311,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
         // Driver attacks Luke (throw projectile)
         if (driver.attackCooldown <= 0 && Math.random() < 0.02) {
           const projectileType = driver.type === "pregnant" ? "bottle" : "crutch"
+          
+          const velocityX = -200 - Math.random() * 100
+          
+          console.log('🎯 ENEMY ATTACK:', {
+            driver: driver.name,
+            type: projectileType,
+            velocityX: velocityX.toFixed(0),
+            driverPos: `(${driver.position.x.toFixed(0)}, ${driver.position.y.toFixed(0)})`
+          })
 
           const newProjectile = {
             id: `${projectileType}-${Date.now()}-${Math.random()}`,
             type: projectileType,
             position: { ...driver.position },
             velocity: {
-              x: -200 - Math.random() * 100,
+              x: velocityX,
               y: 0,
             },
             isActive: true,
@@ -398,6 +407,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
           projectile.position.y <= lukeCar.y + lukeCar.height
         ) {
           // Hit Luke's car
+          console.log('💥 LUKE HIT!', {
+            projectileType: projectile.type,
+            projectileVelocity: projectile.velocity.x.toFixed(0),
+            healthBefore: lukeHealth,
+            healthAfter: lukeHealth - 10
+          })
           lukeHealth = Math.max(0, lukeHealth - 10)
           projectile.isActive = false
         }

@@ -55,6 +55,43 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
     }
   }, [setKeyPressed, throwHotDog])
 
+  // Log game container dimensions
+  useEffect(() => {
+    if (gameContainerRef.current) {
+      const container = gameContainerRef.current
+      console.log('🎮 GAME CONTAINER:', {
+        width: container.clientWidth,
+        height: container.clientHeight,
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight
+      })
+    }
+  }, [])
+
+  // Log frame rate periodically
+  useEffect(() => {
+    let frameCount = 0
+    let lastTime = performance.now()
+    
+    const logFPS = setInterval(() => {
+      const now = performance.now()
+      const elapsed = now - lastTime
+      const fps = (frameCount / elapsed) * 1000
+      
+      console.log('⏱️ FRAME INFO:', {
+        fps: fps.toFixed(1),
+        activeDrivers: gameState.drivers.filter(d => d.isActive && !d.defeated).length,
+        projectiles: gameState.projectiles.length,
+        lukeHealth: gameState.lukeHealth
+      })
+      
+      frameCount = 0
+      lastTime = now
+    }, 2000)
+    
+    return () => clearInterval(logFPS)
+  }, [gameState])
+
   // Handle hit animations
   useEffect(() => {
     if (gameState.lukeHealth < gameState.lukeMaxHealth) {
