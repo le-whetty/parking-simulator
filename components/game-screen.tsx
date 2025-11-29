@@ -82,12 +82,13 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
         fps: fps.toFixed(1),
         activeDrivers: gameState.drivers.filter(d => d.isActive && !d.defeated).length,
         projectiles: gameState.projectiles.length,
-        lukeHealth: gameState.lukeHealth
+        lukeHealth: gameState.lukeHealth,
+        projectileVelocities: gameState.projectiles.map(p => `${p.type}:${p.velocity.x.toFixed(0)}`).join(', ')
       })
       
       frameCount = 0
       lastTime = now
-    }, 2000)
+    }, 1000)
     
     return () => clearInterval(logFPS)
   }, [gameState])
@@ -103,6 +104,15 @@ export default function GameScreen({ onVictory, onDefeat }: GameScreenProps) {
   const animate = (time: number) => {
     if (previousTimeRef.current !== undefined) {
       const deltaTime = time - previousTimeRef.current
+      
+      // Log deltaTime every 60 frames (~1 second at 60fps)
+      if (frameCount % 60 === 0) {
+        console.log('🕐 DELTA TIME:', {
+          deltaMs: deltaTime.toFixed(2),
+          expectedMs: '16.67' // 60fps
+        })
+      }
+      
       updateGame(deltaTime)
 
       // Check for game over conditions
