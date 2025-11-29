@@ -47,16 +47,13 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       return
     }
     
-    // ALWAYS use the environment variable or fallback to production URL
-    // Never rely on window.location.origin as it can be unreliable in OAuth flows
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://parking-simulator-production.up.railway.app'
+    // Use window.location.origin to automatically get the current domain
+    const siteUrl = window.location.origin
     const redirectUrl = `${siteUrl}/auth/callback`
     
     // Log everything for debugging
     console.log('🔐 Sign in attempt:', {
       siteUrl: siteUrl,
-      windowOrigin: window.location.origin,
-      fullUrl: window.location.href,
       redirectUrl: redirectUrl,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
       envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL
