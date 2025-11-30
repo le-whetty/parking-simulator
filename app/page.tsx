@@ -1229,6 +1229,23 @@ ${file}
                 if (isNowDefeated) {
                   console.log(`💥 Driver ${driver.name} defeated - triggering explosion`)
                   
+                  // Track Driver Defeated event
+                  async function trackDriverDefeated() {
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      if (session?.user) {
+                        mixpanel.track('Driver Defeated', {
+                          user_id: session.user.id,
+                          driver_name: driver.name,
+                          driver_type: driver.type,
+                        })
+                      }
+                    } catch (error) {
+                      console.error("Error tracking driver defeated:", error)
+                    }
+                  }
+                  trackDriverDefeated()
+                  
                   // Capture the driver's actual DOM position BEFORE the car disappears
                   const driverElement = document.getElementById(`driver-${driver.id}`)
                   let explosionX = driver.position.x

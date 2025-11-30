@@ -27,6 +27,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const shuffledQueueRef = useRef<string[]>([]) // Current shuffle queue
   const initialSongPlayedRef = useRef<boolean>(false) // Track if initial song has been played
   const [currentSongInfo, setCurrentSongInfo] = useState<{ artist: string; title: string } | null>(null)
+  const songStartTimeRef = useRef<number>(0) // Track when current song started playing
 
   // Check authentication and save score
   useEffect(() => {
@@ -168,12 +169,58 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     
     console.log(`🎵 Playing: ${nextSong} (${playedSongsRef.current.length}/${murcaSongs.length} played)`)
     
+    // Track previous song listening time if one was playing
+    if (currentMurcaAudioRef.current && songStartTimeRef.current > 0) {
+      const previousSongDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+      const previousSongInfo = parseSongFilename(playedSongsRef.current[playedSongsRef.current.length - 2] || '')
+      
+      async function trackSongListenTime() {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user) {
+            mixpanel.track('Song Listened', {
+              user_id: session.user.id,
+              artist: previousSongInfo.artist,
+              title: previousSongInfo.title,
+              duration_seconds: Math.round(previousSongDuration),
+            })
+          }
+        } catch (error) {
+          console.error("Error tracking song listen time:", error)
+        }
+      }
+      trackSongListenTime()
+    }
+    
     // Create and play new audio
     const audio = new Audio(nextSong)
     audio.volume = 0.5
     
+    // Track when this song starts playing
+    songStartTimeRef.current = Date.now()
+    
     // Add event listener for when song ends - play next song
     audio.addEventListener('ended', () => {
+      // Track song listening time when it ends naturally
+      const songDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+      
+      async function trackSongEnded() {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user && songInfo) {
+            mixpanel.track('Song Listened', {
+              user_id: session.user.id,
+              artist: songInfo.artist,
+              title: songInfo.title,
+              duration_seconds: Math.round(songDuration),
+            })
+          }
+        } catch (error) {
+          console.error("Error tracking song ended:", error)
+        }
+      }
+      trackSongEnded()
+      
       console.log("🎵 Song ended, playing next in queue...")
       playRandomMurcaSong()
     })
