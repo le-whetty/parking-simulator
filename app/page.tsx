@@ -977,6 +977,27 @@ ${file}
         // Play victory anthem (only once - victory-screen will also play it, so we'll remove this)
         // audioManager.play("anthem") // Removed - victory-screen will handle this
 
+        // Track Victory event with time spent
+        const timeSpentMinutes = gameStartTimeRef.current > 0 
+          ? ((Date.now() - gameStartTimeRef.current) / 1000 / 60).toFixed(2)
+          : 0
+        
+        async function trackVictory() {
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+              mixpanel.track('Victory', {
+                user_id: session.user.id,
+                time_spent_minutes: parseFloat(timeSpentMinutes),
+                score: score,
+              })
+            }
+          } catch (error) {
+            console.error("Error tracking victory:", error)
+          }
+        }
+        trackVictory()
+
         // Set victory flags
         victoryRef.current = true
 
