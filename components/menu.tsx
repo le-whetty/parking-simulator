@@ -43,7 +43,21 @@ export default function Menu({ onLogout, onEditUsername }: MenuProps) {
           </div>
           <div className="flex items-center gap-3">
             <Button
-              onClick={() => setShowLeaderboard(true)}
+              onClick={async () => {
+                // Track Leaderboard Viewed event
+                try {
+                  const { data: { session } } = await supabase.auth.getSession()
+                  if (session?.user) {
+                    mixpanel.track('Leaderboard Viewed', {
+                      user_id: session.user.id,
+                      source: 'menu',
+                    })
+                  }
+                } catch (error) {
+                  console.error("Error tracking leaderboard viewed:", error)
+                }
+                setShowLeaderboard(true)
+              }}
               className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau text-sm px-4"
             >
               View Leaderboard

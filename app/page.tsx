@@ -392,8 +392,20 @@ ${file}
   }
 
   // Also update the startGame function to stop any existing audio
-  const startGame = () => {
+  const startGame = async () => {
     console.log("startGame called!")
+    
+    // Track Game Started event
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.track('Game Started', {
+          user_id: session.user.id,
+        })
+      }
+    } catch (error) {
+      console.error("Error tracking game started:", error)
+    }
     
     // Stop menu theme music first - do this before anything else
     console.log("Stopping menu theme music before starting game...")
@@ -644,13 +656,25 @@ ${file}
   // Find the throwHotdog function and update it to play the sound effect when a hot dog is thrown
 
   // Throw a hotdog
-  const throwHotdog = () => {
+  const throwHotdog = async () => {
     if (gameState !== "playing" || hasWon || !gameReadyRef.current) return
 
     const now = Date.now()
     if (now - lastHotdogTime.current < 300) return // Cooldown
 
     lastHotdogTime.current = now
+
+    // Track Hot Dog Fired event
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.track('Hot Dog Fired', {
+          user_id: session.user.id,
+        })
+      }
+    } catch (error) {
+      console.error("Error tracking hot dog fired:", error)
+    }
 
     // Play throw sound effect
     audioManager.play("throw")
@@ -1439,6 +1463,35 @@ ${file}
       audioManager.play("no")
     }
 
+    // Track game end events (victory or defeat) with time spent
+    const timeSpentMinutes = gameStartTimeRef.current > 0 
+      ? ((Date.now() - gameStartTimeRef.current) / 1000 / 60).toFixed(2)
+      : 0
+    
+    async function trackGameEnd() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          if (victory) {
+            mixpanel.track('Victory', {
+              user_id: session.user.id,
+              time_spent_minutes: parseFloat(timeSpentMinutes),
+              score: score,
+            })
+          } else {
+            mixpanel.track('Defeat', {
+              user_id: session.user.id,
+              time_spent_minutes: parseFloat(timeSpentMinutes),
+              final_health: lukeHealth,
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Error tracking game end:", error)
+      }
+    }
+    trackGameEnd()
+    
     // Use setTimeout to ensure state updates happen after the current execution
     setTimeout(() => {
       if (victory) {

@@ -6,6 +6,7 @@ import { useAudioManager } from "@/hooks/use-audio-manager"
 import { supabase } from "@/lib/supabase"
 import Leaderboard from "./leaderboard"
 import confetti from "canvas-confetti"
+import mixpanel from "@/lib/mixpanel"
 
 interface VictoryScreenProps {
   onRestart: () => void
@@ -332,7 +333,20 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }
 
   // Handle Increase 'murca button click - trigger fireworks and change song
-  const handleIncreaseMurca = () => {
+  const handleIncreaseMurca = async () => {
+    // Track Increase Murca event
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.track('Increase Murca', {
+          user_id: session.user.id,
+          score: score,
+        })
+      }
+    } catch (error) {
+      console.error("Error tracking increase murca:", error)
+    }
+    
     // Play random murca song
     playRandomMurcaSong()
 
@@ -406,7 +420,21 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <div className="flex gap-4">
               <Button
                 size="lg"
-                onClick={() => setShowLeaderboard(true)}
+                onClick={async () => {
+                  // Track Leaderboard Viewed event
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    if (session?.user) {
+                      mixpanel.track('Leaderboard Viewed', {
+                        user_id: session.user.id,
+                        source: 'victory_screen',
+                      })
+                    }
+                  } catch (error) {
+                    console.error("Error tracking leaderboard viewed:", error)
+                  }
+                  setShowLeaderboard(true)
+                }}
                 className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors shadow-lg flex-1"
               >
                 View Leaderboard
