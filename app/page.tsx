@@ -78,6 +78,8 @@ export default function Home() {
   const smoothedDeltaTimeRef = useRef(16.67) // Start with 60fps equivalent
   const [showSlackMessage, setShowSlackMessage] = useState(false) // State to control Slack message visibility
   const slackMessageTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Ref for the Slack message timeout
+  const gameReadyRef = useRef(false) // Track if game is ready to start (after countdown)
+  const [countdown, setCountdown] = useState<number | null>(null) // Countdown: 3, 2, 1, null
 
   // Audio state - simplified to just a flag
   const [audioEnabled, setAudioEnabled] = useState(false)
@@ -93,6 +95,7 @@ export default function Home() {
   const slackAudioRef = useRef<HTMLAudioElement | null>(null)
   const slackIntervalRef = useRef<number | null>(null)
   const menuThemeStoppedRef = useRef<boolean>(false) // Track if menu theme has been stopped
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null) // Ref for countdown interval
 
   // Game area boundaries - used to keep drivers on screen
   const gameBounds = {
@@ -513,13 +516,39 @@ ${file}
     // Reset the score
     setScore(0)
 
-    // Start the game loop
-    console.log("Starting game loop...")
-    if (gameLoopRef.current) {
-      cancelAnimationFrame(gameLoopRef.current)
+    // Reset game ready state
+    gameReadyRef.current = false
+    setCountdown(3) // Start countdown at 3
+
+    // Clear any existing countdown interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
     }
-    gameLoopRef.current = requestAnimationFrame(gameLoop)
-    console.log("Game loop started, ref:", gameLoopRef.current)
+
+    // Start countdown - game will start after countdown completes
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === null || prev <= 1) {
+          if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current)
+            countdownIntervalRef.current = null
+          }
+          gameReadyRef.current = true
+          setCountdown(null)
+          
+          // Start the game loop after countdown
+          console.log("Starting game loop after countdown...")
+          if (gameLoopRef.current) {
+            cancelAnimationFrame(gameLoopRef.current)
+          }
+          gameLoopRef.current = requestAnimationFrame(gameLoop)
+          console.log("Game loop started, ref:", gameLoopRef.current)
+          
+          return null
+        }
+        return prev - 1
+      })
+    }, 1000) // Update every second
     
     // Log container dimensions
     if (gameContainerRef.current) {
@@ -567,7 +596,7 @@ ${file}
 
   // Move Luke's car directly
   const moveLuke = (direction: "up" | "down" | "left" | "right") => {
-    if (gameState !== "playing" || !lukeCarRef.current || hasWon) return
+    if (gameState !== "playing" || !lukeCarRef.current || hasWon || !gameReadyRef.current) return
 
     const speed = 20
     let { x, y } = lukePositionRef.current
@@ -658,7 +687,7 @@ ${file}
 
   // Throw a hotdog
   const throwHotdog = () => {
-    if (gameState !== "playing" || hasWon) return
+    if (gameState !== "playing" || hasWon || !gameReadyRef.current) return
 
     const now = Date.now()
     if (now - lastHotdogTime.current < 300) return // Cooldown
@@ -720,7 +749,7 @@ ${file}
 
   // Enemy attack - frame-rate independent
   const enemyAttack = (driver: Driver, deltaTimeMs: number) => {
-    if (driver.defeated || hasWon) return
+    if (driver.defeated || hasWon || !gameReadyRef.current) return // Don't attack during countdown
     
     // Attack rate: 0.6 attacks per second (was 0.01 per frame at 60fps)
     // Convert to time-based probability: rate * deltaTimeSeconds
@@ -784,8 +813,12 @@ ${file}
 
   // Game loop
   const gameLoop = () => {
-    // Skip if game is over
-    if (hasWon || victoryRef.current) {
+    // Skip if game is over or not ready (countdown still happening)
+    if (hasWon || victoryRef.current || !gameReadyRef.current) {
+      if (!gameReadyRef.current) {
+        // Still schedule next frame to check again
+        gameLoopRef.current = requestAnimationFrame(gameLoop)
+      }
       return
     }
 
@@ -1363,6 +1396,14 @@ ${file}
       gameLoopRef.current = null
     }
 
+    // Clear countdown interval
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current)
+      countdownIntervalRef.current = null
+    }
+    gameReadyRef.current = false
+    setCountdown(null)
+
     // Stop Slack sound interval
     if (slackIntervalRef.current) {
       clearInterval(slackIntervalRef.current)
@@ -1671,6 +1712,15 @@ ${file}
             </div>
           </div>
         )}
+        {/* Countdown Overlay */}
+        {countdown !== null && (
+          <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+            <div className="text-9xl font-bold font-chapeau text-white drop-shadow-2xl animate-pulse">
+              {countdown === 0 ? "GO!" : countdown}
+            </div>
+          </div>
+        )}
+
         {/* Game UI */}
         <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-start">
           <div className="bg-black/50 p-2 rounded-md">
@@ -1748,7 +1798,7 @@ ${file}
               style={{
                 left: "150px", // Position to the right of Luke's car
                 top: "-20px",
-                width: "120px",
+                width: "240px", // Doubled from 120px
                 height: "auto",
               }}
             >
