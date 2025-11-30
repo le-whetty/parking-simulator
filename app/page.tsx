@@ -1595,7 +1595,7 @@ ${file}
             .from('usernames')
             .select('username')
             .eq('user_email', session.user.email)
-            .single()
+            .maybeSingle()
           
           if (usernameData?.username) {
             setUsername(usernameData.username)
