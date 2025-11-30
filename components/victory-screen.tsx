@@ -159,6 +159,32 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       console.log("🎵 Shuffle queue reset - all songs reshuffled")
     }
 
+    // Track previous song listening time if one was playing (before switching)
+    if (currentMurcaAudioRef.current && songStartTimeRef.current > 0) {
+      const previousSongDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+      const previousSong = playedSongsRef.current[playedSongsRef.current.length - 1] // Get the last played song
+      if (previousSong) {
+        const previousSongInfo = parseSongFilename(previousSong)
+        
+        async function trackSongListenTime() {
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+              mixpanel.track('Song Listened', {
+                user_id: session.user.id,
+                artist: previousSongInfo.artist,
+                title: previousSongInfo.title,
+                duration_seconds: Math.round(previousSongDuration),
+              })
+            }
+          } catch (error) {
+            console.error("Error tracking song listen time:", error)
+          }
+        }
+        trackSongListenTime()
+      }
+    }
+    
     // Get next song from queue
     const nextSong = shuffledQueueRef.current.shift()!
     playedSongsRef.current.push(nextSong)
@@ -168,29 +194,6 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     setCurrentSongInfo(songInfo)
     
     console.log(`🎵 Playing: ${nextSong} (${playedSongsRef.current.length}/${murcaSongs.length} played)`)
-    
-    // Track previous song listening time if one was playing
-    if (currentMurcaAudioRef.current && songStartTimeRef.current > 0) {
-      const previousSongDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
-      const previousSongInfo = parseSongFilename(playedSongsRef.current[playedSongsRef.current.length - 2] || '')
-      
-      async function trackSongListenTime() {
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session?.user) {
-            mixpanel.track('Song Listened', {
-              user_id: session.user.id,
-              artist: previousSongInfo.artist,
-              title: previousSongInfo.title,
-              duration_seconds: Math.round(previousSongDuration),
-            })
-          }
-        } catch (error) {
-          console.error("Error tracking song listen time:", error)
-        }
-      }
-      trackSongListenTime()
-    }
     
     // Create and play new audio
     const audio = new Audio(nextSong)
