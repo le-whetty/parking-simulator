@@ -1631,12 +1631,28 @@ ${file}
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user?.email) {
-          // Check if user has a username
+          // Identify user in Mixpanel
+          mixpanel.identify(session.user.id)
+          mixpanel.people.set({
+            '$name': session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+            '$email': session.user.email || '',
+          })
+          
+          // Check if this is a new user (Sign Up)
           const { data: usernameData } = await supabase
             .from('usernames')
-            .select('username')
+            .select('username, created_at')
             .eq('user_email', session.user.email)
             .maybeSingle()
+          
+          // Track Sign Up if user doesn't exist yet
+          if (!usernameData) {
+            mixpanel.track('Sign Up', {
+              user_id: session.user.id,
+              email: session.user.email || '',
+              signup_method: 'google',
+            })
+          }
           
           if (usernameData?.username) {
             setUsername(usernameData.username)
@@ -1648,6 +1664,15 @@ ${file}
         }
       } catch (error) {
         console.error("Error checking username:", error)
+        // Track Error event
+        if (typeof window !== 'undefined') {
+          mixpanel.track('Error', {
+            error_type: 'authentication',
+            error_message: error instanceof Error ? error.message : String(error),
+            page_url: window.location.href,
+            user_id: null,
+          })
+        }
       }
     }
     
