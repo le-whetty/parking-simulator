@@ -100,11 +100,11 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand">
-      <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
+      <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center px-6">
         <div className="mb-4">
           <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
         </div>
-        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4 px-4">
+        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4 px-6 break-words">
           Parking Simulator
         </h1>
         
