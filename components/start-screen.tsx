@@ -38,9 +38,9 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
       {/* Username Greeting */}
       {username && (
         <div className="w-full mb-6 text-center">
-          <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">
+          <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4">
             Hey, @{username} 👋
-          </p>
+          </h1>
         </div>
       )}
 
