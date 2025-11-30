@@ -201,7 +201,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   useEffect(() => {
     const duration = 5 * 1000
     const animationEnd = Date.now() + duration
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 }
 
     const randomInRange = (min: number, max: number) =>
       Math.random() * (max - min) + min
@@ -325,42 +325,46 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     // Play random murca song
     playRandomMurcaSong()
 
-    // Trigger emoji confetti (American flags)
-    const scalar = 2
+    // Trigger emoji confetti with multiple emojis: 🦃🇺🇸🌭🦅
+    const scalar = 4 // Increased from 2 to make emojis bigger
+    const turkey = confetti.shapeFromText({ text: "🦃", scalar })
     const flag = confetti.shapeFromText({ text: "🇺🇸", scalar })
+    const hotdog = confetti.shapeFromText({ text: "🌭", scalar })
+    const eagle = confetti.shapeFromText({ text: "🦅", scalar })
 
     const defaults = {
       spread: 360,
-      ticks: 60,
-      gravity: 0,
-      decay: 0.96,
-      startVelocity: 20,
-      shapes: [flag],
+      ticks: 100, // Increased from 60 to make particles last longer
+      gravity: 0.3, // Added slight gravity for more natural movement
+      decay: 0.92, // Slower decay (was 0.96) so particles move slower
+      startVelocity: 15, // Reduced from 20 to make particles slower
+      shapes: [turkey, flag, hotdog, eagle], // Array of all 4 emojis
       scalar,
+      zIndex: 9999, // Ensure confetti appears above everything
     }
 
     const shoot = () => {
       confetti({
         ...defaults,
-        particleCount: 30,
+        particleCount: 50, // Increased from 30 for more visibility
       })
 
       confetti({
         ...defaults,
-        particleCount: 5,
+        particleCount: 10, // Increased from 5
       })
 
       confetti({
         ...defaults,
-        particleCount: 15,
-        scalar: scalar / 2,
+        particleCount: 25, // Increased from 15
+        scalar: scalar * 0.75, // Slightly smaller circles mixed in
         shapes: ["circle"],
       })
     }
 
     setTimeout(shoot, 0)
-    setTimeout(shoot, 100)
-    setTimeout(shoot, 200)
+    setTimeout(shoot, 150) // Slightly longer delay
+    setTimeout(shoot, 300) // Slightly longer delay
   }
 
   return (
