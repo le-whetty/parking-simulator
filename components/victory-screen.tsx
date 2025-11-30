@@ -87,17 +87,12 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
           }
           playedSongsRef.current = []
         } else {
-          // Fallback to anthem if no murca songs found
-          setMurcaSongs(["/music/anthem.mp3"])
-          shuffledQueueRef.current = ["/music/anthem.mp3"]
-          playedSongsRef.current = []
+          // No murca songs found - leave empty, will wait for API
+          console.warn("No murca songs found")
         }
       } catch (error) {
         console.error("Error fetching murca songs:", error)
-        // Fallback to anthem if error
-        setMurcaSongs(["/music/anthem.mp3"])
-        shuffledQueueRef.current = ["/music/anthem.mp3"]
-        playedSongsRef.current = []
+        // Error fetching - leave empty, will retry or wait
       }
     }
     fetchMurcaSongs()
@@ -177,42 +172,22 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     currentMurcaAudioRef.current = audio
   }, [murcaSongs, parseSongFilename])
 
-  // Handle initial song playback - start immediately with fallback, then switch when songs load
+  // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
     // Stop theme music immediately
     audioManager.stop("theme")
     audioManager.stopAll()
 
-    // Start playing anthem immediately as fallback (don't wait for API)
-    if (!initialSongPlayedRef.current) {
-      console.log("VictoryScreen - starting music immediately")
-      const fallbackAudio = new Audio("/music/anthem.mp3")
-      fallbackAudio.volume = 0.5
-      fallbackAudio.loop = true
-      fallbackAudio.play().catch((e) => {
-        console.error("Error playing fallback anthem:", e)
-      })
-      currentMurcaAudioRef.current = fallbackAudio
-      initialSongPlayedRef.current = true
-    }
-  }, [])
-
-  // Switch to murca songs when they load
-  useEffect(() => {
-    // If songs are loaded and we're still playing fallback, switch to murca songs
-    if (murcaSongs.length > 0 && currentMurcaAudioRef.current?.src.includes("anthem.mp3")) {
-      console.log("VictoryScreen - murca songs loaded, switching to murca playlist")
-      if (currentMurcaAudioRef.current) {
-        currentMurcaAudioRef.current.pause()
-        currentMurcaAudioRef.current.currentTime = 0
-        currentMurcaAudioRef.current.onended = null
-      }
+    // Only play initial song once when songs become available (don't use anthem fallback)
+    if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
+      console.log("VictoryScreen - murca songs loaded, playing initial song")
       playRandomMurcaSong()
+      initialSongPlayedRef.current = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [murcaSongs])
 
-  // Trigger fireworks confetti and sound when victory screen loads
+  // Trigger fireworks confetti and sound when victory screen loads (only once)
   useEffect(() => {
     // Play fireworks sound immediately
     audioManager.play("fireworks")
@@ -247,7 +222,9 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     return () => {
       clearInterval(interval)
     }
-  }, [audioManager])
+    // Empty dependency array - only run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     // Stop theme music when component mounts (only once)
@@ -317,7 +294,6 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
     return () => {
       // Only clean up on unmount - don't stop music on re-renders
-      audioManager.stop("anthem")
       if (currentMurcaAudioRef.current) {
         currentMurcaAudioRef.current.pause()
         currentMurcaAudioRef.current.currentTime = 0
@@ -340,11 +316,12 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
   // Handle Increase 'murca button click with emoji confetti
   const handleIncreaseMurca = () => {
-    // Play random murca song
+    // Play random murca song (no fireworks, just music)
     playRandomMurcaSong()
 
     // Trigger emoji confetti with multiple emojis: 🦃🇺🇸🌭🦅
-    const scalar = 2.5 // Balanced size - visible but not too big
+    // Back to original implementation but with 4 emojis and twice as big (scalar 4 instead of 2)
+    const scalar = 4 // Twice as big as original (was 2)
     const turkey = confetti.shapeFromText({ text: "🦃", scalar })
     const flag = confetti.shapeFromText({ text: "🇺🇸", scalar })
     const hotdog = confetti.shapeFromText({ text: "🌭", scalar })
@@ -352,37 +329,36 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
     const defaults = {
       spread: 360,
-      ticks: 80, // Good duration
-      gravity: 0.5, // Natural gravity
-      decay: 0.94, // Balanced decay
-      startVelocity: 30, // Higher velocity to shoot out more
+      ticks: 60, // Original value
+      gravity: 0, // Original value
+      decay: 0.96, // Original value
+      startVelocity: 20, // Original value
       shapes: [turkey, flag, hotdog, eagle], // Array of all 4 emojis
       scalar,
-      zIndex: 9999, // Ensure confetti appears above everything
     }
 
     const shoot = () => {
       confetti({
         ...defaults,
-        particleCount: 40, // Good amount for visibility
+        particleCount: 30, // Original value
       })
 
       confetti({
         ...defaults,
-        particleCount: 8,
+        particleCount: 5, // Original value
       })
 
       confetti({
         ...defaults,
-        particleCount: 20,
-        scalar: scalar * 0.8,
+        particleCount: 15, // Original value
+        scalar: scalar / 2, // Original relative size
         shapes: ["circle"],
       })
     }
 
     setTimeout(shoot, 0)
-    setTimeout(shoot, 150) // Slightly longer delay
-    setTimeout(shoot, 300) // Slightly longer delay
+    setTimeout(shoot, 100) // Original delay
+    setTimeout(shoot, 200) // Original delay
   }
 
   return (

@@ -132,8 +132,6 @@ export default function Home() {
       audioManager.play("ouch")
     } else if (src.includes("no")) {
       audioManager.play("no")
-    } else if (src.includes("anthem")) {
-      audioManager.play("anthem")
     } else if (src.includes("theme")) {
       audioManager.play("theme")
     } else if (src.includes("slack")) {
@@ -224,7 +222,6 @@ export default function Home() {
     const audioFiles = [
       "/music/throw.mp3",
       "/music/theme.mp3",
-      "/music/anthem.mp3",
       "/music/baby-cry.mp3",
       "/music/ouch.mp3",
       "/music/no.mp3",
@@ -263,49 +260,6 @@ ${file}
   }
 
   // Add this function to the Home component, near the checkAudioFiles function
-
-  // Test anthem audio specifically
-  const testAnthem = () => {
-    setAudioDebug("Testing anthem audio...")
-
-    fetch("/music/anthem.mp3")
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Anthem file not found (${response.status})`)
-        }
-        setAudioDebug((prev) => prev + "\nAnthem file exists on server!")
-
-        // Try to create and play the audio
-        try {
-          const audio = new Audio("/music/anthem.mp3")
-
-          audio.addEventListener("canplay", () => {
-            setAudioDebug((prev) => prev + "\nAnthem can play!")
-          })
-
-          audio.addEventListener("error", (e) => {
-            setAudioDebug((prev) => prev + `\nAnthem error: ${e.type}`)
-          })
-
-          const playPromise = audio.play()
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                setAudioDebug((prev) => prev + "\nAnthem playing successfully!")
-              })
-              .catch((err) => {
-                setAudioDebug((prev) => prev + `\nAnthem play error: ${err.message}`)
-              })
-          }
-        } catch (e) {
-          const error = e as Error
-          setAudioDebug((prev) => prev + `\nAnthem exception: ${error.message}`)
-        }
-      })
-      .catch((error) => {
-        setAudioDebug((prev) => prev + `\nAnthem fetch error: ${error.message}`)
-      })
-  }
 
   // Test Slack sound
   const testSlackSound = () => {

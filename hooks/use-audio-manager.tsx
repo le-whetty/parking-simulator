@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "anthem" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -63,7 +63,6 @@ export function useAudioManager() {
         ["babyCry", "/music/baby-cry.mp3"],
         ["ouch", "/music/ouch.mp3"],
         ["no", "/music/no.mp3"],
-        ["anthem", "/music/anthem.mp3"],
         ["theme", "/music/theme.mp3"],
         ["slack", "/music/slack.mp3"],
         ["menuTheme", "/music/menu-theme.mp3"],
