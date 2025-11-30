@@ -36,7 +36,7 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
               .from('usernames')
               .select('username')
               .eq('user_email', session.user.email)
-              .single()
+              .maybeSingle()
             
             if (existingUsername?.username) {
               setUsername(existingUsername.username)
@@ -73,11 +73,19 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
 
     try {
       // Check if username is already taken
-      const { data: existing } = await supabase
+      const { data: existing, error: checkError } = await supabase
         .from('usernames')
         .select('user_email')
         .eq('username', username.toLowerCase())
-        .single()
+        .maybeSingle()
+
+      // If there's an error (other than no rows found), log it
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error("Error checking username:", checkError)
+        setError("Error checking username availability. Please try again.")
+        setIsSaving(false)
+        return
+      }
 
       if (existing && existing.user_email !== userEmail) {
         setError("Username is already taken")
@@ -105,8 +113,9 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
       }
 
       // Success - close modal and notify parent
-      onSave()
+      setIsSaving(false)
       onClose()
+      onSave() // Call onSave after closing to trigger parent refresh
     } catch (error) {
       console.error("Error saving username:", error)
       setError("An error occurred. Please try again.")
