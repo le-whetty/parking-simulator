@@ -40,29 +40,32 @@ export async function GET() {
       )
     }
 
-    // Fetch profile pictures from usernames table
+    // Fetch profile pictures and display names from usernames table
     const userEmails = (scoresData || []).map(entry => entry.user_email)
     const { data: usernamesData } = await supabase
       .from('usernames')
-      .select('user_email, avatar_url')
+      .select('user_email, avatar_url, display_name')
       .in('user_email', userEmails)
 
-    // Create a map of email to avatar_url
+    // Create maps of email to avatar_url and display_name
     const avatarMap: Record<string, string | null> = {}
+    const displayNameMap: Record<string, string | null> = {}
     if (usernamesData) {
       usernamesData.forEach((item) => {
         avatarMap[item.user_email] = item.avatar_url || null
+        displayNameMap[item.user_email] = item.display_name || null
       })
     }
 
     console.log("Leaderboard query result:", { dataCount: scoresData?.length || 0, scoresData })
 
-    // Map to leaderboard entries with rank and avatar_url
+    // Map to leaderboard entries with rank, avatar_url, and display_name
     const leaderboard = (scoresData || []).map((entry, index) => ({
       rank: index + 1,
       user_email: entry.user_email,
       username: entry.username || null,
       avatar_url: avatarMap[entry.user_email] || null,
+      display_name: displayNameMap[entry.user_email] || null,
       score: entry.score,
       created_at: entry.created_at,
     }))

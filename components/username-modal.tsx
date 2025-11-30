@@ -14,6 +14,7 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
   const [username, setUsername] = useState("")
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -28,6 +29,12 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
             setAvatarUrl(
               session.user.user_metadata?.avatar_url || 
               session.user.user_metadata?.picture || 
+              null
+            )
+            setDisplayName(
+              session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.name ||
+              session.user.email?.split('@')[0] ||
               null
             )
             
@@ -93,13 +100,14 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
         return
       }
 
-      // Upsert username (insert or update) with avatar URL
+      // Upsert username (insert or update) with avatar URL and display name
       const { error: upsertError } = await supabase
         .from('usernames')
         .upsert({
           user_email: userEmail,
           username: username.toLowerCase(),
           avatar_url: avatarUrl,
+          display_name: displayName,
           updated_at: new Date().toISOString(),
         }, {
           onConflict: 'user_email'

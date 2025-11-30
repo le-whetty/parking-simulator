@@ -166,13 +166,16 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                         </div>
                       )}
                     </div>
-                    {/* Username or Email */}
+                    {/* Username and Display Name/Email */}
                     <div className="flex-1 min-w-0">
-                      {entry.username ? (
-                        <span className="font-semibold">@{entry.username}</span>
-                      ) : (
-                        <span className="truncate text-sm">{entry.user_email}</span>
-                      )}
+                      <div className="flex flex-col">
+                        {entry.username && (
+                          <span className="font-semibold">@{entry.username}</span>
+                        )}
+                        <span className={`truncate text-sm ${entry.username ? 'text-tracksuit-purple-600' : ''}`}>
+                          {entry.display_name || entry.user_email}
+                        </span>
+                      </div>
                       {isCurrentUser && (
                         <span className="ml-2 px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
                       )}
