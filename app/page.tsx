@@ -2,6 +2,7 @@
 
 // Cache break comment - deployment trigger
 import { useState, useEffect, useRef } from "react"
+import "@/lib/mixpanel" // Initialize Mixpanel
 import { Button } from "@/components/ui/button"
 import DefeatScreen from "@/components/defeat-screen"
 import VictoryScreen from "@/components/victory-screen"
@@ -1556,7 +1557,46 @@ ${file}
   // Debug: Log gameState changes
   useEffect(() => {
     console.log("Game state changed to:", gameState)
+    
+    // Track Page View
+    if (typeof window !== 'undefined') {
+      mixpanel.track('Page View', {
+        page_url: window.location.href,
+        page_title: document.title,
+        user_id: null, // Will be set when authenticated
+      })
+    }
   }, [gameState])
+  
+  // Track Page View on mount and identify user if authenticated
+  useEffect(() => {
+    async function trackInitialPageView() {
+      if (typeof window === 'undefined') return
+      
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.identify(session.user.id)
+        mixpanel.people.set({
+          '$name': session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+          '$email': session.user.email || '',
+        })
+        
+        mixpanel.track('Page View', {
+          page_url: window.location.href,
+          page_title: document.title,
+          user_id: session.user.id,
+        })
+      } else {
+        mixpanel.track('Page View', {
+          page_url: window.location.href,
+          page_title: document.title,
+          user_id: null,
+        })
+      }
+    }
+    
+    trackInitialPageView()
+  }, [])
 
   // Play menu theme music when on start screen (after user interaction from intro screen)
   useEffect(() => {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import mixpanel from "@/lib/mixpanel"
 
 interface LoginScreenProps {
   onAuthenticated: () => void
@@ -27,6 +28,20 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session?.user?.email) {
+        // Track Sign In event
+        mixpanel.track('Sign In', {
+          user_id: session.user.id,
+          login_method: 'google',
+          success: true,
+        })
+        
+        // Identify user
+        mixpanel.identify(session.user.id)
+        mixpanel.people.set({
+          '$name': session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+          '$email': session.user.email || '',
+        })
+        
         onAuthenticated()
       }
     })
@@ -69,6 +84,13 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
           skipBrowserRedirect: false,
         },
       })
+      
+      // Track Sign Up attempt (will be confirmed on successful auth)
+      if (!error && data?.url) {
+        mixpanel.track('Sign Up', {
+          signup_method: 'google',
+        })
+      }
       
       console.log('🔐 OAuth response:', { 
         error, 

@@ -10,7 +10,12 @@ export async function GET(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    await supabase.auth.exchangeCodeForSession(code)
+    const { data: { session } } = await supabase.auth.exchangeCodeForSession(code)
+    
+    // Track Sign Up event on successful authentication
+    if (session?.user) {
+      // Note: Mixpanel tracking will happen client-side after redirect
+    }
   }
 
   // URL will be automatically determined from the request
