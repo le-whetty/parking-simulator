@@ -212,8 +212,11 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [murcaSongs])
 
-  // Trigger fireworks confetti when victory screen loads
+  // Trigger fireworks confetti and sound when victory screen loads
   useEffect(() => {
+    // Play fireworks sound immediately
+    audioManager.play("fireworks")
+
     const duration = 5 * 1000
     const animationEnd = Date.now() + duration
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 }
@@ -244,7 +247,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     return () => {
       clearInterval(interval)
     }
-  }, [])
+  }, [audioManager])
 
   useEffect(() => {
     // Stop theme music when component mounts (only once)
