@@ -7,6 +7,13 @@ import { supabase } from "@/lib/supabase"
 import Leaderboard from "./leaderboard"
 import confetti from "canvas-confetti"
 import mixpanel from "@/lib/mixpanel"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
 
 interface VictoryScreenProps {
   onRestart: () => void
@@ -482,16 +489,30 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
                 Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}
-                <a
-                  href="/images/im-parkin-here.jpg"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-tracksuit-purple-600 hover:text-tracksuit-purple-800 underline font-semibold"
-                >
+                <span className="text-tracksuit-purple-600 font-semibold">
                   "I'm parkin' here"
-                </a>{" "}
+                </span>{" "}
                 merch.
               </p>
+              <div className="w-full max-w-md mx-auto">
+                <Carousel className="w-full">
+                  <CarouselContent>
+                    {[1, 2, 3, 4, 5, 6].map((num) => (
+                      <CarouselItem key={num}>
+                        <div className="p-1">
+                          <img
+                            src={`/images/im-parking-here-${num}.png`}
+                            alt={`I'm parkin' here merch ${num}`}
+                            className="w-full h-auto rounded-lg object-contain"
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="-left-4 md:-left-8" />
+                  <CarouselNext className="-right-4 md:-right-8" />
+                </Carousel>
+              </div>
             </div>
           </div>
 
