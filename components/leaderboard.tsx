@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { LeaderboardEntry } from "@/lib/scores"
+import { supabase } from "@/lib/supabase"
 
 interface LeaderboardProps {
   userEmail?: string
@@ -21,6 +22,27 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
           const data = await response.json()
           console.log("Leaderboard data received:", data)
           setLeaderboard(data)
+          
+          // Fetch profile pictures for each user
+          const pics: Record<string, string | null> = {}
+          for (const entry of data) {
+            try {
+              // Get user's auth data to access profile picture
+              // We'll use the admin API approach or get from user metadata
+              // For now, let's try to get it from the current session if available
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session?.user?.email === entry.user_email) {
+                pics[entry.user_email] = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
+              } else {
+                // For other users, we'd need admin access or store pics in usernames table
+                // For now, we'll leave it null and they can be fetched client-side if needed
+                pics[entry.user_email] = null
+              }
+            } catch (err) {
+              pics[entry.user_email] = null
+            }
+          }
+          setProfilePics(pics)
         } else {
           const errorData = await response.json().catch(() => ({}))
           console.error("Error fetching leaderboard:", response.status, errorData)
@@ -90,8 +112,8 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
           {/* Header */}
           <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
             <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-4">Player</div>
-            <div className="col-span-3 text-right">Score</div>
+            <div className="col-span-5">Player</div>
+            <div className="col-span-2 text-right">Score</div>
             <div className="col-span-4 text-right">Date</div>
           </div>
           
@@ -125,18 +147,39 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                     {entry.rank > 3 && `#${entry.rank}`}
                   </div>
                   
-                  {/* Player Email */}
-                  <div className={`col-span-4 flex items-center ${
+                  {/* Player Info with Profile Pic and Username */}
+                  <div className={`col-span-5 flex items-center gap-3 ${
                     isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
                   } font-quicksand`}>
-                    <span className="truncate">{entry.user_email}</span>
-                    {isCurrentUser && (
-                      <span className="ml-2 px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
-                    )}
+                    {/* Profile Picture */}
+                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 flex-shrink-0">
+                      {entry.avatar_url ? (
+                        <img
+                          src={entry.avatar_url}
+                          alt={entry.username || entry.user_email}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-tracksuit-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                          {(entry.username || entry.user_email).charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    {/* Username or Email */}
+                    <div className="flex-1 min-w-0">
+                      {entry.username ? (
+                        <span className="font-semibold">@{entry.username}</span>
+                      ) : (
+                        <span className="truncate text-sm">{entry.user_email}</span>
+                      )}
+                      {isCurrentUser && (
+                        <span className="ml-2 px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Score */}
-                  <div className="col-span-3 text-right flex items-center justify-end">
+                  <div className="col-span-2 text-right flex items-center justify-end">
                     <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
                       {entry.score.toLocaleString()}
                     </span>

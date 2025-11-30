@@ -8,9 +8,10 @@ import { supabase } from "@/lib/supabase"
 
 interface MenuProps {
   onLogout?: () => void
+  onEditUsername?: () => void
 }
 
-export default function Menu({ onLogout }: MenuProps) {
+export default function Menu({ onLogout, onEditUsername }: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -49,7 +50,7 @@ export default function Menu({ onLogout }: MenuProps) {
             </Button>
             {onLogout && (
               <div className="flex items-center">
-                <ProfileMenu onLogout={onLogout} />
+                <ProfileMenu onLogout={onLogout} onEditUsername={onEditUsername} />
               </div>
             )}
           </div>

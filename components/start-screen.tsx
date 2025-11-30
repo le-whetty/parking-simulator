@@ -8,9 +8,11 @@ interface StartScreenProps {
   onStart: () => void
   onInitializeAudio?: () => void
   onLogout?: () => void
+  username?: string | null
+  onEditUsername?: () => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -31,7 +33,16 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout }: St
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu onLogout={onLogout} />
+      <Menu onLogout={onLogout} onEditUsername={onEditUsername} />
+
+      {/* Username Greeting */}
+      {username && (
+        <div className="w-full mb-6 text-center">
+          <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">
+            Hey, @{username} 👋
+          </p>
+        </div>
+      )}
 
       {/* Main content area - two column layout */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">

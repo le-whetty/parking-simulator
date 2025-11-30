@@ -8,8 +8,10 @@ import VictoryScreen from "@/components/victory-screen"
 import LoginScreen from "@/components/login-screen"
 import StartScreen from "@/components/start-screen"
 import ProfileMenu from "@/components/profile-menu"
+import UsernameModal from "@/components/username-modal"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
+import { supabase } from "@/lib/supabase"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "playing" | "victory" | "defeat"
@@ -47,6 +49,9 @@ export default function Home() {
   
   // Game state - skip auth in dev mode
   const [gameState, setGameState] = useState<GameState>(isDevMode ? "intro" : "auth")
+  const [showUsernameModal, setShowUsernameModal] = useState(false)
+  const [hasUsername, setHasUsername] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   const [displayTime, setDisplayTime] = useState(508) // 8:28 AM (in minutes) - display only
   const [lukeHealth, setLukeHealth] = useState(100)
   const [message, setMessage] = useState("")
@@ -1567,9 +1572,65 @@ ${file}
     }
   }, [gameState, audioManager]) // Include audioManager to ensure it's available
 
+  // Check for username after authentication
+  useEffect(() => {
+    async function checkUsername() {
+      if (gameState === "auth" || isDevMode) return
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          // Check if user has a username
+          const { data: usernameData } = await supabase
+            .from('usernames')
+            .select('username')
+            .eq('user_email', session.user.email)
+            .single()
+          
+          if (usernameData?.username) {
+            setUsername(usernameData.username)
+            setHasUsername(true)
+          } else {
+            setHasUsername(false)
+            setShowUsernameModal(true)
+          }
+        }
+      } catch (error) {
+        console.error("Error checking username:", error)
+      }
+    }
+    
+    if (gameState !== "auth") {
+      checkUsername()
+    }
+  }, [gameState, isDevMode])
+
   // Handle logout
   const handleLogout = () => {
     setGameState("auth")
+    setHasUsername(false)
+    setUsername(null)
+  }
+
+  // Handle username saved
+  const handleUsernameSaved = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email) {
+        const { data: usernameData } = await supabase
+          .from('usernames')
+          .select('username')
+          .eq('user_email', session.user.email)
+          .single()
+        
+        if (usernameData?.username) {
+          setUsername(usernameData.username)
+          setHasUsername(true)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching username after save:", error)
+    }
   }
 
   // Render login screen
@@ -1580,10 +1641,22 @@ ${file}
   // Render intro/splash screen
   if (gameState === "intro") {
     return (
-      <div className="relative">
-        <div className="fixed top-4 right-4 z-50">
-          <ProfileMenu onLogout={handleLogout} />
-        </div>
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => {
+              // Don't allow closing if no username exists
+              if (!hasUsername) return
+              setShowUsernameModal(false)
+            }}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <div className="relative">
+          <div className="fixed top-4 right-4 z-50">
+            <ProfileMenu onLogout={handleLogout} onEditUsername={() => setShowUsernameModal(true)} />
+          </div>
         <div 
           className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand cursor-pointer"
           onClick={(e) => {
@@ -1611,7 +1684,24 @@ ${file}
   }
 
   if (gameState === "start") {
-    return <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} onLogout={handleLogout} />
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <StartScreen 
+          onStart={startGame} 
+          onInitializeAudio={onInitializeAudio} 
+          onLogout={handleLogout}
+          username={username}
+          onEditUsername={() => setShowUsernameModal(true)}
+        />
+      </>
+    )
   }
 
   // Render defeat screen

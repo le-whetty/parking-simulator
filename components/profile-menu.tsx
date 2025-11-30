@@ -5,9 +5,10 @@ import { supabase } from "@/lib/supabase"
 
 interface ProfileMenuProps {
   onLogout: () => void
+  onEditUsername?: () => void
 }
 
-export default function ProfileMenu({ onLogout }: ProfileMenuProps) {
+export default function ProfileMenu({ onLogout, onEditUsername }: ProfileMenuProps) {
   const [user, setUser] = useState<{ email: string; avatar_url?: string } | null>(null)
   const [showMenu, setShowMenu] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -110,6 +111,17 @@ export default function ProfileMenu({ onLogout }: ProfileMenuProps) {
               {user.email}
             </p>
           </div>
+          {onEditUsername && (
+            <button
+              onClick={() => {
+                setShowMenu(false)
+                onEditUsername()
+              }}
+              className="w-full text-left px-4 py-3 text-sm text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 font-quicksand transition-colors border-b border-tracksuit-purple-100"
+            >
+              Edit username
+            </button>
+          )}
           <button
             onClick={handleLogout}
             className="w-full text-left px-4 py-3 text-sm text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 font-quicksand transition-colors"
