@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import Leaderboard from "./leaderboard"
 import ProfileMenu from "./profile-menu"
 import { supabase } from "@/lib/supabase"
+import mixpanel from "@/lib/mixpanel"
 
 interface MenuProps {
   onLogout?: () => void
