@@ -85,13 +85,6 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         },
       })
       
-      // Track Sign Up attempt (will be confirmed on successful auth)
-      if (!error && data?.url) {
-        mixpanel.track('Sign Up', {
-          signup_method: 'google',
-        })
-      }
-      
       console.log('🔐 OAuth response:', { 
         error, 
         data, 

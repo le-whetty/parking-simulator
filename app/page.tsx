@@ -1729,21 +1729,15 @@ ${file}
             '$email': session.user.email || '',
           })
           
-          // Check if this is a new user (Sign Up)
+          // Check if user has a username
           const { data: usernameData } = await supabase
             .from('usernames')
             .select('username, created_at')
             .eq('user_email', session.user.email)
             .maybeSingle()
           
-          // Track Sign Up if user doesn't exist yet
-          if (!usernameData) {
-            mixpanel.track('Sign Up', {
-              user_id: session.user.id,
-              email: session.user.email || '',
-              signup_method: 'google',
-            })
-          }
+          // Note: Sign Up events are now tracked via Supabase webhook (app/api/webhooks/supabase-auth/route.ts)
+          // This ensures we only track actual new user creations, not returning users
           
           if (usernameData?.username) {
             setUsername(usernameData.username)
