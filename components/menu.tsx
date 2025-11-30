@@ -47,7 +47,11 @@ export default function Menu({ onLogout }: MenuProps) {
             >
               View Leaderboard
             </Button>
-            {onLogout && <ProfileMenu onLogout={onLogout} />}
+            {onLogout && (
+              <div className="flex items-center">
+                <ProfileMenu onLogout={onLogout} />
+              </div>
+            )}
           </div>
         </div>
       </div>
