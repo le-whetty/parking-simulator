@@ -1507,6 +1507,11 @@ ${file}
     }, 50) // Process keys every 50ms
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't capture keys if username modal is open (allow typing in input)
+      if (showUsernameModal) {
+        return
+      }
+
       // Prevent default for game controls to avoid browser scrolling
       if (["w", "W", "a", "A", "s", "S", "d", "D", " ", "Space"].includes(e.key) || e.code === "Space") {
         e.preventDefault()
@@ -1520,6 +1525,11 @@ ${file}
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Don't capture keys if username modal is open (allow typing in input)
+      if (showUsernameModal) {
+        return
+      }
+
       // Remove key from the set of pressed keys
       keysPressed.delete(e.key)
       if (e.code === "Space") {
