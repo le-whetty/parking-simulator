@@ -363,6 +363,32 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     return () => {
       // Only clean up on unmount - don't stop music on re-renders
       if (currentMurcaAudioRef.current) {
+        // Track final song listening time when component unmounts
+        if (songStartTimeRef.current > 0) {
+          const songDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+          const currentSong = playedSongsRef.current[playedSongsRef.current.length - 1]
+          if (currentSong) {
+            const songInfo = parseSongFilename(currentSong)
+            
+            async function trackFinalSong() {
+              try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                  mixpanel.track('Song Listened', {
+                    user_id: session.user.id,
+                    artist: songInfo.artist,
+                    title: songInfo.title,
+                    duration_seconds: Math.round(songDuration),
+                  })
+                }
+              } catch (error) {
+                console.error("Error tracking final song:", error)
+              }
+            }
+            trackFinalSong()
+          }
+        }
+        
         currentMurcaAudioRef.current.pause()
         currentMurcaAudioRef.current.currentTime = 0
         currentMurcaAudioRef.current.onended = null
