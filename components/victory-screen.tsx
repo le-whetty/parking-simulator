@@ -478,7 +478,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
-                Top 3 scores by Wednesday, Nov 3 at 1pm NZT win the coveted{" "}
+                Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}
                 <a
                   href="/images/im-parkin-here.jpg"
                   target="_blank"
