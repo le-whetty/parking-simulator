@@ -16,6 +16,7 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const [displayName, setDisplayName] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -120,10 +121,16 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
         return
       }
 
-      // Success - close modal and notify parent
+      // Success - show success state briefly before closing
       setIsSaving(false)
-      onClose()
-      onSave() // Call onSave after closing to trigger parent refresh
+      setIsSuccess(true)
+      
+      // Wait a moment to show success, then close and notify parent
+      setTimeout(() => {
+        setIsSuccess(false)
+        onClose()
+        onSave() // Call onSave after closing to trigger parent refresh
+      }, 1000) // Show success for 1 second
     } catch (error) {
       console.error("Error saving username:", error)
       setError("An error occurred. Please try again.")
@@ -192,22 +199,40 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
             </p>
           </div>
 
+          {/* Success Message */}
+          {isSuccess && (
+            <div className="w-full p-3 bg-green-50 border-2 border-green-300 rounded-lg flex items-center gap-2">
+              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              <p className="text-sm text-green-700 font-quicksand font-semibold">
+                Username saved successfully!
+              </p>
+            </div>
+          )}
+
           {/* Buttons */}
           <div className="flex gap-3 w-full">
             <Button
               onClick={onClose}
               variant="outline"
               className="flex-1 font-chapeau"
-              disabled={isSaving}
+              disabled={isSaving || isSuccess}
             >
               Cancel
             </Button>
             <Button
               onClick={handleSave}
-              className="flex-1 bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau"
-              disabled={isSaving || !username.trim()}
+              className="flex-1 bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau flex items-center justify-center gap-2"
+              disabled={isSaving || isSuccess || !username.trim()}
             >
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving && (
+                <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              )}
+              {isSaving ? "Saving..." : isSuccess ? "Saved!" : "Save"}
             </Button>
           </div>
         </div>
