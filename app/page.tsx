@@ -7,6 +7,7 @@ import DefeatScreen from "@/components/defeat-screen"
 import VictoryScreen from "@/components/victory-screen"
 import LoginScreen from "@/components/login-screen"
 import StartScreen from "@/components/start-screen"
+import ProfileMenu from "@/components/profile-menu"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
 
@@ -1571,43 +1572,66 @@ ${file}
     return <LoginScreen onAuthenticated={() => setGameState("intro")} />
   }
 
+  // Handle logout
+  const handleLogout = () => {
+    setGameState("auth")
+  }
+
   // Render intro/splash screen
   if (gameState === "intro") {
     return (
-      <div 
-        className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand cursor-pointer"
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          console.log("Intro screen clicked - transitioning to start screen")
-          // Initialize audio on user interaction
-          if (!audioManager.initialized) {
-            audioManager.initialize()
-          }
-          // Transition to start screen (music will start via useEffect)
-          setGameState("start")
-        }}
-      >
-        <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
-          <div className="mb-4">
-            <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
-          </div>
-          <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4" style={{ padding: '10px' }}>Parking Simulator</h1>
-          <p className="text-2xl text-tracksuit-purple-700 mb-8 font-quicksand">Click anywhere to begin</p>
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ProfileMenu onLogout={handleLogout} />
+        </div>
+        <div 
+          className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log("Intro screen clicked - transitioning to start screen")
+            // Initialize audio on user interaction
+            if (!audioManager.initialized) {
+              audioManager.initialize()
+            }
+            // Transition to start screen (music will start via useEffect)
+            setGameState("start")
+          }}
+        >
+          <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
+            <div className="mb-4">
+              <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
+            </div>
+            <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4" style={{ padding: '10px' }}>Parking Simulator</h1>
+            <p className="text-2xl text-tracksuit-purple-700 mb-8 font-quicksand">Click anywhere to begin</p>
         </div>
       </div>
-    )
-  }
+      </div>
+    </div>
+  )
+}
 
   if (gameState === "start") {
-    return <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} />
+    return (
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ProfileMenu onLogout={handleLogout} />
+        </div>
+        <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} />
+      </div>
+    )
   }
 
   // Render defeat screen
   if (gameState === "defeat") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
-        <DefeatScreen onRestart={startGame} />
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ProfileMenu onLogout={handleLogout} />
+        </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
+          <DefeatScreen onRestart={startGame} />
+        </div>
       </div>
     )
   }
@@ -1615,15 +1639,24 @@ ${file}
   // Replace the entire inline victory screen block:
   if (hasWon) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
-        <VictoryScreen onRestart={startGame} score={score} />
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ProfileMenu onLogout={handleLogout} />
+        </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
+          <VictoryScreen onRestart={startGame} score={score} />
+        </div>
       </div>
     )
   }
 
   // Render game screen
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
+    <div className="relative">
+      <div className="fixed top-4 right-4 z-50">
+        <ProfileMenu onLogout={handleLogout} />
+      </div>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
       <div
         ref={gameContainerRef}
         className="relative w-full max-w-4xl h-[800px] overflow-hidden focus:outline-none"
