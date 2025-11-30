@@ -16,6 +16,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioManager = useAudioManager()
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
   const [userRank, setUserRank] = useState<number | null>(null)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [scoreSaved, setScoreSaved] = useState(false)
@@ -35,6 +36,17 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         
         if (session?.user?.email) {
           setUserEmail(session.user.email)
+          
+          // Fetch username
+          const { data: usernameData } = await supabase
+            .from('usernames')
+            .select('username')
+            .eq('user_email', session.user.email)
+            .maybeSingle()
+          
+          if (usernameData?.username) {
+            setUsername(usernameData.username)
+          }
           
           // Save the score
           if (!scoreSaved) {
@@ -366,7 +378,9 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
                 <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Your Rank</p>
                 <p className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{userRank}</p>
-                <p className="text-sm text-tracksuit-purple-600 mt-2 font-quicksand truncate">{userEmail}</p>
+                <p className="text-sm text-tracksuit-purple-600 mt-2 font-quicksand truncate">
+                  {username ? `@${username}` : userEmail}
+                </p>
               </div>
             )}
             

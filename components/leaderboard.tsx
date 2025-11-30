@@ -13,6 +13,7 @@ interface LeaderboardProps {
 export default function Leaderboard({ userEmail, userScore, userRank }: LeaderboardProps) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [username, setUsername] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchLeaderboard() {
@@ -90,7 +91,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
             <div className="flex items-center justify-center gap-3 text-sm text-tracksuit-purple-700 font-quicksand">
               <span className="px-3 py-1 bg-tracksuit-purple-200 rounded-full font-semibold">Rank #{userRank}</span>
               <span className="text-tracksuit-purple-400">•</span>
-              <span className="truncate max-w-xs">{userEmail}</span>
+              <span className="truncate max-w-xs">{username ? `@${username}` : userEmail}</span>
             </div>
           </div>
         </div>
