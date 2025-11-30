@@ -13,6 +13,7 @@ import UsernameModal from "@/components/username-modal"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
 import { supabase } from "@/lib/supabase"
+import mixpanel from "@/lib/mixpanel"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "playing" | "victory" | "defeat"
