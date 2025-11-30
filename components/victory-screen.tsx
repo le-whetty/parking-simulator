@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { supabase } from "@/lib/supabase"
 import Leaderboard from "./leaderboard"
+import confetti from "canvas-confetti"
 
 interface VictoryScreenProps {
   onRestart: () => void
@@ -196,6 +197,40 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [murcaSongs])
 
+  // Trigger fireworks confetti when victory screen loads
+  useEffect(() => {
+    const duration = 5 * 1000
+    const animationEnd = Date.now() + duration
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
+
+    const randomInRange = (min: number, max: number) =>
+      Math.random() * (max - min) + min
+
+    const interval = window.setInterval(() => {
+      const timeLeft = animationEnd - Date.now()
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval)
+      }
+
+      const particleCount = 50 * (timeLeft / duration)
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+      })
+      confetti({
+        ...defaults,
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+      })
+    }, 250)
+
+    return () => {
+      clearInterval(interval)
+    }
+  }, [])
+
   useEffect(() => {
     // Stop theme music when component mounts (only once)
     console.log("VictoryScreen mounted - stopping theme music")
@@ -285,6 +320,49 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     window.location.reload()
   }
 
+  // Handle Increase 'murca button click with emoji confetti
+  const handleIncreaseMurca = () => {
+    // Play random murca song
+    playRandomMurcaSong()
+
+    // Trigger emoji confetti (American flags)
+    const scalar = 2
+    const flag = confetti.shapeFromText({ text: "🇺🇸", scalar })
+
+    const defaults = {
+      spread: 360,
+      ticks: 60,
+      gravity: 0,
+      decay: 0.96,
+      startVelocity: 20,
+      shapes: [flag],
+      scalar,
+    }
+
+    const shoot = () => {
+      confetti({
+        ...defaults,
+        particleCount: 30,
+      })
+
+      confetti({
+        ...defaults,
+        particleCount: 5,
+      })
+
+      confetti({
+        ...defaults,
+        particleCount: 15,
+        scalar: scalar / 2,
+        shapes: ["circle"],
+      })
+    }
+
+    setTimeout(shoot, 0)
+    setTimeout(shoot, 100)
+    setTimeout(shoot, 200)
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-8">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-tracksuit-purple-200/50 relative overflow-hidden my-auto">
@@ -364,7 +442,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             </div>
             <Button
               size="lg"
-              onClick={playRandomMurcaSong}
+              onClick={handleIncreaseMurca}
               className="bg-gradient-to-r from-red-600 via-white to-blue-600 hover:from-red-700 hover:via-white hover:to-blue-700 relative z-50 font-chapeau transition-colors shadow-lg font-bold text-gray-900"
               style={{ 
                 textShadow: '2px 2px 4px rgba(0,0,0,0.3), -1px -1px 2px rgba(255,255,255,0.5)',
