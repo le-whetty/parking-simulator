@@ -1567,14 +1567,14 @@ ${file}
     }
   }, [gameState, audioManager]) // Include audioManager to ensure it's available
 
-  // Render login screen
-  if (gameState === "auth") {
-    return <LoginScreen onAuthenticated={() => setGameState("intro")} />
-  }
-
   // Handle logout
   const handleLogout = () => {
     setGameState("auth")
+  }
+
+  // Render login screen
+  if (gameState === "auth") {
+    return <LoginScreen onAuthenticated={() => setGameState("intro")} />
   }
 
   // Render intro/splash screen
