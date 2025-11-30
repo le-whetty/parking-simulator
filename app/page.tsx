@@ -1611,14 +1611,7 @@ ${file}
   }
 
   if (gameState === "start") {
-    return (
-      <div className="relative">
-        <div className="fixed top-4 right-4 z-50">
-          <ProfileMenu onLogout={handleLogout} />
-        </div>
-        <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} />
-      </div>
-    )
+    return <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} onLogout={handleLogout} />
   }
 
   // Render defeat screen

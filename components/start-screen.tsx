@@ -7,9 +7,10 @@ import Menu from "./menu"
 interface StartScreenProps {
   onStart: () => void
   onInitializeAudio?: () => void
+  onLogout?: () => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -30,7 +31,7 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu />
+      <Menu onLogout={onLogout} />
 
       {/* Main content area - two column layout */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">

@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Leaderboard from "./leaderboard"
+import ProfileMenu from "./profile-menu"
 import { supabase } from "@/lib/supabase"
 
-interface MenuProps {}
+interface MenuProps {
+  onLogout?: () => void
+}
 
-export default function Menu({}: MenuProps) {
+export default function Menu({ onLogout }: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -44,6 +47,7 @@ export default function Menu({}: MenuProps) {
             >
               View Leaderboard
             </Button>
+            {onLogout && <ProfileMenu onLogout={onLogout} />}
           </div>
         </div>
       </div>
