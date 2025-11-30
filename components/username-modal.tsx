@@ -125,11 +125,13 @@ export default function UsernameModal({ isOpen, onClose, onSave }: UsernameModal
       setIsSaving(false)
       setIsSuccess(true)
       
-      // Wait a moment to show success, then close and notify parent
-      setTimeout(() => {
+      // Wait a moment to show success, then notify parent and close
+      setTimeout(async () => {
         setIsSuccess(false)
+        // Call onSave first to update parent state (hasUsername, etc.)
+        await onSave()
+        // Then close the modal
         onClose()
-        onSave() // Call onSave after closing to trigger parent refresh
       }, 1000) // Show success for 1 second
     } catch (error) {
       console.error("Error saving username:", error)

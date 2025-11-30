@@ -1807,8 +1807,7 @@ ${file}
           <UsernameModal
             isOpen={showUsernameModal}
             onClose={() => {
-              // Don't allow closing if no username exists
-              if (!hasUsername) return
+              // Allow closing - the modal will handle preventing close during save
               setShowUsernameModal(false)
             }}
             onSave={handleUsernameSaved}
