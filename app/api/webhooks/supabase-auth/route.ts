@@ -1,5 +1,78 @@
 import { NextRequest, NextResponse } from "next/server"
-import mixpanel from "@/lib/mixpanel"
+
+const MIXPANEL_TOKEN = "c7f541cc15cc7d2454aa84b67fc5353b"
+const MIXPANEL_API_URL = "https://api.mixpanel.com"
+
+/**
+ * Track an event to Mixpanel using their HTTP API
+ */
+async function trackMixpanelEvent(event: string, properties: Record<string, any>) {
+  try {
+    const eventData = {
+      event,
+      properties: {
+        ...properties,
+        token: MIXPANEL_TOKEN,
+        time: Math.floor(Date.now() / 1000), // Unix timestamp in seconds
+      },
+    }
+
+    // Encode the data as base64
+    const encodedData = Buffer.from(JSON.stringify(eventData)).toString("base64")
+
+    // Send to Mixpanel's track endpoint
+    const response = await fetch(`${MIXPANEL_API_URL}/track`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `data=${encodedData}`,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Mixpanel API error: ${response.status} ${response.statusText}`)
+    }
+
+    return await response.text()
+  } catch (error) {
+    console.error("Error sending event to Mixpanel:", error)
+    throw error
+  }
+}
+
+/**
+ * Set user properties in Mixpanel using their HTTP API
+ */
+async function setMixpanelUserProperties(distinctId: string, properties: Record<string, any>) {
+  try {
+    const updateData = {
+      $token: MIXPANEL_TOKEN,
+      $distinct_id: distinctId,
+      $set: properties,
+    }
+
+    // Encode the data as base64
+    const encodedData = Buffer.from(JSON.stringify(updateData)).toString("base64")
+
+    // Send to Mixpanel's engage endpoint
+    const response = await fetch(`${MIXPANEL_API_URL}/engage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `data=${encodedData}`,
+    })
+
+    if (!response.ok) {
+      throw new Error(`Mixpanel API error: ${response.status} ${response.statusText}`)
+    }
+
+    return await response.text()
+  } catch (error) {
+    console.error("Error setting user properties in Mixpanel:", error)
+    throw error
+  }
+}
 
 /**
  * Webhook endpoint to receive Supabase auth user insert events
@@ -40,29 +113,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Track Sign Up event in Mixpanel
+    // Track Sign Up event in Mixpanel using HTTP API
     try {
-      // Identify the user
-      mixpanel.identify(user.id)
-      
-      // Set user properties
-      mixpanel.people.set({
-        '$name': user.user_metadata?.full_name || 
-                 user.user_metadata?.name || 
-                 user.email?.split('@')[0] || 
-                 'Unknown',
-        '$email': user.email || '',
-        'created_at': user.created_at || new Date().toISOString(),
-        'signup_method': 'google', // Assuming Google OAuth based on your setup
+      // Set user properties first
+      await setMixpanelUserProperties(user.id, {
+        $name: user.user_metadata?.full_name || 
+               user.user_metadata?.name || 
+               user.email?.split('@')[0] || 
+               'Unknown',
+        $email: user.email || '',
+        created_at: user.created_at || new Date().toISOString(),
+        signup_method: 'google', // Assuming Google OAuth based on your setup
       })
       
       // Track the Sign Up event
-      mixpanel.track('Sign Up', {
+      await trackMixpanelEvent('Sign Up', {
+        distinct_id: user.id,
         user_id: user.id,
         email: user.email,
         signup_method: 'google',
         created_at: user.created_at,
-        distinct_id: user.id, // Ensure proper user identification
       })
       
       console.log(`✅ Tracked Sign Up event for user: ${user.email} (${user.id})`)
