@@ -1,0 +1,106 @@
+import { NextRequest, NextResponse } from "next/server"
+import mixpanel from "@/lib/mixpanel"
+
+/**
+ * Webhook endpoint to receive Supabase auth user insert events
+ * 
+ * Supabase webhook payload structure:
+ * {
+ *   "type": "INSERT",
+ *   "table": "users",
+ *   "record": {
+ *     "id": "user-uuid",
+ *     "email": "user@example.com",
+ *     "created_at": "2024-01-01T00:00:00Z",
+ *     "user_metadata": { ... },
+ *     ...
+ *   },
+ *   "old_record": null
+ * }
+ */
+export async function POST(request: NextRequest) {
+  try {
+    // Parse the webhook payload
+    const payload = await request.json()
+    
+    // Verify this is an INSERT event for the users table
+    if (payload.type !== "INSERT" || payload.table !== "users") {
+      return NextResponse.json(
+        { error: "Invalid webhook event type" },
+        { status: 400 }
+      )
+    }
+
+    const user = payload.record
+    
+    if (!user || !user.id || !user.email) {
+      return NextResponse.json(
+        { error: "Invalid user data in webhook payload" },
+        { status: 400 }
+      )
+    }
+
+    // Track Sign Up event in Mixpanel
+    try {
+      // Identify the user
+      mixpanel.identify(user.id)
+      
+      // Set user properties
+      mixpanel.people.set({
+        '$name': user.user_metadata?.full_name || 
+                 user.user_metadata?.name || 
+                 user.email?.split('@')[0] || 
+                 'Unknown',
+        '$email': user.email || '',
+        'created_at': user.created_at || new Date().toISOString(),
+        'signup_method': 'google', // Assuming Google OAuth based on your setup
+      })
+      
+      // Track the Sign Up event
+      mixpanel.track('Sign Up', {
+        user_id: user.id,
+        email: user.email,
+        signup_method: 'google',
+        created_at: user.created_at,
+        distinct_id: user.id, // Ensure proper user identification
+      })
+      
+      console.log(`✅ Tracked Sign Up event for user: ${user.email} (${user.id})`)
+    } catch (mixpanelError) {
+      console.error("Error tracking Mixpanel event:", mixpanelError)
+      // Don't fail the webhook if Mixpanel fails - log and continue
+    }
+
+    // Return success response
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: "Sign Up event tracked successfully",
+        user_id: user.id 
+      },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error("Error processing webhook:", error)
+    return NextResponse.json(
+      { 
+        error: "Internal server error", 
+        details: error instanceof Error ? error.message : String(error) 
+      },
+      { status: 500 }
+    )
+  }
+}
+
+// Optional: Add GET handler for webhook verification/testing
+export async function GET(request: NextRequest) {
+  return NextResponse.json(
+    { 
+      message: "Supabase Auth Webhook endpoint is active",
+      method: "POST",
+      description: "This endpoint receives POST requests from Supabase webhooks for user sign-ups"
+    },
+    { status: 200 }
+  )
+}
+
