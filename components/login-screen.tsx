@@ -104,7 +104,7 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         <div className="mb-4">
           <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
         </div>
-        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4 px-8 break-words w-full">
+        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4 px-8 pb-2 break-words w-full">
           Parking Simulator
         </h1>
         
