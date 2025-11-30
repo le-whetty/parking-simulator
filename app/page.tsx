@@ -1061,7 +1061,7 @@ ${file}
 
           // Ensure we're not at the edge by moving slightly toward center
           posX = Math.max(gameBounds.minX, Math.min(gameBounds.maxX, posX))
-          posY = Math.max(gameBounds.minY, Math.max(gameBounds.maxY, posY))
+          posY = Math.max(gameBounds.minY, Math.min(gameBounds.maxY, posY))
 
           // Reset direction change timer
           newDirectionChangeTimer = Math.random() * 5 + 3

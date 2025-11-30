@@ -177,23 +177,38 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     currentMurcaAudioRef.current = audio
   }, [murcaSongs, parseSongFilename])
 
-  // Handle initial song playback when murcaSongs are loaded
+  // Handle initial song playback - start immediately with fallback, then switch when songs load
   useEffect(() => {
-    // Only play initial song once when songs become available
-    if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
-      console.log("VictoryScreen - murca songs loaded, playing initial song")
+    // Stop theme music immediately
+    audioManager.stop("theme")
+    audioManager.stopAll()
 
-      // Stop theme music specifically
-      audioManager.stop("theme")
-      
-      // Stop all other sounds
-      audioManager.stopAll()
-
-      // Play a random murca song
-      playRandomMurcaSong()
+    // Start playing anthem immediately as fallback (don't wait for API)
+    if (!initialSongPlayedRef.current) {
+      console.log("VictoryScreen - starting music immediately")
+      const fallbackAudio = new Audio("/music/anthem.mp3")
+      fallbackAudio.volume = 0.5
+      fallbackAudio.loop = true
+      fallbackAudio.play().catch((e) => {
+        console.error("Error playing fallback anthem:", e)
+      })
+      currentMurcaAudioRef.current = fallbackAudio
       initialSongPlayedRef.current = true
     }
-    // Only depend on murcaSongs - don't re-run when audioManager or playRandomMurcaSong changes
+  }, [])
+
+  // Switch to murca songs when they load
+  useEffect(() => {
+    // If songs are loaded and we're still playing fallback, switch to murca songs
+    if (murcaSongs.length > 0 && currentMurcaAudioRef.current?.src.includes("anthem.mp3")) {
+      console.log("VictoryScreen - murca songs loaded, switching to murca playlist")
+      if (currentMurcaAudioRef.current) {
+        currentMurcaAudioRef.current.pause()
+        currentMurcaAudioRef.current.currentTime = 0
+        currentMurcaAudioRef.current.onended = null
+      }
+      playRandomMurcaSong()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [murcaSongs])
 
@@ -326,7 +341,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     playRandomMurcaSong()
 
     // Trigger emoji confetti with multiple emojis: 🦃🇺🇸🌭🦅
-    const scalar = 4 // Increased from 2 to make emojis bigger
+    const scalar = 2.5 // Balanced size - visible but not too big
     const turkey = confetti.shapeFromText({ text: "🦃", scalar })
     const flag = confetti.shapeFromText({ text: "🇺🇸", scalar })
     const hotdog = confetti.shapeFromText({ text: "🌭", scalar })
@@ -334,10 +349,10 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
 
     const defaults = {
       spread: 360,
-      ticks: 100, // Increased from 60 to make particles last longer
-      gravity: 0.3, // Added slight gravity for more natural movement
-      decay: 0.92, // Slower decay (was 0.96) so particles move slower
-      startVelocity: 15, // Reduced from 20 to make particles slower
+      ticks: 80, // Good duration
+      gravity: 0.5, // Natural gravity
+      decay: 0.94, // Balanced decay
+      startVelocity: 30, // Higher velocity to shoot out more
       shapes: [turkey, flag, hotdog, eagle], // Array of all 4 emojis
       scalar,
       zIndex: 9999, // Ensure confetti appears above everything
@@ -346,18 +361,18 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     const shoot = () => {
       confetti({
         ...defaults,
-        particleCount: 50, // Increased from 30 for more visibility
+        particleCount: 40, // Good amount for visibility
       })
 
       confetti({
         ...defaults,
-        particleCount: 10, // Increased from 5
+        particleCount: 8,
       })
 
       confetti({
         ...defaults,
-        particleCount: 25, // Increased from 15
-        scalar: scalar * 0.75, // Slightly smaller circles mixed in
+        particleCount: 20,
+        scalar: scalar * 0.8,
         shapes: ["circle"],
       })
     }
