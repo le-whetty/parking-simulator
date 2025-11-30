@@ -520,6 +520,9 @@ ${file}
     gameReadyRef.current = false
     setCountdown(3) // Start countdown at 3
 
+    // Play countdown sound immediately when countdown starts
+    audioManager.play("3-2-1")
+
     // Clear any existing countdown interval
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current)
@@ -535,6 +538,10 @@ ${file}
           }
           gameReadyRef.current = true
           setCountdown(null)
+          
+          // Stop countdown sound and start theme music
+          audioManager.stop("3-2-1")
+          audioManager.play("theme")
           
           // Start the game loop after countdown
           console.log("Starting game loop after countdown...")
@@ -562,17 +569,7 @@ ${file}
       })
     }
 
-    // Play theme music - wait a bit for audio to initialize
-    setTimeout(() => {
-      try {
-        console.log("Attempting to play theme music...")
-        // Just call play - it will handle initialization if needed
-        audioManager.play("theme")
-        console.log("Theme music play called")
-      } catch (error) {
-        console.error("Error playing theme music:", error)
-      }
-    }, 500)
+    // Theme music will start after countdown completes (handled in countdown interval)
   }
 
   // Format time (minutes to MM:SS countdown)
@@ -1418,6 +1415,9 @@ ${file}
 
     // Hide Slack message
     setShowSlackMessage(false)
+
+    // Stop countdown sound specifically
+    audioManager.stop("3-2-1")
 
     // Stop all sounds
     audioManager.stopAll()
