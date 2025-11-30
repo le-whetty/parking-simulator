@@ -1545,7 +1545,7 @@ ${file}
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
     }
-  }, [gameState])
+  }, [gameState, showUsernameModal])
 
   // Render start screen
   const onInitializeAudio = () => {
