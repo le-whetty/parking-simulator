@@ -539,8 +539,7 @@ ${file}
           gameReadyRef.current = true
           setCountdown(null)
           
-          // Stop countdown sound and start theme music
-          audioManager.stop("3-2-1")
+          // Start theme music (let countdown sound play out naturally)
           audioManager.play("theme")
           
           // Start the game loop after countdown
