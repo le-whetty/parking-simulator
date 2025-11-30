@@ -82,11 +82,11 @@ export default function ProfileMenu({ onLogout }: ProfileMenuProps) {
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative flex items-center" ref={menuRef}>
       {/* Profile Circle */}
       <button
         onClick={() => setShowMenu(!showMenu)}
-        className="w-10 h-10 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 hover:border-tracksuit-purple-500 transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-tracksuit-purple-500 focus:ring-offset-2"
+        className="w-10 h-10 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 hover:border-tracksuit-purple-500 transition-colors shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-tracksuit-purple-500 focus:ring-offset-2 flex-shrink-0"
         aria-label="User profile menu"
       >
         {user.avatar_url ? (
