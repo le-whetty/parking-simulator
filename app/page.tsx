@@ -105,8 +105,9 @@ export default function Home() {
   }
 
   // Define the parking spot area as a constant
+  // Adjusted to match new background image - narrower on left side
   const PARKING_SPOT_AREA = {
-    left: 425,
+    left: 535,
     right: 825,
     top: 100,
     bottom: 220,
@@ -152,10 +153,10 @@ export default function Home() {
       clearTimeout(slackMessageTimeoutRef.current)
     }
 
-    // Set a timeout to hide the message after 5 seconds
+    // Set a timeout to hide the message after 3 seconds
     slackMessageTimeoutRef.current = setTimeout(() => {
       setShowSlackMessage(false)
-    }, 5000)
+    }, 3000)
   }
 
   // Set up Slack sound interval when game is playing
@@ -1631,51 +1632,36 @@ ${file}
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
       <div
         ref={gameContainerRef}
-        className="relative w-full max-w-4xl h-[800px] bg-gray-800 overflow-hidden focus:outline-none"
+        className="relative w-full max-w-4xl h-[800px] overflow-hidden focus:outline-none"
         tabIndex={0}
       >
-        {/* Tracksuit header */}
-        <div className="absolute top-0 left-0 right-0 h-[100px] bg-purple-200 flex items-center justify-center">
-          <h1 className="text-5xl font-bold text-black">Tracksuit</h1>
-        </div>
-        {/* Parking layout */}
-        <div className="absolute top-[100px] left-0 right-0 bottom-0 flex z-0">
-          {/* Left column of parking spots */}
-          <div className="w-1/2 flex flex-col space-y-4 p-4">
-            {[1, 2, 3, 4].map((spot) => (
-              <div key={`left-${spot}`} className="h-[100px] bg-pink-200 rounded-3xl flex items-center justify-center">
-                <span className="text-2xl text-black font-bold">Parking spot</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Right column of parking spots */}
-          <div className="w-1/2 flex flex-col space-y-4 p-4">
-            {/* This is the winning parking spot */}
-            <div
-              ref={parkingSpotRef}
-              className="h-[100px] bg-green-200 rounded-3xl flex items-center justify-center relative"
-              id="winning-spot"
-            >
-              <span className="text-2xl text-black font-bold">WINNING SPOT</span>
-              {/* Add visual indicator for the winning spot */}
-              <div className="absolute inset-0 border-4 border-green-500 rounded-3xl animate-pulse"></div>
-            </div>
-            {[1, 2, 3].map((spot) => (
-              <div key={`right-${spot}`} className="h-[100px] bg-pink-200 rounded-3xl flex items-center justify-center">
-                <span className="text-2xl text-black font-bold">Parking spot</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Game background image */}
+        <img 
+          src="/images/game-background.png" 
+          alt="Game Background" 
+          className="absolute inset-0 w-full h-full object-cover z-0"
+        />
+        
+        {/* Invisible parking spot detection area (for gameplay logic) */}
+        <div
+          ref={parkingSpotRef}
+          className="absolute z-0 pointer-events-none"
+          id="winning-spot"
+          style={{
+            left: `${PARKING_SPOT_AREA.left}px`,
+            top: `${PARKING_SPOT_AREA.top}px`,
+            width: `${PARKING_SPOT_AREA.right - PARKING_SPOT_AREA.left}px`,
+            height: `${PARKING_SPOT_AREA.bottom - PARKING_SPOT_AREA.top}px`,
+          }}
+        />
         {debug && (
           <div
             className="absolute border-4 border-yellow-500 z-40 pointer-events-none"
             style={{
-              left: "425px",
-              top: "100px",
-              width: "400px",
-              height: "120px",
+              left: `${PARKING_SPOT_AREA.left}px`,
+              top: `${PARKING_SPOT_AREA.top}px`,
+              width: `${PARKING_SPOT_AREA.right - PARKING_SPOT_AREA.left}px`,
+              height: `${PARKING_SPOT_AREA.bottom - PARKING_SPOT_AREA.top}px`,
               opacity: 0.5,
             }}
           >
@@ -1754,6 +1740,25 @@ ${file}
           <div className="absolute top-[-60px] left-[10px] text-xs font-bold bg-black/70 px-2 py-1 rounded text-white z-40 whitespace-nowrap">
             Luke
           </div>
+          
+          {/* Kim's Slack message - appears when Slack notification plays */}
+          {showSlackMessage && (
+            <div 
+              className="absolute z-50 animate-fadeIn"
+              style={{
+                left: "150px", // Position to the right of Luke's car
+                top: "-20px",
+                width: "120px",
+                height: "auto",
+              }}
+            >
+              <img 
+                src="/images/kim-message.png" 
+                alt="Kim's message" 
+                className="w-full h-auto drop-shadow-lg"
+              />
+            </div>
+          )}
         </div>
 
         {/* Drivers */}
