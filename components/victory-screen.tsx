@@ -172,26 +172,12 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     currentMurcaAudioRef.current = audio
   }, [murcaSongs, parseSongFilename])
 
-  // Handle initial song playback when murcaSongs are loaded
-  useEffect(() => {
-    // Stop theme music immediately
-    audioManager.stop("theme")
-    audioManager.stopAll()
-
-    // Only play initial song once when songs become available (don't use anthem fallback)
-    if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
-      console.log("VictoryScreen - murca songs loaded, playing initial song")
-      playRandomMurcaSong()
-      initialSongPlayedRef.current = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [murcaSongs])
-
-  // Trigger fireworks confetti and sound when victory screen loads (only once)
-  useEffect(() => {
-    // Play fireworks sound immediately
+  // Trigger fireworks animation and sound (reusable function)
+  const triggerFireworks = useCallback(() => {
+    // Play fireworks sound
     audioManager.play("fireworks")
 
+    // Trigger fireworks confetti animation
     const duration = 5 * 1000
     const animationEnd = Date.now() + duration
     const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 9999 }
@@ -219,12 +205,31 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       })
     }, 250)
 
-    return () => {
+    // Clean up interval after duration
+    setTimeout(() => {
       clearInterval(interval)
+    }, duration)
+  }, [audioManager])
+
+  // Handle initial song playback when murcaSongs are loaded
+  useEffect(() => {
+    // Stop theme music immediately
+    audioManager.stop("theme")
+    audioManager.stopAll()
+
+    // Only play initial song once when songs become available (don't use anthem fallback)
+    if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
+      console.log("VictoryScreen - murca songs loaded, playing initial song")
+      playRandomMurcaSong()
+      initialSongPlayedRef.current = true
     }
-    // Empty dependency array - only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [murcaSongs])
+
+  // Trigger fireworks when victory screen loads (only once)
+  useEffect(() => {
+    triggerFireworks()
+  }, [triggerFireworks])
 
   useEffect(() => {
     // Stop theme music when component mounts (only once)
@@ -314,51 +319,13 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     window.location.reload()
   }
 
-  // Handle Increase 'murca button click with emoji confetti
+  // Handle Increase 'murca button click - trigger fireworks and change song
   const handleIncreaseMurca = () => {
-    // Play random murca song (no fireworks, just music)
+    // Play random murca song
     playRandomMurcaSong()
 
-    // Trigger emoji confetti with multiple emojis: 🦃🇺🇸🌭🦅
-    // Back to original implementation but with 4 emojis and twice as big (scalar 4 instead of 2)
-    const scalar = 4 // Twice as big as original (was 2)
-    const turkey = confetti.shapeFromText({ text: "🦃", scalar })
-    const flag = confetti.shapeFromText({ text: "🇺🇸", scalar })
-    const hotdog = confetti.shapeFromText({ text: "🌭", scalar })
-    const eagle = confetti.shapeFromText({ text: "🦅", scalar })
-
-    const defaults = {
-      spread: 360,
-      ticks: 60, // Original value
-      gravity: 0, // Original value
-      decay: 0.96, // Original value
-      startVelocity: 20, // Original value
-      shapes: [turkey, flag, hotdog, eagle], // Array of all 4 emojis
-      scalar,
-    }
-
-    const shoot = () => {
-      confetti({
-        ...defaults,
-        particleCount: 30, // Original value
-      })
-
-      confetti({
-        ...defaults,
-        particleCount: 5, // Original value
-      })
-
-      confetti({
-        ...defaults,
-        particleCount: 15, // Original value
-        scalar: scalar / 2, // Original relative size
-        shapes: ["circle"],
-      })
-    }
-
-    setTimeout(shoot, 0)
-    setTimeout(shoot, 100) // Original delay
-    setTimeout(shoot, 200) // Original delay
+    // Trigger fireworks animation and sound
+    triggerFireworks()
   }
 
   return (
