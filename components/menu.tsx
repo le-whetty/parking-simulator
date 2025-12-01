@@ -47,7 +47,10 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
             {onVictorySimulator && (
               <Button
                 onClick={onVictorySimulator}
-                className="bg-tracksuit-purple-500 hover:bg-tracksuit-purple-600 text-white font-chapeau text-sm px-4"
+                className="font-chapeau text-sm px-4"
+                style={{ backgroundColor: '#E4dcf8', color: '#4d3777' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d4c4f0'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#E4dcf8'}
               >
                 🥇 Victory Simulator
               </Button>
@@ -69,7 +72,10 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
                 }
                 setShowLeaderboard(true)
               }}
-              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau text-sm px-4"
+              className="font-chapeau text-sm px-4"
+              style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
             >
               🏆 View Leaderboard
             </Button>

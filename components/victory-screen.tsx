@@ -613,7 +613,10 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
                   }
                   setShowLeaderboard(true)
                 }}
-                className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors shadow-lg flex-1"
+                className="relative z-50 font-chapeau transition-colors shadow-lg flex-1"
+                style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
               >
                 View Leaderboard
               </Button>
