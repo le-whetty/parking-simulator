@@ -49,6 +49,7 @@ export default function Menu({ onLogout, onEditUsername }: MenuProps) {
                 try {
                   const { data: { session } } = await supabase.auth.getSession()
                   if (session?.user) {
+                    mixpanel.identify(session.user.id)
                     mixpanel.track('Leaderboard Viewed', {
                       user_id: session.user.id,
                       source: 'menu',

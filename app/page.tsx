@@ -399,6 +399,7 @@ ${file}
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
+        mixpanel.identify(session.user.id)
         mixpanel.track('Game Started', {
           user_id: session.user.id,
         })
@@ -668,6 +669,7 @@ ${file}
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
+        mixpanel.identify(session.user.id)
         mixpanel.track('Hot Dog Fired', {
           user_id: session.user.id,
         })
@@ -986,6 +988,7 @@ ${file}
           try {
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
+              mixpanel.identify(session.user.id)
               mixpanel.track('Victory', {
                 user_id: session.user.id,
                 time_spent_minutes: parseFloat(timeSpentMinutes),
@@ -1510,6 +1513,7 @@ ${file}
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
+          mixpanel.identify(session.user.id)
           if (victory) {
             mixpanel.track('Victory', {
               user_id: session.user.id,

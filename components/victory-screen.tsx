@@ -183,6 +183,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
           try {
             const { data: { session } } = await supabase.auth.getSession()
             if (session?.user) {
+              mixpanel.identify(session.user.id)
               mixpanel.track('Song Listened', {
                 user_id: session.user.id,
                 artist: previousSongInfo.artist,
@@ -224,6 +225,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
         try {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user && songInfo) {
+            mixpanel.identify(session.user.id)
             mixpanel.track('Song Listened', {
               user_id: session.user.id,
               artist: songInfo.artist,
@@ -427,6 +429,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
+        mixpanel.identify(session.user.id)
         mixpanel.track('Increase Murca', {
           user_id: session.user.id,
           score: score,
@@ -542,6 +545,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
                   try {
                     const { data: { session } } = await supabase.auth.getSession()
                     if (session?.user) {
+                      mixpanel.identify(session.user.id)
                       mixpanel.track('Leaderboard Viewed', {
                         user_id: session.user.id,
                         source: 'victory_screen',
