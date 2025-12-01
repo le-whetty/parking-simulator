@@ -3,11 +3,17 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import Leaderboard from "./leaderboard"
+import ProfileMenu from "./profile-menu"
 import { supabase } from "@/lib/supabase"
+import mixpanel from "@/lib/mixpanel"
 
-interface MenuProps {}
+interface MenuProps {
+  onLogout?: () => void
+  onEditUsername?: () => void
+  onVictorySimulator?: () => void
+}
 
-export default function Menu({}: MenuProps) {
+export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -38,12 +44,40 @@ export default function Menu({}: MenuProps) {
             </h2>
           </div>
           <div className="flex items-center gap-3">
+            {onVictorySimulator && (
+              <Button
+                onClick={onVictorySimulator}
+                className="bg-tracksuit-purple-500 hover:bg-tracksuit-purple-600 text-white font-chapeau text-sm px-4"
+              >
+                Victory Simulator
+              </Button>
+            )}
             <Button
-              onClick={() => setShowLeaderboard(true)}
+              onClick={async () => {
+                // Track Leaderboard Viewed event
+                try {
+                  const { data: { session } } = await supabase.auth.getSession()
+                  if (session?.user) {
+                    mixpanel.identify(session.user.id)
+                    mixpanel.track('Leaderboard Viewed', {
+                      user_id: session.user.id,
+                      source: 'menu',
+                    })
+                  }
+                } catch (error) {
+                  console.error("Error tracking leaderboard viewed:", error)
+                }
+                setShowLeaderboard(true)
+              }}
               className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau text-sm px-4"
             >
               View Leaderboard
             </Button>
+            {onLogout && (
+              <div className="flex items-center">
+                <ProfileMenu onLogout={onLogout} onEditUsername={onEditUsername} />
+              </div>
+            )}
           </div>
         </div>
       </div>

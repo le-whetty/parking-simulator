@@ -7,9 +7,13 @@ import Menu from "./menu"
 interface StartScreenProps {
   onStart: () => void
   onInitializeAudio?: () => void
+  onLogout?: () => void
+  username?: string | null
+  onEditUsername?: () => void
+  onVictorySimulator?: () => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -30,7 +34,16 @@ export default function StartScreen({ onStart, onInitializeAudio }: StartScreenP
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu />
+      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+
+      {/* Username Greeting */}
+      {username && (
+        <div className="w-full mb-6 text-center">
+          <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">
+            Hey, @{username} 👋
+          </p>
+        </div>
+      )}
 
       {/* Main content area - two column layout */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">

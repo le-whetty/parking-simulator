@@ -6,16 +6,34 @@ import { useAudioManager } from "@/hooks/use-audio-manager"
 import { supabase } from "@/lib/supabase"
 import Leaderboard from "./leaderboard"
 import confetti from "canvas-confetti"
+import mixpanel from "@/lib/mixpanel"
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel"
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
 
 interface VictoryScreenProps {
   onRestart: () => void
   score?: number // Add optional score prop
+  isSimulator?: boolean // Flag to indicate if this is a simulator (shows disclaimer)
 }
 
-export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenProps) {
+export default function VictoryScreen({ onRestart, score = 0, isSimulator = false }: VictoryScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioManager = useAudioManager()
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
   const [userRank, setUserRank] = useState<number | null>(null)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [scoreSaved, setScoreSaved] = useState(false)
@@ -25,16 +43,55 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   const shuffledQueueRef = useRef<string[]>([]) // Current shuffle queue
   const initialSongPlayedRef = useRef<boolean>(false) // Track if initial song has been played
   const [currentSongInfo, setCurrentSongInfo] = useState<{ artist: string; title: string } | null>(null)
+  const songStartTimeRef = useRef<number>(0) // Track when current song started playing
+  const [showMerchCarousel, setShowMerchCarousel] = useState(false)
+  const [showDisclaimer, setShowDisclaimer] = useState(isSimulator) // Show disclaimer if simulator mode
 
-  // Check authentication and save score
+  // Check authentication and save score (skip if simulator mode)
   useEffect(() => {
     async function checkAuthAndSaveScore() {
+      // Don't save score if in simulator mode
+      if (isSimulator) {
+        // Still fetch user info for display, but don't save score
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user?.email) {
+            setUserEmail(session.user.email)
+            
+            // Fetch username
+            const { data: usernameData } = await supabase
+              .from('usernames')
+              .select('username')
+              .eq('user_email', session.user.email)
+              .maybeSingle()
+            
+            if (usernameData?.username) {
+              setUsername(usernameData.username)
+            }
+          }
+        } catch (error) {
+          console.error("Error checking auth:", error)
+        }
+        return
+      }
+      
       try {
         // Check if user is authenticated
         const { data: { session } } = await supabase.auth.getSession()
         
         if (session?.user?.email) {
           setUserEmail(session.user.email)
+          
+          // Fetch username
+          const { data: usernameData } = await supabase
+            .from('usernames')
+            .select('username')
+            .eq('user_email', session.user.email)
+            .maybeSingle()
+          
+          if (usernameData?.username) {
+            setUsername(usernameData.username)
+          }
           
           // Save the score
           if (!scoreSaved) {
@@ -67,7 +124,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     }
 
     checkAuthAndSaveScore()
-  }, [score, scoreSaved])
+  }, [score, scoreSaved, isSimulator])
 
 
   // Fetch murca songs on mount
@@ -145,6 +202,33 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       console.log("🎵 Shuffle queue reset - all songs reshuffled")
     }
 
+    // Track previous song listening time if one was playing (before switching)
+    if (currentMurcaAudioRef.current && songStartTimeRef.current > 0) {
+      const previousSongDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+      const previousSong = playedSongsRef.current[playedSongsRef.current.length - 1] // Get the last played song
+      if (previousSong) {
+        const previousSongInfo = parseSongFilename(previousSong)
+        
+        async function trackSongListenTime() {
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+              mixpanel.identify(session.user.id)
+              mixpanel.track('Song Listened', {
+                user_id: session.user.id,
+                artist: previousSongInfo.artist,
+                title: previousSongInfo.title,
+                duration_seconds: Math.round(previousSongDuration),
+              })
+            }
+          } catch (error) {
+            console.error("Error tracking song listen time:", error)
+          }
+        }
+        trackSongListenTime()
+      }
+    }
+    
     // Get next song from queue
     const nextSong = shuffledQueueRef.current.shift()!
     playedSongsRef.current.push(nextSong)
@@ -159,8 +243,32 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     const audio = new Audio(nextSong)
     audio.volume = 0.5
     
+    // Track when this song starts playing
+    songStartTimeRef.current = Date.now()
+    
     // Add event listener for when song ends - play next song
     audio.addEventListener('ended', () => {
+      // Track song listening time when it ends naturally
+      const songDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+      
+      async function trackSongEnded() {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user && songInfo) {
+            mixpanel.identify(session.user.id)
+            mixpanel.track('Song Listened', {
+              user_id: session.user.id,
+              artist: songInfo.artist,
+              title: songInfo.title,
+              duration_seconds: Math.round(songDuration),
+            })
+          }
+        } catch (error) {
+          console.error("Error tracking song ended:", error)
+        }
+      }
+      trackSongEnded()
+      
       console.log("🎵 Song ended, playing next in queue...")
       playRandomMurcaSong()
     })
@@ -300,6 +408,33 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
     return () => {
       // Only clean up on unmount - don't stop music on re-renders
       if (currentMurcaAudioRef.current) {
+        // Track final song listening time when component unmounts
+        if (songStartTimeRef.current > 0) {
+          const songDuration = (Date.now() - songStartTimeRef.current) / 1000 // Duration in seconds
+          const currentSong = playedSongsRef.current[playedSongsRef.current.length - 1]
+          if (currentSong) {
+            const songInfo = parseSongFilename(currentSong)
+            
+            async function trackFinalSong() {
+              try {
+                const { data: { session } } = await supabase.auth.getSession()
+                if (session?.user) {
+                  mixpanel.identify(session.user.id)
+                  mixpanel.track('Song Listened', {
+                    user_id: session.user.id,
+                    artist: songInfo.artist,
+                    title: songInfo.title,
+                    duration_seconds: Math.round(songDuration),
+                  })
+                }
+              } catch (error) {
+                console.error("Error tracking final song:", error)
+              }
+            }
+            trackFinalSong()
+          }
+        }
+        
         currentMurcaAudioRef.current.pause()
         currentMurcaAudioRef.current.currentTime = 0
         currentMurcaAudioRef.current.onended = null
@@ -320,7 +455,21 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }
 
   // Handle Increase 'murca button click - trigger fireworks and change song
-  const handleIncreaseMurca = () => {
+  const handleIncreaseMurca = async () => {
+    // Track Increase Murca event
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.identify(session.user.id)
+        mixpanel.track('Increase Murca', {
+          user_id: session.user.id,
+          score: score,
+        })
+      }
+    } catch (error) {
+      console.error("Error tracking increase murca:", error)
+    }
+    
     // Play random murca song
     playRandomMurcaSong()
 
@@ -329,7 +478,33 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-8">
+    <>
+      {/* Disclaimer Modal - Only shown when accessed via Victory Simulator button */}
+      {isSimulator && (
+        <Dialog open={showDisclaimer} onOpenChange={setShowDisclaimer}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold font-chapeau text-tracksuit-purple-800 flex items-center gap-2">
+                <span className="text-2xl">⚠️</span>
+                DISCLAIMER
+              </DialogTitle>
+              <DialogDescription className="text-base text-tracksuit-purple-700 font-quicksand pt-4">
+                This is a simulation. You haven't actually won. This victory screen is for illustrative purposes only and does not reflect actual gameplay performance.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end pt-4">
+              <Button
+                onClick={() => setShowDisclaimer(false)}
+                className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau"
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+      
+      <div className="fixed inset-0 z-50 bg-[#faf7f0]/95 backdrop-blur-sm flex items-center justify-center overflow-y-auto py-8">
       <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full mx-4 animate-fadeIn border border-tracksuit-purple-200/50 relative overflow-hidden my-auto">
         {/* Magic card border effect */}
         <div className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-300">
@@ -355,7 +530,10 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
 
             <p className="text-tracksuit-purple-700 font-quicksand">
-              While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination. The spot is his. It has always been his 🌭
+              While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination.
+            </p>
+            <p className="text-tracksuit-purple-700 font-quicksand">
+              The spot is his. It has always been his 🌭
             </p>
           </div>
 
@@ -366,7 +544,9 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
                 <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Your Rank</p>
                 <p className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{userRank}</p>
-                <p className="text-sm text-tracksuit-purple-600 mt-2 font-quicksand truncate">{userEmail}</p>
+                <p className="text-sm text-tracksuit-purple-600 mt-2 font-quicksand truncate">
+                  {username ? `@${username}` : userEmail}
+                </p>
               </div>
             )}
             
@@ -374,15 +554,40 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
-                Top 3 scores by Wednesday, Nov 3 at 1pm NZT win the coveted{" "}
-                <a
-                  href="/images/im-parkin-here.jpg"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-tracksuit-purple-600 hover:text-tracksuit-purple-800 underline font-semibold"
-                >
-                  "I'm parkin' here"
-                </a>{" "}
+                Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}
+                <Dialog open={showMerchCarousel} onOpenChange={setShowMerchCarousel}>
+                  <DialogTrigger asChild>
+                    <button
+                      className="text-tracksuit-purple-600 hover:text-tracksuit-purple-800 underline font-semibold cursor-pointer"
+                    >
+                      "I'm parkin' here"
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <div className="w-full">
+                      <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-4 text-center">
+                        "I'm parkin' here" Merch
+                      </h3>
+                      <Carousel className="w-full">
+                        <CarouselContent>
+                          {[1, 2, 3, 4, 5, 6].map((num) => (
+                            <CarouselItem key={num}>
+                              <div className="p-1">
+                                <img
+                                  src={`/images/im-parking-here-${num}.png`}
+                                  alt={`I'm parkin' here merch ${num}`}
+                                  className="w-full h-auto rounded-lg object-contain"
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <CarouselPrevious className="-left-4 md:-left-8" />
+                        <CarouselNext className="-right-4 md:-right-8" />
+                      </Carousel>
+                    </div>
+                  </DialogContent>
+                </Dialog>{" "}
                 merch.
               </p>
             </div>
@@ -392,7 +597,22 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
             <div className="flex gap-4">
               <Button
                 size="lg"
-                onClick={() => setShowLeaderboard(true)}
+                onClick={async () => {
+                  // Track Leaderboard Viewed event
+                  try {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    if (session?.user) {
+                      mixpanel.identify(session.user.id)
+                      mixpanel.track('Leaderboard Viewed', {
+                        user_id: session.user.id,
+                        source: 'victory_screen',
+                      })
+                    }
+                  } catch (error) {
+                    console.error("Error tracking leaderboard viewed:", error)
+                  }
+                  setShowLeaderboard(true)
+                }}
                 className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white relative z-50 font-chapeau transition-colors shadow-lg flex-1"
               >
                 View Leaderboard
@@ -460,5 +680,6 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
       )}
 
     </div>
+    </>
   )
 }

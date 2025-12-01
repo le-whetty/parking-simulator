@@ -2,13 +2,18 @@
 
 // Cache break comment - deployment trigger
 import { useState, useEffect, useRef } from "react"
+import "@/lib/mixpanel" // Initialize Mixpanel
 import { Button } from "@/components/ui/button"
 import DefeatScreen from "@/components/defeat-screen"
 import VictoryScreen from "@/components/victory-screen"
 import LoginScreen from "@/components/login-screen"
 import StartScreen from "@/components/start-screen"
+import ProfileMenu from "@/components/profile-menu"
+import UsernameModal from "@/components/username-modal"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
+import { supabase } from "@/lib/supabase"
+import mixpanel from "@/lib/mixpanel"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "playing" | "victory" | "defeat"
@@ -46,6 +51,9 @@ export default function Home() {
   
   // Game state - skip auth in dev mode
   const [gameState, setGameState] = useState<GameState>(isDevMode ? "intro" : "auth")
+  const [showUsernameModal, setShowUsernameModal] = useState(false)
+  const [hasUsername, setHasUsername] = useState(false)
+  const [username, setUsername] = useState<string | null>(null)
   const [displayTime, setDisplayTime] = useState(508) // 8:28 AM (in minutes) - display only
   const [lukeHealth, setLukeHealth] = useState(100)
   const [message, setMessage] = useState("")
@@ -54,6 +62,7 @@ export default function Home() {
   const [messageId, setMessageId] = useState(0)
   const [isInParkingSpot, setIsInParkingSpot] = useState(false)
   const [hasWon, setHasWon] = useState(false) // Victory state
+  const [isSimulatorMode, setIsSimulatorMode] = useState(false) // Simulator mode flag
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -384,8 +393,21 @@ ${file}
   }
 
   // Also update the startGame function to stop any existing audio
-  const startGame = () => {
+  const startGame = async () => {
     console.log("startGame called!")
+    
+    // Track Game Started event
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.identify(session.user.id)
+        mixpanel.track('Game Started', {
+          user_id: session.user.id,
+        })
+      }
+    } catch (error) {
+      console.error("Error tracking game started:", error)
+    }
     
     // Stop menu theme music first - do this before anything else
     console.log("Stopping menu theme music before starting game...")
@@ -430,6 +452,7 @@ ${file}
     setIsInParkingSpot(false)
     setMessage("") // Clear any messages
     setHasWon(false) // Reset victory state
+    setIsSimulatorMode(false) // Reset simulator mode
     victoryRef.current = false
 
     // Set the game start time
@@ -636,13 +659,26 @@ ${file}
   // Find the throwHotdog function and update it to play the sound effect when a hot dog is thrown
 
   // Throw a hotdog
-  const throwHotdog = () => {
+  const throwHotdog = async () => {
     if (gameState !== "playing" || hasWon || !gameReadyRef.current) return
 
     const now = Date.now()
     if (now - lastHotdogTime.current < 300) return // Cooldown
 
     lastHotdogTime.current = now
+
+    // Track Hot Dog Fired event
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.identify(session.user.id)
+        mixpanel.track('Hot Dog Fired', {
+          user_id: session.user.id,
+        })
+      }
+    } catch (error) {
+      console.error("Error tracking hot dog fired:", error)
+    }
 
     // Play throw sound effect
     audioManager.play("throw")
@@ -945,6 +981,28 @@ ${file}
         // Play victory anthem (only once - victory-screen will also play it, so we'll remove this)
         // audioManager.play("anthem") // Removed - victory-screen will handle this
 
+        // Track Victory event with time spent
+        const timeSpentMinutes = gameStartTimeRef.current > 0 
+          ? ((Date.now() - gameStartTimeRef.current) / 1000 / 60).toFixed(2)
+          : 0
+        
+        async function trackVictory() {
+          try {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session?.user) {
+              mixpanel.identify(session.user.id)
+              mixpanel.track('Victory', {
+                user_id: session.user.id,
+                time_spent_minutes: parseFloat(timeSpentMinutes),
+                score: score,
+              })
+            }
+          } catch (error) {
+            console.error("Error tracking victory:", error)
+          }
+        }
+        trackVictory()
+
         // Set victory flags
         victoryRef.current = true
 
@@ -1175,6 +1233,24 @@ ${file}
                 // If driver just got defeated, trigger explosion and play sound
                 if (isNowDefeated) {
                   console.log(`💥 Driver ${driver.name} defeated - triggering explosion`)
+                  
+                  // Track Driver Defeated event
+                  async function trackDriverDefeated() {
+                    try {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      if (session?.user) {
+                        mixpanel.identify(session.user.id)
+                        mixpanel.track('Driver Defeated', {
+                          user_id: session.user.id,
+                          driver_name: driver.name,
+                          driver_type: driver.type,
+                        })
+                      }
+                    } catch (error) {
+                      console.error("Error tracking driver defeated:", error)
+                    }
+                  }
+                  trackDriverDefeated()
                   
                   // Capture the driver's actual DOM position BEFORE the car disappears
                   const driverElement = document.getElementById(`driver-${driver.id}`)
@@ -1431,6 +1507,36 @@ ${file}
       audioManager.play("no")
     }
 
+    // Track game end events (victory or defeat) with time spent
+    const timeSpentMinutes = gameStartTimeRef.current > 0 
+      ? ((Date.now() - gameStartTimeRef.current) / 1000 / 60).toFixed(2)
+      : 0
+    
+    async function trackGameEnd() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          mixpanel.identify(session.user.id)
+          if (victory) {
+            mixpanel.track('Victory', {
+              user_id: session.user.id,
+              time_spent_minutes: parseFloat(timeSpentMinutes),
+              score: score,
+            })
+          } else {
+            mixpanel.track('Defeat', {
+              user_id: session.user.id,
+              time_spent_minutes: parseFloat(timeSpentMinutes),
+              final_health: lukeHealth,
+            })
+          }
+        }
+      } catch (error) {
+        console.error("Error tracking game end:", error)
+      }
+    }
+    trackGameEnd()
+    
     // Use setTimeout to ensure state updates happen after the current execution
     setTimeout(() => {
       if (victory) {
@@ -1501,6 +1607,11 @@ ${file}
     }, 50) // Process keys every 50ms
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't capture keys if username modal is open (allow typing in input)
+      if (showUsernameModal) {
+        return
+      }
+
       // Prevent default for game controls to avoid browser scrolling
       if (["w", "W", "a", "A", "s", "S", "d", "D", " ", "Space"].includes(e.key) || e.code === "Space") {
         e.preventDefault()
@@ -1514,6 +1625,11 @@ ${file}
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
+      // Don't capture keys if username modal is open (allow typing in input)
+      if (showUsernameModal) {
+        return
+      }
+
       // Remove key from the set of pressed keys
       keysPressed.delete(e.key)
       if (e.code === "Space") {
@@ -1529,7 +1645,7 @@ ${file}
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
     }
-  }, [gameState])
+  }, [gameState, showUsernameModal])
 
   // Render start screen
   const onInitializeAudio = () => {
@@ -1540,7 +1656,46 @@ ${file}
   // Debug: Log gameState changes
   useEffect(() => {
     console.log("Game state changed to:", gameState)
+    
+    // Track Page View
+    if (typeof window !== 'undefined') {
+      mixpanel.track('Page View', {
+        page_url: window.location.href,
+        page_title: document.title,
+        user_id: null, // Will be set when authenticated
+      })
+    }
   }, [gameState])
+  
+  // Track Page View on mount and identify user if authenticated
+  useEffect(() => {
+    async function trackInitialPageView() {
+      if (typeof window === 'undefined') return
+      
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        mixpanel.identify(session.user.id)
+        mixpanel.people.set({
+          '$name': session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+          '$email': session.user.email || '',
+        })
+        
+        mixpanel.track('Page View', {
+          page_url: window.location.href,
+          page_title: document.title,
+          user_id: session.user.id,
+        })
+      } else {
+        mixpanel.track('Page View', {
+          page_url: window.location.href,
+          page_title: document.title,
+          user_id: null,
+        })
+      }
+    }
+    
+    trackInitialPageView()
+  }, [])
 
   // Play menu theme music when on start screen (after user interaction from intro screen)
   useEffect(() => {
@@ -1566,6 +1721,94 @@ ${file}
     }
   }, [gameState, audioManager]) // Include audioManager to ensure it's available
 
+  // Check for username after authentication
+  useEffect(() => {
+    async function checkUsername() {
+      if (gameState === "auth" || isDevMode) return
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          // Identify user in Mixpanel
+          mixpanel.identify(session.user.id)
+          mixpanel.people.set({
+            '$name': session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+            '$email': session.user.email || '',
+          })
+          
+          // Check if user has a username
+          const { data: usernameData } = await supabase
+            .from('usernames')
+            .select('username, created_at')
+            .eq('user_email', session.user.email)
+            .maybeSingle()
+          
+          // Note: Sign Up events are now tracked via Supabase webhook (app/api/webhooks/supabase-auth/route.ts)
+          // This ensures we only track actual new user creations, not returning users
+          
+          if (usernameData?.username) {
+            setUsername(usernameData.username)
+            setHasUsername(true)
+          } else {
+            setHasUsername(false)
+            setShowUsernameModal(true)
+          }
+        }
+      } catch (error) {
+        console.error("Error checking username:", error)
+        // Track Error event
+        if (typeof window !== 'undefined') {
+          mixpanel.track('Error', {
+            error_type: 'authentication',
+            error_message: error instanceof Error ? error.message : String(error),
+            page_url: window.location.href,
+            user_id: null,
+          })
+        }
+      }
+    }
+    
+    if (gameState !== "auth") {
+      checkUsername()
+    }
+  }, [gameState, isDevMode])
+
+  // Handle logout
+  const handleLogout = () => {
+    setGameState("auth")
+    setHasUsername(false)
+    setUsername(null)
+    setIsSimulatorMode(false)
+  }
+
+  // Handle victory simulator
+  const handleVictorySimulator = () => {
+    setIsSimulatorMode(true)
+    setHasWon(true)
+    setScore(0) // Set score to 0 for simulator
+  }
+
+  // Handle username saved
+  const handleUsernameSaved = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email) {
+        const { data: usernameData } = await supabase
+          .from('usernames')
+          .select('username')
+          .eq('user_email', session.user.email)
+          .maybeSingle()
+        
+        if (usernameData?.username) {
+          setUsername(usernameData.username)
+          setHasUsername(true)
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching username after save:", error)
+    }
+  }
+
   // Render login screen
   if (gameState === "auth") {
     return <LoginScreen onAuthenticated={() => setGameState("intro")} />
@@ -1574,40 +1817,80 @@ ${file}
   // Render intro/splash screen
   if (gameState === "intro") {
     return (
-      <div 
-        className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand cursor-pointer"
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          console.log("Intro screen clicked - transitioning to start screen")
-          // Initialize audio on user interaction
-          if (!audioManager.initialized) {
-            audioManager.initialize()
-          }
-          // Transition to start screen (music will start via useEffect)
-          setGameState("start")
-        }}
-      >
-        <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
-          <div className="mb-4">
-            <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => {
+              // Allow closing - the modal will handle preventing close during save
+              setShowUsernameModal(false)
+            }}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <div className="relative">
+          <div className="fixed top-4 right-4 z-50">
+            <ProfileMenu onLogout={handleLogout} onEditUsername={() => setShowUsernameModal(true)} />
           </div>
-          <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4" style={{ padding: '10px' }}>Parking Simulator</h1>
-          <p className="text-2xl text-tracksuit-purple-700 mb-8 font-quicksand">Click anywhere to begin</p>
+        <div 
+          className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            console.log("Intro screen clicked - transitioning to start screen")
+            // Initialize audio on user interaction
+            if (!audioManager.initialized) {
+              audioManager.initialize()
+            }
+            // Transition to start screen (music will start via useEffect)
+            setGameState("start")
+          }}
+        >
+          <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
+            <div className="mb-4">
+              <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
+            </div>
+            <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4" style={{ padding: '10px' }}>Parking Simulator</h1>
+            <p className="text-2xl text-tracksuit-purple-700 mb-8 font-quicksand">Click anywhere to begin</p>
+          </div>
         </div>
       </div>
+      </>
     )
   }
 
   if (gameState === "start") {
-    return <StartScreen onStart={startGame} onInitializeAudio={onInitializeAudio} />
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <StartScreen 
+          onStart={startGame} 
+          onInitializeAudio={onInitializeAudio} 
+          onLogout={handleLogout}
+          username={username}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+        />
+      </>
+    )
   }
 
   // Render defeat screen
   if (gameState === "defeat") {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
-        <DefeatScreen onRestart={startGame} />
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ProfileMenu onLogout={handleLogout} />
+        </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
+          <DefeatScreen onRestart={startGame} />
+        </div>
       </div>
     )
   }
@@ -1615,15 +1898,24 @@ ${file}
   // Replace the entire inline victory screen block:
   if (hasWon) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
-        <VictoryScreen onRestart={startGame} score={score} />
+      <div className="relative">
+        <div className="fixed top-4 right-4 z-50">
+          <ProfileMenu onLogout={handleLogout} />
+        </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
+          <VictoryScreen onRestart={startGame} score={score} isSimulator={isSimulatorMode} />
+        </div>
       </div>
     )
   }
 
   // Render game screen
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
+    <div className="relative">
+      <div className="fixed top-4 right-4 z-50">
+        <ProfileMenu onLogout={handleLogout} />
+      </div>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
       <div
         ref={gameContainerRef}
         className="relative w-full max-w-4xl h-[800px] overflow-hidden focus:outline-none"
@@ -1814,6 +2106,7 @@ ${file}
             setExplosions(prev => prev.filter(e => e.id !== id))
           }}
         />
+      </div>
       </div>
     </div>
   )
