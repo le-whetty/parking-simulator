@@ -33,6 +33,18 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Get the user's username
+    let username: string | null = null
+    const { data: usernameData } = await supabase
+      .from('usernames')
+      .select('username')
+      .eq('user_email', userEmail)
+      .single()
+    
+    if (usernameData?.username) {
+      username = usernameData.username
+    }
+
     // Save the score using the authenticated client
     const { data: savedScore, error: insertError } = await supabase
       .from('scores')
@@ -40,6 +52,7 @@ export async function POST(request: NextRequest) {
         {
           user_email: userEmail,
           score: score,
+          username: username,
         },
       ])
       .select()

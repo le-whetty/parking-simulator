@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import mixpanel from "@/lib/mixpanel"
 
 interface LoginScreenProps {
   onAuthenticated: () => void
@@ -25,8 +26,37 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     // Listen for auth state changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user?.email) {
+        // Identify user
+        mixpanel.identify(session.user.id)
+        mixpanel.people.set({
+          '$name': session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'Unknown',
+          '$email': session.user.email || '',
+        })
+        
+        // Check if this is a new user (first sign-in) or returning user
+        // New users will have created_at very close to last_sign_in_at (or last_sign_in_at is null)
+        // Returning users will have last_sign_in_at significantly after created_at
+        const createdAt = new Date(session.user.created_at).getTime()
+        const lastSignInAt = session.user.last_sign_in_at 
+          ? new Date(session.user.last_sign_in_at).getTime() 
+          : null
+        
+        // If last_sign_in_at is null or within 5 seconds of created_at, it's likely a new user
+        // (Sign Up is tracked via webhook, so we don't track Sign In for new users)
+        const isNewUser = !lastSignInAt || (lastSignInAt - createdAt < 5000)
+        
+        if (!isNewUser) {
+          // Track Sign In event only for returning users
+          // New users are tracked via the Supabase webhook (Sign Up event)
+          mixpanel.track('Sign In', {
+            user_id: session.user.id,
+            login_method: 'google',
+            success: true,
+          })
+        }
+        
         onAuthenticated()
       }
     })
@@ -99,12 +129,12 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 font-quicksand">
-      <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center p-6 font-quicksand">
+      <div className="flex flex-col items-center justify-center gap-8 p-8 max-w-2xl w-full text-center px-8">
         <div className="mb-4">
           <img src="/logos/logo.png" alt="Tracksuit" className="w-[300px] mx-auto" />
         </div>
-        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4 px-4">
+        <h1 className="text-6xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 via-tracksuit-purple-700 to-tracksuit-purple-600 mb-4 px-8 pb-2 break-words w-full">
           Parking Simulator
         </h1>
         

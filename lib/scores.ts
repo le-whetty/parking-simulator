@@ -10,6 +10,9 @@ export interface Score {
 export interface LeaderboardEntry {
   rank: number
   user_email: string
+  username?: string | null
+  avatar_url?: string | null
+  display_name?: string | null
   score: number
   created_at: string
 }
