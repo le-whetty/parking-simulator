@@ -389,6 +389,7 @@ export default function VictoryScreen({ onRestart, score = 0 }: VictoryScreenPro
               try {
                 const { data: { session } } = await supabase.auth.getSession()
                 if (session?.user) {
+                  mixpanel.identify(session.user.id)
                   mixpanel.track('Song Listened', {
                     user_id: session.user.id,
                     artist: songInfo.artist,
