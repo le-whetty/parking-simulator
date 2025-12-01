@@ -49,7 +49,7 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
                 onClick={onVictorySimulator}
                 className="bg-tracksuit-purple-500 hover:bg-tracksuit-purple-600 text-white font-chapeau text-sm px-4"
               >
-                Victory Simulator
+                🥇 Victory Simulator
               </Button>
             )}
             <Button
@@ -71,7 +71,7 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
               }}
               className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau text-sm px-4"
             >
-              View Leaderboard
+              🏆 View Leaderboard
             </Button>
             {onLogout && (
               <div className="flex items-center">

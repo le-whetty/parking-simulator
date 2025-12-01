@@ -1783,9 +1783,12 @@ ${file}
 
   // Handle victory simulator
   const handleVictorySimulator = () => {
+    console.log("Victory Simulator button clicked!")
     setIsSimulatorMode(true)
     setHasWon(true)
     setScore(0) // Set score to 0 for simulator
+    // Ensure game state allows victory screen to show
+    setGameState("victory")
   }
 
   // Handle username saved

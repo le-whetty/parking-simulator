@@ -107,7 +107,7 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
           onClick={handleStart} 
           className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau shadow-lg px-8"
         >
-          Start Game
+          🎮 Start Game
         </Button>
       </div>
     </div>
