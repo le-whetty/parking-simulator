@@ -1237,6 +1237,7 @@ ${file}
                     try {
                       const { data: { session } } = await supabase.auth.getSession()
                       if (session?.user) {
+                        mixpanel.identify(session.user.id)
                         mixpanel.track('Driver Defeated', {
                           user_id: session.user.id,
                           driver_name: driver.name,
