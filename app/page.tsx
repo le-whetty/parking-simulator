@@ -977,9 +977,9 @@ ${file}
         const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
         const timeBonus = timeLeftSeconds // 1 point per second
 
-        // Calculate on-screen bonus (1.5 points per second on-screen)
+        // Calculate on-screen bonus (4.5 points per second on-screen)
         const onScreenTimeSeconds = Math.floor(onScreenTimeRef.current)
-        const onScreenBonus = Math.floor(onScreenTimeSeconds * 1.5) // 1.5 points per second
+        const onScreenBonus = Math.floor(onScreenTimeSeconds * 4.5) // 4.5 points per second
 
         // Add time bonus and on-screen bonus to score
         setScore((prev) => {
@@ -1525,9 +1525,9 @@ ${file}
       // Add bonus points for time left (1 point per second)
       const timeBonus = timeLeftSeconds // 1 point per second
       
-      // Calculate on-screen bonus (1.5 points per second on-screen)
+      // Calculate on-screen bonus (4.5 points per second on-screen)
       const onScreenTimeSeconds = Math.floor(onScreenTimeRef.current)
-      const onScreenBonus = Math.floor(onScreenTimeSeconds * 1.5) // 1.5 points per second
+      const onScreenBonus = Math.floor(onScreenTimeSeconds * 4.5) // 4.5 points per second
       
       setScore((prev) => {
         const newScore = prev + timeBonus + onScreenBonus
@@ -2032,7 +2032,7 @@ ${file}
             {isInParkingSpot && <p className="text-green-500 font-bold">IN PARKING SPOT!</p>}
             {gameState === "playing" && (
               <p className="text-xs text-purple-400">
-                On-screen: {onScreenTimeDisplay}s (+{Math.floor(onScreenTimeDisplay * 1.5)} bonus)
+                On-screen: {onScreenTimeDisplay}s (+{Math.floor(onScreenTimeDisplay * 4.5)} bonus)
               </p>
             )}
             {parkingSpotTimer > 0 && driversRef.current.every((d) => d.defeated || d.health <= 0) && (
