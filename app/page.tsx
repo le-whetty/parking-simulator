@@ -73,7 +73,7 @@ export default function Home() {
   const victoryRef = useRef(false) // Victory ref to prevent multiple triggers
   const driversRef = useRef<Driver[]>([]) // Ref to track latest drivers state
   const gameStartTimeRef = useRef(0) // Game start time
-  const lukePositionRef = useRef({ x: 600, y: 400 }) // Luke's position (ref for game loop)
+  const lukePositionRef = useRef<{ x: number; y: number; lastPaceLog?: number }>({ x: 600, y: 400 }) // Luke's position (ref for game loop)
   const lukeFacingRef = useRef("right") // Luke's facing direction
   const gameDurationRef = useRef(120000) // Game duration (2 minutes)
   const lukeCarRef = useRef<HTMLDivElement | null>(null) // Luke's car ref
@@ -593,6 +593,18 @@ ${file}
     const baseSpeed = 20
     const paceMultiplier = selectedVehicle ? getPaceMultiplier(selectedVehicle.pace) : 1.0
     const speed = baseSpeed * paceMultiplier
+    
+    // Vehicle Stats Tracking: PACE (log once per movement to avoid spam)
+    if (!lukePositionRef.current.lastPaceLog || Date.now() - lukePositionRef.current.lastPaceLog > 1000) {
+      console.log('🚗 VEHICLE STATS - PACE:', {
+        vehicle: selectedVehicle?.name || 'None',
+        pace: selectedVehicle?.pace || 'N/A',
+        baseSpeed: baseSpeed,
+        paceMultiplier: paceMultiplier.toFixed(2),
+        actualSpeed: speed.toFixed(2),
+      })
+      lukePositionRef.current.lastPaceLog = Date.now()
+    }
     let { x, y } = lukePositionRef.current
 
     // Update position based on direction
@@ -842,12 +854,8 @@ ${file}
     lastFrameTimeRef.current = now
     frameCountRef.current++
     
-    // Log every second
+    // Reset frame counter every second (no logging)
     if (now - lastLogTimeRef.current >= 1000) {
-      const fps = frameCountRef.current / ((now - lastLogTimeRef.current) / 1000)
-      const avgDeltaTime = (now - lastLogTimeRef.current) / frameCountRef.current
-      console.log(`⏱️ FRAME INFO: FPS=${fps.toFixed(1)} | DeltaTime=${deltaTime.toFixed(2)}ms | AvgDelta=${avgDeltaTime.toFixed(2)}ms | Drivers=${driversRef.current.filter(d => d.isActive && !d.defeated).length} | Projectiles=${enemyProjectilesRef.current.length + hotdogsRef.current.length}`)
-      console.log(`🎮 MOVEMENT CHECK: Projectile speed=${(0.18 * deltaTime).toFixed(2)}px this frame (should be ~3px at 60fps, ~1.5px at 120fps)`)
       frameCountRef.current = 0
       lastLogTimeRef.current = now
     }
@@ -883,15 +891,6 @@ ${file}
     const timeSinceLastCheck = deltaTime / 1000 // Convert to seconds
     if (!isOnScreen) {
       offScreenTimeRef.current += timeSinceLastCheck
-      // Debug logging when off-screen
-      if (Math.random() < 0.01) { // Log 1% of frames when off-screen
-        console.log(`🚫 OFF-SCREEN: Luke at (${lukeX.toFixed(0)}, ${lukeY.toFixed(0)}), bounds: x[${gameBounds.minX}-${gameBounds.maxX}], y[${gameBounds.minY}-${gameBounds.maxY}]`)
-      }
-    } else {
-      // Debug logging when on-screen (to capture right boundary)
-      if (Math.random() < 0.005) { // Log 0.5% of frames when on-screen
-        console.log(`✅ ON-SCREEN: Luke at (${lukeX.toFixed(0)}, ${lukeY.toFixed(0)}), bounds: x[${gameBounds.minX}-${gameBounds.maxX}], y[${gameBounds.minY}-${gameBounds.maxY}]`)
-      }
     }
     
     // Calculate and update on-screen percentage for display
@@ -903,8 +902,6 @@ ${file}
       const roundedPercentage = Math.floor(onScreenPercentage)
       if (roundedPercentage !== onScreenTimeDisplay) {
         setOnScreenTimeDisplay(roundedPercentage)
-        // Debug logging
-        console.log(`📊 On-screen: ${roundedPercentage}% (${offScreenTimeRef.current.toFixed(1)}s off / ${totalGameTimeSeconds.toFixed(1)}s total)`)
       }
     }
     lastOnScreenCheckRef.current = now
@@ -954,21 +951,14 @@ ${file}
         console.log("  - inSpot:", inSpot, "| Luke position:", { x: lukeX, y: lukeY })
         console.log("  - allDefeated:", allDefeated)
         console.log("  - driversRef.current length:", driversRef.current.length)
-        console.log("  - Drivers from ref:", driversRef.current.map(d => `${d.name}: defeated=${d.defeated}, health=${d.health}`).join(', '))
-        console.log("  - Drivers from state:", drivers.map(d => `${d.name}: defeated=${d.defeated}, health=${d.health}`).join(', '))
-        console.log("  - PARKING_SPOT_AREA:", PARKING_SPOT_AREA)
+        // Debug logs removed
       }
     }
     
     // Debug: Log when victory conditions are first met
     const currentAllDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => driver.defeated || driver.health <= 0)
     
-    if (inSpot && currentAllDefeated && parkingSpotTimerRef.current === 0 && !victoryRef.current) {
-      console.log("🎯 VICTORY CONDITIONS MET - Starting 3 second timer!")
-      console.log("  - inSpot:", inSpot, "| Luke position:", { x: lukeX, y: lukeY })
-      console.log("  - currentAllDefeated:", currentAllDefeated)
-      console.log("  - Drivers from ref:", driversRef.current.map(d => `${d.name}: defeated=${d.defeated}, health=${d.health}`).join(', '))
-    }
+    // Victory conditions check (no logging)
 
     // VICTORY CHECK - Luke must be in parking spot for 3 seconds AFTER all drivers are defeated
     if (inSpot && currentAllDefeated && !victoryRef.current) {
@@ -987,20 +977,11 @@ ${file}
       // Update state for UI display
       setParkingSpotTimer(currentTimer)
       
-      // Log progress every 0.5 seconds
-      const logInterval = Math.floor(currentTimer * 2)
-      const prevLogInterval = Math.floor((currentTimer - deltaTime / 1000) * 2)
-      if (logInterval !== prevLogInterval && currentTimer > 0) {
-        console.log(`⏱️ Parking timer: ${currentTimer.toFixed(2)}s / 3.0s | inSpot: ${inSpot} | currentAllDefeated: ${currentAllDefeated}`)
-      }
+      // No logging for parking timer
       
       if (currentTimer >= 3.0) {
         // 3 seconds elapsed - trigger victory!
-        console.log("🎉🎉🎉 WIN CONDITION MET - Luke has been in parking spot for 3 seconds after defeating all drivers! 🎉🎉🎉")
-        console.log("  - inSpot:", inSpot)
-        console.log("  - currentAllDefeated:", currentAllDefeated)
-        console.log("  - timer:", currentTimer)
-        console.log("  - Final drivers status:", driversRef.current.map(d => `${d.name}: defeated=${d.defeated}, health=${d.health}`).join(', '))
+        // Victory achieved (no logging)
 
         // Calculate time bonus (1 point per second remaining)
         const currentTime = Date.now()
@@ -1037,12 +1018,7 @@ ${file}
           const scoreBeforeMultiplier = prev + timeBonus
           const finalScore = Math.floor(scoreBeforeMultiplier * onScreenMultiplier)
           const bonusPoints = finalScore - scoreBeforeMultiplier
-          console.log(`🏆 Victory bonuses:`)
-          console.log(`  - Base score: ${prev} points`)
-          console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
-          console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${offScreenTimeRef.current.toFixed(1)}s off-screen / ${totalGameTimeSeconds.toFixed(1)}s total)`)
-          console.log(`  - Multiplier: ${onScreenMultiplier}x (+${bonusPoints} points)`)
-          console.log(`  - Final score: ${finalScore} dawgs`)
+          // Victory bonuses calculated (no logging)
           return finalScore
         })
 
@@ -1114,7 +1090,7 @@ ${file}
         if (parkingSpotTimerRef.current > 0.1) {
           const checkAllDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => driver.defeated || driver.health <= 0)
           console.log("⏸️ Timer reset - conditions not met:", { inSpot, checkAllDefeated, victoryRef: victoryRef.current })
-          console.log("  - Drivers status:", driversRef.current.map(d => `${d.name}: defeated=${d.defeated}, health=${d.health}`).join(', '))
+          // Driver status check (no logging)
         }
         parkingSpotTimerRef.current = 0
         setParkingSpotTimer(0)
@@ -1321,12 +1297,25 @@ ${file}
                 const baseDamage = 20
                 const impactMultiplier = selectedVehicle ? getImpactMultiplier(selectedVehicle.impact) : 1.0
                 const damage = Math.floor(baseDamage * impactMultiplier)
+                
+                // Vehicle Stats Tracking: IMPACT
+                console.log('🚗 VEHICLE STATS - IMPACT:', {
+                  vehicle: selectedVehicle?.name || 'None',
+                  impact: selectedVehicle?.impact || 'N/A',
+                  target: driver.name,
+                  baseDamage: baseDamage,
+                  impactMultiplier: impactMultiplier.toFixed(2),
+                  actualDamage: damage,
+                  healthBefore: d.health,
+                  healthAfter: Math.max(0, d.health - damage),
+                })
+                
                 const newHealth = Math.max(0, d.health - damage) // Ensure health doesn't go below 0
                 const isNowDefeated = newHealth <= 0 && !d.defeated
                 
                 // If driver just got defeated, trigger explosion and play sound
                 if (isNowDefeated) {
-                  console.log(`💥 Driver ${driver.name} defeated - triggering explosion`)
+                  // Driver defeated - no logging
                   
                   // Track Driver Defeated event
                   async function trackDriverDefeated() {
@@ -1438,7 +1427,7 @@ ${file}
       const movement = speedPxPerMs * deltaTime
       // Log first projectile movement to verify fix is active
       if (index === 0 && Math.random() < 0.01) { // Log 1% of frames for first projectile
-        console.log(`🚀 PROJECTILE MOVEMENT: deltaTime=${deltaTime.toFixed(2)}ms, movement=${movement.toFixed(3)}px (should be ~3px at 60fps, ~1.5px at 120fps)`)
+        // Projectile movement - no logging
       }
       projectile.style.left = `${currentLeft + dirX * movement}px`
       projectile.style.top = `${currentTop + dirY * movement}px`
@@ -1470,7 +1459,13 @@ ${file}
             // Calculate actual projectile speed for logging (0.18 px/ms)
             const projectileSpeedPxPerMs = 0.18
             const actualSpeed = projectileSpeedPxPerMs * deltaTime
-            console.log('💥 LUKE HIT!', {
+            // Vehicle Stats Tracking: ARMOR
+            console.log('🚗 VEHICLE STATS - ARMOR:', {
+              vehicle: selectedVehicle?.name || 'None',
+              armor: selectedVehicle?.armor || 'N/A',
+              baseDamage: baseDamage,
+              armorMultiplier: armorMultiplier.toFixed(2),
+              actualDamage: damage,
               healthBefore: prev,
               healthAfter: newHealth,
               projectileVelocity: `(${dirX.toFixed(1)}, ${dirY.toFixed(1)})`,
@@ -1617,12 +1612,7 @@ ${file}
         const scoreBeforeMultiplier = prev + timeBonus
         const finalScore = Math.floor(scoreBeforeMultiplier * onScreenMultiplier)
         const bonusPoints = finalScore - scoreBeforeMultiplier
-        console.log(`🏆 Victory bonuses:`)
-        console.log(`  - Base score: ${prev} points`)
-        console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
-        console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${offScreenTimeRef.current.toFixed(1)}s off-screen / ${totalGameTimeSeconds.toFixed(1)}s total)`)
-        console.log(`  - Multiplier: ${onScreenMultiplier}x (+${bonusPoints} points)`)
-        console.log(`  - Final score: ${finalScore} dawgs`)
+        // Victory bonuses calculated (no logging)
         return finalScore
       })
 
