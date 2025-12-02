@@ -2245,6 +2245,26 @@ ${file}
             </div>
           </div>
         )}
+        {/* Combo Badge Overlay */}
+        {comboBadge && (
+          <div
+            key={comboBadge.key}
+            className="absolute top-[100px] left-1/2 transform -translate-x-1/2 z-[90] combo-badge-container"
+            style={{
+              animation: 'comboBadgeAnimation 2s ease-out forwards',
+            }}
+          >
+            <img
+              src={comboBadge.image}
+              alt={`${comboBadge.points} combo`}
+              className="max-w-[300px] h-auto object-contain"
+              style={{
+                filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.8))',
+              }}
+            />
+          </div>
+        )}
+
         {/* Countdown Overlay */}
         {countdown !== null && (
           <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
