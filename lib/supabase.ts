@@ -21,6 +21,11 @@ export function createAuthenticatedClient(accessToken: string) {
         Authorization: `Bearer ${accessToken}`,
       },
     },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
   })
 }
 

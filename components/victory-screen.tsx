@@ -28,9 +28,11 @@ interface VictoryScreenProps {
   score?: number // Add optional score prop
   isSimulator?: boolean // Flag to indicate if this is a simulator (shows disclaimer)
   vehicle?: string | null // Vehicle type used for this game
+  sessionId?: string // Game session ID for score validation
+  gameDurationMs?: number // Game duration in milliseconds
 }
 
-export default function VictoryScreen({ onRestart, score = 0, isSimulator = false, vehicle = null }: VictoryScreenProps) {
+export default function VictoryScreen({ onRestart, score = 0, isSimulator = false, vehicle = null, sessionId, gameDurationMs }: VictoryScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioManager = useAudioManager()
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -109,6 +111,8 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
                 score: score,
                 accessToken: accessToken,
                 vehicle: vehicle, // Vehicle type from props
+                sessionId: sessionId, // Game session ID for validation
+                gameDurationMs: gameDurationMs, // Game duration for validation
               }),
             })
             

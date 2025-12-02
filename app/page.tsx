@@ -77,6 +77,8 @@ export default function Home() {
   const lukePositionRef = useRef<{ x: number; y: number; lastPaceLog?: number }>({ x: 600, y: 400 }) // Luke's position (ref for game loop)
   const lukeFacingRef = useRef("right") // Luke's facing direction
   const gameDurationRef = useRef(120000) // Game duration (2 minutes)
+  const gameSessionIdRef = useRef<string | null>(null) // Game session ID for score validation
+  const gameEventsRef = useRef<Array<{type: string, data: any, timestamp: number}>>([]) // Game events for validation
   const lukeCarRef = useRef<HTMLDivElement | null>(null) // Luke's car ref
   const parkingSpotRef = useRef<HTMLDivElement | null>(null) // Parking spot ref
   const gameContainerRef = useRef<HTMLDivElement | null>(null) // Game container ref
@@ -312,6 +314,53 @@ ${file}
     }
   }, [gameState])
 
+  // Function to log game events for score validation
+  const logGameEvent = async (eventType: string, eventData: any = {}) => {
+    if (!gameSessionIdRef.current) {
+      console.warn("⚠️ Cannot log event - no session ID:", eventType)
+      return
+    }
+    
+    const timestamp = Date.now() - gameStartTimeRef.current
+    
+    // Store locally for immediate use
+    gameEventsRef.current.push({
+      type: eventType,
+      data: eventData,
+      timestamp,
+    })
+    
+    // Send to backend (don't block on this)
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error("❌ Failed to get session for event logging:", sessionError)
+        return
+      }
+      if (session?.access_token) {
+        const response = await fetch("/api/log-game-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: gameSessionIdRef.current,
+            accessToken: session.access_token,
+            eventType,
+            eventData,
+            timestampMs: timestamp,
+          }),
+        })
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error(`❌ Failed to log event ${eventType}:`, response.status, errorData)
+        }
+      } else {
+        console.warn("⚠️ No access token for event logging:", eventType)
+      }
+    } catch (error) {
+      console.error("❌ Error logging game event:", error)
+    }
+  }
+
   // Function to handle combo milestone reached
   const handleComboMilestone = (hits: number, points: number, image: string, x: number, y: number) => {
     // Clear any existing animation timeout
@@ -533,6 +582,44 @@ ${file}
 
     // Set the game start time
     gameStartTimeRef.current = Date.now()
+    
+    // Create game session for score validation
+    gameSessionIdRef.current = null
+    gameEventsRef.current = []
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) {
+        console.error("❌ Failed to get Supabase session:", sessionError)
+      }
+      if (session?.user) {
+        const accessToken = session.access_token
+        console.log("🔍 Creating game session for:", session.user.email)
+        const response = await fetch("/api/create-game-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userEmail: session.user.email,
+            accessToken: accessToken,
+            vehicle: selectedVehicle?.id || null,
+          }),
+        })
+        if (response.ok) {
+          const data = await response.json()
+          gameSessionIdRef.current = data.sessionId
+          console.log("✅ Game session created:", data.sessionId)
+          // Log game start event
+          logGameEvent('game_start', { vehicle: selectedVehicle?.id || null })
+        } else {
+          const errorData = await response.json()
+          console.error("❌ Failed to create game session:", response.status, errorData)
+        }
+      } else {
+        console.warn("⚠️ No Supabase session found - skipping game session creation")
+      }
+    } catch (error) {
+      console.error("❌ Error creating game session:", error)
+      // Don't block game start if session creation fails
+    }
 
     // Set initial Luke position and direction
     lukePositionRef.current = { x: 600, y: 400 }
@@ -1511,6 +1598,9 @@ ${file}
             
             console.log(`🔥 COMBO: Hit #${currentCombo} on ${driver.name} (time since last: ${timeSinceLastHit}ms, Luke at ${lukeX}, ${lukeY})`)
             
+            // Log hit event for score validation
+            logGameEvent('hit', { driverName: driver.name, comboCount: currentCombo })
+            
             // Clear existing combo timeout
             if (comboTimeoutRef.current) {
               clearTimeout(comboTimeoutRef.current)
@@ -1537,6 +1627,8 @@ ${file}
               scoreEffect(milestone.points, driver.position.x, driver.position.y)
               // Show combo badge at Luke's position
               handleComboMilestone(milestone.hits, milestone.points, milestone.image, lukeX, lukeY)
+              // Log combo milestone event
+              logGameEvent('combo', { hits: milestone.hits, points: milestone.points })
             } else if (milestone && reachedMilestonesRef.current.has(milestone.hits)) {
               console.log(`⚠️ COMBO MILESTONE ALREADY REACHED: ${milestone.hits} hits (skipping duplicate)`)
             }
@@ -1618,6 +1710,9 @@ ${file}
             comboTimeoutRef.current = null
           }
           console.log(`✅ COMBO RESET CONFIRMED: comboCountRef.current = ${comboCountRef.current}`)
+          
+          // Log damage event for score validation
+          logGameEvent('damage', { damage: Math.ceil(4 * (selectedVehicleRef.current ? getArmorMultiplier(selectedVehicleRef.current.armor) : 1.0)) })
           
           setLukeHealth((prev) => {
             // Apply armor multiplier from selected vehicle
@@ -2250,6 +2345,8 @@ ${file}
             score={score} 
             isSimulator={isSimulatorMode}
             vehicle={selectedVehicle?.id || null}
+            sessionId={gameSessionIdRef.current || undefined}
+            gameDurationMs={gameStartTimeRef.current > 0 ? Date.now() - gameStartTimeRef.current : undefined}
           />
         </div>
       </div>
