@@ -30,6 +30,7 @@ export default function VehicleSelection({
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType | null>(null)
   const [showOverlay, setShowOverlay] = useState<{ vehicleId: VehicleType; image: string } | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleSelect = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle.id)
@@ -38,44 +39,73 @@ export default function VehicleSelection({
     const media = vehicleMediaMap[vehicle.id]
     if (!media) return
     
-    // Stop any currently playing audio
+    // Stop any currently playing audio and clear any existing overlay/timeouts
     if (audioRef.current) {
       audioRef.current.pause()
       audioRef.current.currentTime = 0
+      audioRef.current = null
     }
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
+    setShowOverlay(null) // Clear any existing overlay first
     
-    // Play the sound
-    const audio = new Audio(media.sound)
-    audio.volume = 0.7
-    
-    // Show the animated overlay
-    setShowOverlay({ vehicleId: vehicle.id, image: media.image })
-    
-    // Hide the overlay when the audio finishes playing
-    audio.addEventListener('ended', () => {
-      setShowOverlay(null)
-    })
-    
-    // Also hide overlay if audio fails to load/play (fallback)
-    audio.addEventListener('error', () => {
-      // Hide overlay after a short delay if audio fails
-      setTimeout(() => {
+    // Small delay to ensure state clears before showing new overlay
+    setTimeout(() => {
+      const startTime = Date.now()
+      
+      // Show the animated overlay
+      setShowOverlay({ vehicleId: vehicle.id, image: media.image })
+      
+      // Play the sound
+      const audio = new Audio(media.sound)
+      audio.volume = 0.7
+      audioRef.current = audio
+      
+      const hideOverlay = () => {
+        if (hideTimeoutRef.current) {
+          clearTimeout(hideTimeoutRef.current)
+          hideTimeoutRef.current = null
+        }
         setShowOverlay(null)
-      }, 1000)
-    })
-    
-    audio.play().catch((error) => {
-      // Silently handle audio errors (file might not be loaded yet or browser autoplay restrictions)
-      // Only log if it's not a common autoplay/loading issue
-      if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
-        console.warn('Could not play vehicle selection sound:', error)
       }
-      // Hide overlay if audio fails to play
-      setTimeout(() => {
-        setShowOverlay(null)
-      }, 1000)
-    })
-    audioRef.current = audio
+      
+      // Hide overlay when audio finishes playing, but ensure minimum 3 seconds
+      audio.addEventListener('ended', () => {
+        const elapsed = Date.now() - startTime
+        const remaining = Math.max(0, 3000 - elapsed)
+        hideTimeoutRef.current = setTimeout(hideOverlay, remaining)
+      })
+      
+      // Fallback: ensure overlay stays visible for at least 3 seconds
+      hideTimeoutRef.current = setTimeout(() => {
+        // Only hide if audio has ended
+        if (audio.ended) {
+          hideOverlay()
+        } else {
+          // Audio still playing, wait for ended event (which will handle hiding)
+          audio.addEventListener('ended', hideOverlay, { once: true })
+        }
+      }, 3000)
+      
+      // Also hide overlay if audio fails to load/play (fallback)
+      audio.addEventListener('error', () => {
+        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current)
+        hideTimeoutRef.current = setTimeout(hideOverlay, 1000)
+      })
+      
+      audio.play().catch((error) => {
+        // Silently handle audio errors (file might not be loaded yet or browser autoplay restrictions)
+        // Only log if it's not a common autoplay/loading issue
+        if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
+          console.warn('Could not play vehicle selection sound:', error)
+        }
+        // Hide overlay if audio fails to play
+        if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current)
+        hideTimeoutRef.current = setTimeout(hideOverlay, 1000)
+      })
+    }, 50) // Small delay to ensure state update
   }
 
   const handleStart = () => {
@@ -138,11 +168,12 @@ export default function VehicleSelection({
                   {/* Animated Overlay Image */}
                   {showOverlay?.vehicleId === vehicle.id && (
                     <img
+                      key={`overlay-${vehicle.id}-${Date.now()}`}
                       src={showOverlay.image}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-contain z-10"
+                      className="absolute inset-0 w-full h-full object-contain z-10 vehicle-overlay-image"
                       style={{
-                        animation: 'vehiclePopup 1s ease-out forwards',
+                        animation: 'vehiclePopup 0.5s ease-out forwards',
                       }}
                     />
                   )}

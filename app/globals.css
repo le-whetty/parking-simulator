@@ -153,14 +153,30 @@
     opacity: 0;
     transform: scale(0.5) translateY(20px);
   }
-  20% {
+  15% {
     opacity: 1;
     transform: scale(1.1) translateY(-10px);
   }
-  40% {
+  30% {
+    opacity: 1;
     transform: scale(1) translateY(0);
   }
-  80% {
+  70% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes vehiclePopupFadeOut {
+  0% {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
