@@ -464,7 +464,8 @@ ${file}
     setMessage("") // Clear any messages
     setHasWon(false) // Reset victory state
     setIsSimulatorMode(false) // Reset simulator mode
-    setSelectedVehicle(null) // Reset vehicle selection
+    // Don't reset selectedVehicle here - it should persist through the game session
+    // Only reset when explicitly restarting (e.g., from victory/defeat screens)
     victoryRef.current = false
 
     // Set the game start time
