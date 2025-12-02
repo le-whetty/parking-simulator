@@ -204,16 +204,19 @@ export default function VehicleSelection({
 
                 {/* Stats */}
                 <div className="w-full space-y-2">
-                  {/* Pace */}
+                  {/* Speed (formerly Pace) */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-semibold text-tracksuit-purple-700">Pace</span>
+                      <span className="text-xs font-semibold text-tracksuit-purple-700">Speed</span>
                       <span className="text-xs text-tracksuit-purple-600">{vehicle.pace}/10</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-blue-500 h-2 rounded-full transition-all"
-                        style={{ width: `${(vehicle.pace / 10) * 100}%` }}
+                        className="h-2 rounded-full transition-all"
+                        style={{ 
+                          width: `${(vehicle.pace / 10) * 100}%`,
+                          backgroundColor: '#e4dcf8' // Purple100
+                        }}
                       />
                     </div>
                   </div>
@@ -226,22 +229,28 @@ export default function VehicleSelection({
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-green-500 h-2 rounded-full transition-all"
-                        style={{ width: `${(vehicle.armor / 10) * 100}%` }}
+                        className="h-2 rounded-full transition-all"
+                        style={{ 
+                          width: `${(vehicle.armor / 10) * 100}%`,
+                          backgroundColor: '#c3e99c' // Green100
+                        }}
                       />
                     </div>
                   </div>
 
-                  {/* Impact */}
+                  {/* Damage (formerly Impact) */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <span className="text-xs font-semibold text-tracksuit-purple-700">Impact</span>
+                      <span className="text-xs font-semibold text-tracksuit-purple-700">Damage</span>
                       <span className="text-xs text-tracksuit-purple-600">{vehicle.impact}/10</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-red-500 h-2 rounded-full transition-all"
-                        style={{ width: `${(vehicle.impact / 10) * 100}%` }}
+                        className="h-2 rounded-full transition-all"
+                        style={{ 
+                          width: `${(vehicle.impact / 10) * 100}%`,
+                          backgroundColor: '#ffcada' // Pink100
+                        }}
                       />
                     </div>
                   </div>
