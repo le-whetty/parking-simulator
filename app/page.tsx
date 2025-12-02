@@ -583,43 +583,53 @@ ${file}
     // Set the game start time
     gameStartTimeRef.current = Date.now()
     
-    // Create game session for score validation
+    // Create game session for score validation (non-blocking)
     gameSessionIdRef.current = null
     gameEventsRef.current = []
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      if (sessionError) {
-        console.error("❌ Failed to get Supabase session:", sessionError)
-      }
-      if (session?.user) {
-        const accessToken = session.access_token
-        console.log("🔍 Creating game session for:", session.user.email)
-        const response = await fetch("/api/create-game-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userEmail: session.user.email,
-            accessToken: accessToken,
-            vehicle: selectedVehicle?.id || null,
-          }),
-        })
-        if (response.ok) {
-          const data = await response.json()
-          gameSessionIdRef.current = data.sessionId
-          console.log("✅ Game session created:", data.sessionId)
-          // Log game start event
-          logGameEvent('game_start', { vehicle: selectedVehicle?.id || null })
-        } else {
-          const errorData = await response.json()
-          console.error("❌ Failed to create game session:", response.status, errorData)
+    
+    // Don't await - let it run in background so it doesn't delay game start
+    ;(async () => {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) {
+          console.error("❌ Failed to get Supabase session:", sessionError)
+          return
         }
-      } else {
-        console.warn("⚠️ No Supabase session found - skipping game session creation")
+        if (session?.user) {
+          const accessToken = session.access_token
+          console.log("🔍 Creating game session for:", session.user.email)
+          const response = await fetch("/api/create-game-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userEmail: session.user.email,
+              accessToken: accessToken,
+              vehicle: selectedVehicle?.id || null,
+            }),
+          })
+          if (response.ok) {
+            const data = await response.json()
+            gameSessionIdRef.current = data.sessionId
+            console.log("✅ Game session created:", data.sessionId)
+            // Log game start event
+            logGameEvent('game_start', { vehicle: selectedVehicle?.id || null })
+          } else {
+            const errorText = await response.text()
+            let errorData
+            try {
+              errorData = JSON.parse(errorText)
+            } catch {
+              errorData = { message: errorText }
+            }
+            console.error("❌ Failed to create game session:", response.status, errorData)
+          }
+        } else {
+          console.warn("⚠️ No Supabase session found - skipping game session creation")
+        }
+      } catch (error) {
+        console.error("❌ Error creating game session:", error)
       }
-    } catch (error) {
-      console.error("❌ Error creating game session:", error)
-      // Don't block game start if session creation fails
-    }
+    })()
 
     // Set initial Luke position and direction
     lukePositionRef.current = { x: 600, y: 400 }

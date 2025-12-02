@@ -37,8 +37,18 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Verify email matches
+    if (authUser.email !== userEmail) {
+      console.error('Email mismatch:', { authEmail: authUser.email, providedEmail: userEmail })
+      return NextResponse.json(
+        { error: "Email mismatch" },
+        { status: 403 }
+      )
+    }
+    
     console.log('Creating session for user:', authUser.id, authUser.email)
     
+    // Try to insert the session
     const { data: session, error: insertError } = await supabase
       .from('game_sessions')
       .insert([
@@ -54,10 +64,18 @@ export async function POST(request: NextRequest) {
     if (insertError) {
       console.error('Error creating game session:', insertError)
       console.error('Insert error details:', JSON.stringify(insertError, null, 2))
-      console.error('User ID:', authUser.id)
-      console.error('User email:', authUser.email)
+      console.error('User ID:', user.id)
+      console.error('User email:', user.email)
+      console.error('RLS might be blocking - checking policy...')
+      
+      // Return detailed error for debugging
       return NextResponse.json(
-        { error: "Failed to create game session", details: insertError.message, code: insertError.code },
+        { 
+          error: "Failed to create game session", 
+          details: insertError.message, 
+          code: insertError.code,
+          hint: insertError.code === '42501' ? 'RLS policy might be blocking this insert. Check if auth.uid() is set correctly.' : undefined
+        },
         { status: 500 }
       )
     }
