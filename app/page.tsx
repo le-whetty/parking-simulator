@@ -110,11 +110,13 @@ export default function Home() {
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null) // Ref for countdown interval
 
   // Game area boundaries - used to keep drivers on screen
+  // Only penalize off-screen to the RIGHT (where players can actually go)
+  // Bottom, left, and top edges are visible, so allow full range
   const gameBounds = {
-    minX: 100,
-    maxX: 1100,
-    minY: 150,
-    maxY: 650,
+    minX: 50,   // Allow left edge (was 100, but player can go to 90 and still be visible)
+    maxX: 820,  // Right boundary - players can go off-screen beyond this (was 1100, but 840 is off-screen)
+    minY: 100,  // Allow top edge (was 150, but player can go to 140 and still be visible)
+    maxY: 700,  // Allow bottom edge (was 650, but player can go to 660 and still be visible)
     centerX: 600,
     centerY: 400,
   }
