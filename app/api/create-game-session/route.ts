@@ -46,13 +46,14 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log('Creating session for user:', authUser.id, authUser.email)
+    console.log('Creating session for user:', user.id, user.email)
     
     // Try to insert the session
     const { data: session, error: insertError } = await supabase
       .from('game_sessions')
       .insert([
         {
+          user_id: user.id, // Use user_id for RLS (auth.uid() will match this)
           user_email: userEmail,
           vehicle_type: vehicle || null,
           started_at: new Date().toISOString(),
