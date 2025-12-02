@@ -140,8 +140,11 @@ export default function VehicleSelection({
       {/* Username Greeting */}
       {username && (
         <div className="w-full mb-6 text-center">
-          <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">
-            Hey, @{username} 👋
+          <p className="text-2xl font-bold font-chapeau">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">
+              Hey, @{username}
+            </span>
+            <span className="ml-2">👋</span>
           </p>
         </div>
       )}
