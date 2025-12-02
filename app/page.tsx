@@ -1650,6 +1650,7 @@ ${file}
               user_id: session.user.id,
               time_spent_minutes: parseFloat(timeSpentMinutes),
               score: score,
+              vehicle_type: selectedVehicle?.id || null,
             })
           } else {
             mixpanel.track('Defeat', {
@@ -2002,12 +2003,55 @@ ${file}
           />
         )}
         <StartScreen 
-          onStart={startGame} 
+          onStart={() => setGameState("vehicle-selection")} 
           onInitializeAudio={onInitializeAudio} 
           onLogout={handleLogout}
           username={username}
           onEditUsername={() => setShowUsernameModal(true)}
           onVictorySimulator={handleVictorySimulator}
+        />
+      </>
+    )
+  }
+
+  // Render vehicle selection screen
+  if (gameState === "vehicle-selection") {
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <VehicleSelection
+          onVehicleSelected={async (vehicle) => {
+            setSelectedVehicle(vehicle)
+            // Track vehicle selection
+            try {
+              const { data: { session } } = await supabase.auth.getSession()
+              if (session?.user) {
+                mixpanel.identify(session.user.id)
+                mixpanel.track('Vehicle Selected', {
+                  user_id: session.user.id,
+                  vehicle_type: vehicle.id,
+                  vehicle_name: vehicle.name,
+                  pace: vehicle.pace,
+                  armor: vehicle.armor,
+                  impact: vehicle.impact,
+                })
+              }
+            } catch (error) {
+              console.error("Error tracking vehicle selection:", error)
+            }
+            // Start the game with selected vehicle
+            startGame()
+          }}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          username={username}
         />
       </>
     )
