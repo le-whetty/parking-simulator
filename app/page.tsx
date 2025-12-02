@@ -98,6 +98,14 @@ export default function Home() {
   const [audioEnabled, setAudioEnabled] = useState(false)
   const [audioDebug, setAudioDebug] = useState<string>("")
 
+  // Combo system state
+  const comboCountRef = useRef<number>(0) // Current combo streak
+  const lastHitTimeRef = useRef<number>(0) // Time of last hit (for combo timeout)
+  const comboTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Combo timeout timer
+  const [comboBadge, setComboBadge] = useState<{ image: string; points: number; key: number } | null>(null) // Current combo badge to display
+  const comboAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Animation timeout
+  const comboAudioRef = useRef<HTMLAudioElement | null>(null) // Combo sound effect
+
   // Add a new ref to track parking time
   const parkingTimerRef = useRef<number>(0)
   const isParkedRef = useRef<boolean>(false)
@@ -112,6 +120,14 @@ export default function Home() {
   const slackIntervalRef = useRef<number | null>(null)
   const menuThemeStoppedRef = useRef<boolean>(false) // Track if menu theme has been stopped
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null) // Ref for countdown interval
+
+  // Combo milestone definitions
+  const comboMilestones = [
+    { hits: 3, points: 150, image: '/images/150.png' },
+    { hits: 5, points: 300, image: '/images/300.png' },
+    { hits: 7, points: 500, image: '/images/500.png' },
+    { hits: 10, points: 1000, image: '/images/1000.png' },
+  ]
 
   // Game area boundaries - used to keep drivers on screen
   // Only penalize off-screen to the RIGHT (where players can actually go)
@@ -284,6 +300,51 @@ ${file}
   const testSlackSound = () => {
     setAudioDebug("Testing Slack sound...")
     playSlackSound()
+  }
+
+  // Preload combo badge images
+  useEffect(() => {
+    if (gameState === "playing" || gameState === "vehicle-selection" || gameState === "start") {
+      comboMilestones.forEach((milestone) => {
+        const img = new Image()
+        img.src = milestone.image
+      })
+    }
+  }, [gameState])
+
+  // Function to handle combo milestone reached
+  const handleComboMilestone = (hits: number, points: number, image: string) => {
+    // Clear any existing animation timeout
+    if (comboAnimationTimeoutRef.current) {
+      clearTimeout(comboAnimationTimeoutRef.current)
+      comboAnimationTimeoutRef.current = null
+    }
+
+    // Stop any currently playing combo sound
+    if (comboAudioRef.current) {
+      comboAudioRef.current.pause()
+      comboAudioRef.current.currentTime = 0
+    }
+
+    // Play combo sound
+    const audio = new Audio('/music/combo.mp3')
+    audio.volume = 0.7
+    comboAudioRef.current = audio
+    audio.play().catch((error) => {
+      // Silently handle audio errors
+      if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
+        console.warn('Could not play combo sound:', error)
+      }
+    })
+
+    // Show badge with unique key to force re-render
+    setComboBadge({ image, points, key: Date.now() })
+
+    // Auto-hide after animation completes (2 seconds)
+    comboAnimationTimeoutRef.current = setTimeout(() => {
+      setComboBadge(null)
+      comboAnimationTimeoutRef.current = null
+    }, 2000)
   }
 
   // Driver state with initial random directions
@@ -504,6 +565,23 @@ ${file}
     offScreenTimeRef.current = 0
     setOnScreenTimeDisplay(100) // Start at 100%
     lastOnScreenCheckRef.current = Date.now()
+
+    // Reset combo system
+    comboCountRef.current = 0
+    lastHitTimeRef.current = 0
+    setComboBadge(null)
+    if (comboTimeoutRef.current) {
+      clearTimeout(comboTimeoutRef.current)
+      comboTimeoutRef.current = null
+    }
+    if (comboAnimationTimeoutRef.current) {
+      clearTimeout(comboAnimationTimeoutRef.current)
+      comboAnimationTimeoutRef.current = null
+    }
+    if (comboAudioRef.current) {
+      comboAudioRef.current.pause()
+      comboAudioRef.current = null
+    }
 
     // Clear any existing game loop
     if (gameLoopRef.current) {
@@ -1378,6 +1456,42 @@ ${file}
             driversRef.current = updated // Sync ref immediately after update
             return updated
           })
+
+          // Combo system: Increment combo count
+          const now = Date.now()
+          const timeSinceLastHit = now - lastHitTimeRef.current
+          
+          // Reset combo if more than 3 seconds since last hit
+          if (timeSinceLastHit > 3000) {
+            comboCountRef.current = 0
+          }
+          
+          // Increment combo
+          comboCountRef.current += 1
+          lastHitTimeRef.current = now
+          
+          // Clear existing combo timeout
+          if (comboTimeoutRef.current) {
+            clearTimeout(comboTimeoutRef.current)
+            comboTimeoutRef.current = null
+          }
+          
+          // Set combo timeout (3 seconds to reset combo)
+          comboTimeoutRef.current = setTimeout(() => {
+            comboCountRef.current = 0
+            comboTimeoutRef.current = null
+          }, 3000)
+
+          // Check for combo milestones
+          const currentCombo = comboCountRef.current
+          const milestone = comboMilestones.find(m => m.hits === currentCombo)
+          if (milestone) {
+            // Add bonus points for milestone
+            setScore((prev) => prev + milestone.points)
+            scoreEffect(milestone.points, driver.position.x, driver.position.y)
+            // Show combo badge
+            handleComboMilestone(milestone.hits, milestone.points, milestone.image)
+          }
 
           // Add points for hitting a driver
           const hitPoints = 50

@@ -185,3 +185,38 @@
     transform: scale(0.9) translateY(-20px);
   }
 }
+
+/* Combo Badge Animation */
+@keyframes comboBadgeAnimation {
+  /* Entry (0-0.3s): Scale from 0 to 1.2, opacity 0 to 1, drift up 20px */
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0px) scale(0);
+  }
+  15% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-20px) scale(1.2);
+  }
+  /* Hold (0.3-1.5s): Scale to 1.0, hold position, subtle pulse */
+  20% {
+    transform: translateX(-50%) translateY(-20px) scale(1.0);
+  }
+  60% {
+    transform: translateX(-50%) translateY(-20px) scale(1.0);
+  }
+  70% {
+    transform: translateX(-50%) translateY(-20px) scale(1.05);
+  }
+  75% {
+    transform: translateX(-50%) translateY(-20px) scale(1.0);
+  }
+  /* Exit (1.5-2.0s): Scale to 0.8, opacity 1 to 0, drift up another 30px */
+  75% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-20px) scale(1.0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-50px) scale(0.8);
+  }
+}
