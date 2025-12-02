@@ -8,15 +8,17 @@ import DefeatScreen from "@/components/defeat-screen"
 import VictoryScreen from "@/components/victory-screen"
 import LoginScreen from "@/components/login-screen"
 import StartScreen from "@/components/start-screen"
+import VehicleSelection from "@/components/vehicle-selection"
 import ProfileMenu from "@/components/profile-menu"
 import UsernameModal from "@/components/username-modal"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
 import { supabase } from "@/lib/supabase"
 import mixpanel from "@/lib/mixpanel"
+import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
 
 // Game states
-type GameState = "auth" | "intro" | "start" | "playing" | "victory" | "defeat"
+type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat"
 
 // Driver types
 type DriverType = "pregnant" | "injured"
@@ -63,6 +65,7 @@ export default function Home() {
   const [isInParkingSpot, setIsInParkingSpot] = useState(false)
   const [hasWon, setHasWon] = useState(false) // Victory state
   const [isSimulatorMode, setIsSimulatorMode] = useState(false) // Simulator mode flag
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null) // Selected vehicle
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -407,9 +410,11 @@ ${file}
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         mixpanel.identify(session.user.id)
-        mixpanel.track('Game Started', {
-          user_id: session.user.id,
-        })
+            mixpanel.track('Game Started', {
+              user_id: session.user.id,
+              vehicle_type: selectedVehicle?.id || null,
+              vehicle_name: selectedVehicle?.name || null,
+            })
       }
     } catch (error) {
       console.error("Error tracking game started:", error)
@@ -459,6 +464,7 @@ ${file}
     setMessage("") // Clear any messages
     setHasWon(false) // Reset victory state
     setIsSimulatorMode(false) // Reset simulator mode
+    setSelectedVehicle(null) // Reset vehicle selection
     victoryRef.current = false
 
     // Set the game start time
@@ -582,7 +588,10 @@ ${file}
   const moveLuke = (direction: "up" | "down" | "left" | "right") => {
     if (gameState !== "playing" || !lukeCarRef.current || hasWon || !gameReadyRef.current) return
 
-    const speed = 20
+    // Apply pace multiplier from selected vehicle
+    const baseSpeed = 20
+    const paceMultiplier = selectedVehicle ? getPaceMultiplier(selectedVehicle.pace) : 1.0
+    const speed = baseSpeed * paceMultiplier
     let { x, y } = lukePositionRef.current
 
     // Update position based on direction
@@ -1074,6 +1083,7 @@ ${file}
                 user_id: session.user.id,
                 time_spent_minutes: parseFloat(timeSpentMinutes),
                 score: score,
+                vehicle_type: selectedVehicle?.id || null,
               })
             }
           } catch (error) {
@@ -1306,7 +1316,11 @@ ${file}
           setDrivers((prev) => {
             const updated = prev.map((d) => {
               if (d.id === driver.id) {
-                const newHealth = Math.max(0, d.health - 20) // Ensure health doesn't go below 0
+                // Apply impact multiplier from selected vehicle
+                const baseDamage = 20
+                const impactMultiplier = selectedVehicle ? getImpactMultiplier(selectedVehicle.impact) : 1.0
+                const damage = Math.floor(baseDamage * impactMultiplier)
+                const newHealth = Math.max(0, d.health - damage) // Ensure health doesn't go below 0
                 const isNowDefeated = newHealth <= 0 && !d.defeated
                 
                 // If driver just got defeated, trigger explosion and play sound
@@ -1447,7 +1461,11 @@ ${file}
         ) {
           // Hit Luke
           setLukeHealth((prev) => {
-            const newHealth = prev - 4 // Doubled damage from 2 to 4
+            // Apply armor multiplier from selected vehicle
+            const baseDamage = 4
+            const armorMultiplier = selectedVehicle ? getArmorMultiplier(selectedVehicle.armor) : 1.0
+            const damage = Math.ceil(baseDamage * armorMultiplier)
+            const newHealth = prev - damage
             // Calculate actual projectile speed for logging (0.18 px/ms)
             const projectileSpeedPxPerMs = 0.18
             const actualSpeed = projectileSpeedPxPerMs * deltaTime
@@ -1638,6 +1656,7 @@ ${file}
               user_id: session.user.id,
               time_spent_minutes: parseFloat(timeSpentMinutes),
               final_health: lukeHealth,
+              vehicle_type: selectedVehicle?.id || null,
             })
           }
         }

@@ -4,7 +4,7 @@ import { createAuthenticatedClient } from "@/lib/supabase"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userEmail, score, accessToken } = body
+    const { userEmail, score, accessToken, vehicle } = body
 
     if (!userEmail || score === undefined) {
       return NextResponse.json(
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
           user_email: userEmail,
           score: score,
           username: username,
+          vehicle: vehicle || null, // Include vehicle type if provided
         },
       ])
       .select()
