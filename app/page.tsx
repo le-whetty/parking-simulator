@@ -868,9 +868,13 @@ ${file}
 
     // Track off-screen time (frame-rate independent)
     // Start at 100% on-screen, only decrease when off-screen
+    const timeSinceLastCheck = deltaTime / 1000 // Convert to seconds
     if (!isOnScreen) {
-      const timeSinceLastCheck = deltaTime / 1000 // Convert to seconds
       offScreenTimeRef.current += timeSinceLastCheck
+      // Debug logging when off-screen
+      if (Math.random() < 0.01) { // Log 1% of frames when off-screen
+        console.log(`🚫 OFF-SCREEN: Luke at (${lukeX.toFixed(0)}, ${lukeY.toFixed(0)}), bounds: x[${gameBounds.minX}-${gameBounds.maxX}], y[${gameBounds.minY}-${gameBounds.maxY}]`)
+      }
     }
     
     // Calculate and update on-screen percentage for display
@@ -882,6 +886,8 @@ ${file}
       const roundedPercentage = Math.floor(onScreenPercentage)
       if (roundedPercentage !== onScreenTimeDisplay) {
         setOnScreenTimeDisplay(roundedPercentage)
+        // Debug logging
+        console.log(`📊 On-screen: ${roundedPercentage}% (${offScreenTimeRef.current.toFixed(1)}s off / ${totalGameTimeSeconds.toFixed(1)}s total)`)
       }
     }
     lastOnScreenCheckRef.current = now
@@ -995,11 +1001,15 @@ ${file}
         const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
         
         // Apply multiplier based on on-screen percentage
-        // 100% = 1.15x (15% bonus), 90% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
+        // 100% = 1.25x (25% bonus), 95% = 1.20x (20% bonus), 90% = 1.15x (15% bonus), 85% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
         let onScreenMultiplier = 1.0
         if (onScreenPercentage >= 100) {
-          onScreenMultiplier = 1.15
+          onScreenMultiplier = 1.25
+        } else if (onScreenPercentage >= 95) {
+          onScreenMultiplier = 1.20
         } else if (onScreenPercentage >= 90) {
+          onScreenMultiplier = 1.15
+        } else if (onScreenPercentage >= 85) {
           onScreenMultiplier = 1.10
         } else if (onScreenPercentage >= 80) {
           onScreenMultiplier = 1.05
@@ -1562,11 +1572,15 @@ ${file}
       const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
       
       // Apply multiplier based on on-screen percentage
-      // 100% = 1.15x (15% bonus), 90% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
+      // 100% = 1.25x (25% bonus), 95% = 1.20x (20% bonus), 90% = 1.15x (15% bonus), 85% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
       let onScreenMultiplier = 1.0
       if (onScreenPercentage >= 100) {
-        onScreenMultiplier = 1.15
+        onScreenMultiplier = 1.25
+      } else if (onScreenPercentage >= 95) {
+        onScreenMultiplier = 1.20
       } else if (onScreenPercentage >= 90) {
+        onScreenMultiplier = 1.15
+      } else if (onScreenPercentage >= 85) {
         onScreenMultiplier = 1.10
       } else if (onScreenPercentage >= 80) {
         onScreenMultiplier = 1.05
@@ -2086,13 +2100,25 @@ ${file}
                 : 0
               const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
               let multiplier = 1.0
-              if (onScreenPercentage >= 100) multiplier = 1.15
-              else if (onScreenPercentage >= 90) multiplier = 1.10
+              if (onScreenPercentage >= 100) multiplier = 1.25
+              else if (onScreenPercentage >= 95) multiplier = 1.20
+              else if (onScreenPercentage >= 90) multiplier = 1.15
+              else if (onScreenPercentage >= 85) multiplier = 1.10
               else if (onScreenPercentage >= 80) multiplier = 1.05
               
+              // Visual indicator if off-screen
+              const lukeX = lukePositionRef.current.x
+              const lukeY = lukePositionRef.current.y
+              const isOnScreenNow =
+                lukeX >= gameBounds.minX &&
+                lukeX <= gameBounds.maxX &&
+                lukeY >= gameBounds.minY &&
+                lukeY <= gameBounds.maxY
+              
               return (
-                <p className="text-xs text-purple-400">
+                <p className={`text-xs ${isOnScreenNow ? 'text-purple-400' : 'text-red-400'}`}>
                   On-screen: {onScreenPercentage.toFixed(0)}% ({multiplier}x multiplier)
+                  {!isOnScreenNow && ' ⚠️ OFF-SCREEN'}
                 </p>
               )
             })()}
