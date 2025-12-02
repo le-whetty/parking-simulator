@@ -558,19 +558,21 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             {userEmail && (contestRank !== null || allTimeRank !== null) && (
               <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
                 <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-3 font-semibold font-chapeau">Your Rankings</p>
-                {contestRank !== null && (
-                  <div className="mb-3">
-                    <p className="text-xs uppercase tracking-wider text-tracksuit-purple-600 mb-1 font-quicksand">Contest Rank</p>
-                    <p className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{contestRank}</p>
-                  </div>
-                )}
-                {allTimeRank !== null && (
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-tracksuit-purple-600 mb-1 font-quicksand">All-Time Rank</p>
-                    <p className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{allTimeRank}</p>
-                  </div>
-                )}
-                <p className="text-sm text-tracksuit-purple-600 mt-3 font-quicksand truncate">
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  {contestRank !== null && (
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-tracksuit-purple-600 mb-1 font-quicksand">Contest Rank</p>
+                      <p className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{contestRank}</p>
+                    </div>
+                  )}
+                  {allTimeRank !== null && (
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-tracksuit-purple-600 mb-1 font-quicksand">All-Time Rank</p>
+                      <p className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{allTimeRank}</p>
+                    </div>
+                  )}
+                </div>
+                <p className="text-sm text-tracksuit-purple-600 font-quicksand truncate">
                   {username ? `@${username}` : userEmail}
                 </p>
               </div>
