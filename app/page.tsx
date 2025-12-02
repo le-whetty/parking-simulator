@@ -1306,47 +1306,69 @@ ${file}
     // Update React state every frame (DOM updates happen directly, so React re-renders don't cause stutter)
     setDrivers(updatedDrivers)
 
-    // Move hotdogs
-    hotdogsRef.current.forEach((hotdog, index) => {
-      const currentLeft = Number.parseInt(hotdog.style.left || "0")
-      const currentTop = Number.parseInt(hotdog.style.top || "0")
-      
-      // Frame-rate independent movement
-      // Speed was 10 px/frame at 60fps (16.67ms per frame)
-      // Convert to px/ms: 10 px / 16.67ms = 0.6 px/ms
-      const speedPxPerMs = 0.6
-      const movement = speedPxPerMs * deltaTime
+      // Move hotdogs
+      hotdogsRef.current.forEach((hotdog, index) => {
+        const currentLeft = Number.parseInt(hotdog.style.left || "0")
+        const currentTop = Number.parseInt(hotdog.style.top || "0")
+        
+        // Frame-rate independent movement
+        // Speed was 10 px/frame at 60fps (16.67ms per frame)
+        // Convert to px/ms: 10 px / 16.67ms = 0.6 px/ms
+        const speedPxPerMs = 0.6
+        const movement = speedPxPerMs * deltaTime
 
-      // Move based on direction
-      if (hotdog.dataset.direction === "left") {
-        hotdog.style.left = `${currentLeft - movement}px`
-        // Remove if out of bounds
-        if (currentLeft < -50) {
-          hotdog.remove()
-          hotdogsRef.current.splice(index, 1)
+        let hotdogRemoved = false
+
+        // Move based on direction
+        if (hotdog.dataset.direction === "left") {
+          hotdog.style.left = `${currentLeft - movement}px`
+          // Remove if out of bounds
+          if (currentLeft < -50) {
+            hotdog.remove()
+            hotdogsRef.current.splice(index, 1)
+            hotdogRemoved = true
+          }
+        } else if (hotdog.dataset.direction === "right") {
+          hotdog.style.left = `${currentLeft + movement}px`
+          // Remove if out of bounds
+          if (currentLeft > 1200) {
+            hotdog.remove()
+            hotdogsRef.current.splice(index, 1)
+            hotdogRemoved = true
+          }
+        } else if (hotdog.dataset.direction === "up") {
+          hotdog.style.top = `${currentTop - movement}px`
+          // Remove if out of bounds
+          if (currentTop < -50) {
+            hotdog.remove()
+            hotdogsRef.current.splice(index, 1)
+            hotdogRemoved = true
+          }
+        } else if (hotdog.dataset.direction === "down") {
+          hotdog.style.top = `${currentTop + movement}px`
+          // Remove if out of bounds
+          if (currentTop > 800) {
+            hotdog.remove()
+            hotdogsRef.current.splice(index, 1)
+            hotdogRemoved = true
+          }
         }
-      } else if (hotdog.dataset.direction === "right") {
-        hotdog.style.left = `${currentLeft + movement}px`
-        // Remove if out of bounds
-        if (currentLeft > 1200) {
-          hotdog.remove()
-          hotdogsRef.current.splice(index, 1)
+
+        // If hotdog went out of bounds without hitting, reset combo
+        if (hotdogRemoved) {
+          const previousCombo = comboCountRef.current
+          if (previousCombo > 0) {
+            console.log(`❌ HOTDOG MISSED: Resetting combo streak (was at ${previousCombo} hits)`)
+            comboCountRef.current = 0
+            reachedMilestonesRef.current = new Set()
+            if (comboTimeoutRef.current) {
+              clearTimeout(comboTimeoutRef.current)
+              comboTimeoutRef.current = null
+            }
+            console.log(`✅ COMBO RESET CONFIRMED: comboCountRef.current = ${comboCountRef.current}`)
+          }
+          return // Skip collision check since hotdog was removed
         }
-      } else if (hotdog.dataset.direction === "up") {
-        hotdog.style.top = `${currentTop - movement}px`
-        // Remove if out of bounds
-        if (currentTop < -50) {
-          hotdog.remove()
-          hotdogsRef.current.splice(index, 1)
-        }
-      } else if (hotdog.dataset.direction === "down") {
-        hotdog.style.top = `${currentTop + movement}px`
-        // Remove if out of bounds
-        if (currentTop > 800) {
-          hotdog.remove()
-          hotdogsRef.current.splice(index, 1)
-        }
-      }
 
       // Check for collisions with drivers
       drivers.forEach((driver) => {
@@ -1476,9 +1498,9 @@ ${file}
             const now = Date.now()
             const timeSinceLastHit = now - lastHitTimeRef.current
             
-            // Reset combo if more than 3 seconds since last hit
-            if (timeSinceLastHit > 3000) {
-              console.log('🔥 COMBO RESET: Timeout (>3s since last hit)')
+            // Reset combo if more than 2 seconds since last hit (made harder)
+            if (timeSinceLastHit > 2000) {
+              console.log(`🔥 COMBO RESET: Timeout (>2s since last hit, was ${timeSinceLastHit}ms)`)
               comboCountRef.current = 0
               reachedMilestonesRef.current = new Set()
             }
@@ -1496,13 +1518,15 @@ ${file}
               comboTimeoutRef.current = null
             }
             
-            // Set combo timeout (3 seconds to reset combo)
+            // Set combo timeout (2 seconds to reset combo - made harder)
             comboTimeoutRef.current = setTimeout(() => {
-              console.log('🔥 COMBO RESET: Timeout (3s elapsed)')
+              const currentComboOnTimeout = comboCountRef.current
+              console.log(`🔥 COMBO RESET: Timeout (2s elapsed, was at ${currentComboOnTimeout} hits)`)
               comboCountRef.current = 0
               reachedMilestonesRef.current = new Set()
               comboTimeoutRef.current = null
-            }, 3000)
+              console.log(`✅ COMBO RESET CONFIRMED: comboCountRef.current = ${comboCountRef.current}`)
+            }, 2000)
 
             // Check for combo milestones (only if not already reached in this streak)
             const milestone = comboMilestones.find(m => m.hits === currentCombo)
@@ -1586,13 +1610,15 @@ ${file}
           projectileRect.bottom > lukeRect.top
         ) {
           // Hit Luke - RESET COMBO
-          console.log('💥 LUKE HIT: Resetting combo streak')
+          const previousCombo = comboCountRef.current
+          console.log(`💥 LUKE HIT: Resetting combo streak (was at ${previousCombo} hits)`)
           comboCountRef.current = 0
           reachedMilestonesRef.current = new Set()
           if (comboTimeoutRef.current) {
             clearTimeout(comboTimeoutRef.current)
             comboTimeoutRef.current = null
           }
+          console.log(`✅ COMBO RESET CONFIRMED: comboCountRef.current = ${comboCountRef.current}`)
           
           setLukeHealth((prev) => {
             // Apply armor multiplier from selected vehicle
