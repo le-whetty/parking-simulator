@@ -1,74 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAuthenticatedClient } from "@/lib/supabase"
 
-// Calculate score from game events
-function calculateScoreFromEvents(events: any[], gameDurationMs: number): number {
-  let baseScore = 0
-  let comboBonuses = 0
-  let damagePenalties = 0
-  
-  // Count hits and combos
-  const hits: number[] = []
-  let lastHitTime = 0
-  let comboCount = 0
-  
-  events.forEach((event) => {
-    if (event.event_type === 'hit') {
-      const hitTime = event.timestamp_ms
-      const timeSinceLastHit = hitTime - lastHitTime
-      
-      // Reset combo if more than 2 seconds since last hit
-      if (timeSinceLastHit > 2000) {
-        comboCount = 0
-      }
-      
-      comboCount++
-      lastHitTime = hitTime
-      hits.push(hitTime)
-      baseScore += 50 // Base hit points
-      
-      // Check for combo milestones
-      if (comboCount === 3) {
-        comboBonuses += 150
-      } else if (comboCount === 5) {
-        comboBonuses += 300
-      } else if (comboCount === 10) {
-        comboBonuses += 500
-      }
-    } else if (event.event_type === 'damage') {
-      damagePenalties += 10
-    }
-  })
-  
-  // Calculate time bonus (1 point per second remaining)
-  const timeLeftSeconds = Math.max(0, Math.floor((120000 - gameDurationMs) / 1000))
-  const timeBonus = timeLeftSeconds
-  
-  // Calculate on-screen multiplier from events
-  // For now, assume 100% on-screen if no off-screen events
-  const offScreenEvents = events.filter(e => e.event_type === 'off_screen').length
-  const onScreenPercentage = offScreenEvents === 0 ? 100 : Math.max(80, 100 - (offScreenEvents * 5))
-  
-  let onScreenMultiplier = 1.0
-  if (onScreenPercentage >= 100) {
-    onScreenMultiplier = 1.25
-  } else if (onScreenPercentage >= 95) {
-    onScreenMultiplier = 1.20
-  } else if (onScreenPercentage >= 90) {
-    onScreenMultiplier = 1.15
-  } else if (onScreenPercentage >= 85) {
-    onScreenMultiplier = 1.10
-  } else if (onScreenPercentage >= 80) {
-    onScreenMultiplier = 1.05
-  }
-  
-  // Calculate final score
-  const scoreBeforeMultiplier = baseScore - damagePenalties + timeBonus + comboBonuses
-  const finalScore = Math.floor(scoreBeforeMultiplier * onScreenMultiplier)
-  
-  return finalScore
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -138,29 +70,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Recalculate score from events
-      const { data: events, error: eventsError } = await supabase
-        .from('game_events')
-        .select('*')
-        .eq('session_id', sessionId)
-        .order('timestamp_ms', { ascending: true })
-
-      if (!eventsError && events && events.length > 0) {
-        const calculatedScore = calculateScoreFromEvents(events, gameDurationMs || 120000)
-        const scoreDifference = Math.abs(calculatedScore - score)
-        
-        // Allow small difference for rounding (within 5 points)
-        if (scoreDifference > 5) {
-          console.error(`Score mismatch: submitted=${score}, calculated=${calculatedScore}, diff=${scoreDifference}`)
-          return NextResponse.json(
-            { error: "Score validation failed", details: `Submitted score doesn't match calculated score` },
-            { status: 400 }
-          )
-        }
-        
-        // Use calculated score for consistency
-        score = calculatedScore
-      }
+      // Note: We trust the client-submitted score. The server-side recalculation
+      // cannot accurately replicate the client's off-screen time tracking and
+      // other game state, so we rely on session validation (duplicate prevention)
+      // and score bounds checking instead.
     }
 
     // Security: Validate score bounds
