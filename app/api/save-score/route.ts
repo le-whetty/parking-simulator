@@ -77,10 +77,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Security: Validate score bounds
-    // Theoretical maximum: ~40 hits × 50 = 2000, + 120 time bonus = 2120, × 1.25 = 2650
-    // Add combo bonuses: 150 + 300 + 500 = 950
-    // Total theoretical max: ~3600 (with some buffer)
-    const MAX_THEORETICAL_SCORE = 4000
+    // Theoretical maximum with combos:
+    // - Base hits: ~50 hits × 50 = 2500
+    // - Multiple combo bonuses: 6 × (150 + 300 + 500) = 5700
+    // - Time bonus: 120
+    // - Before multiplier: 2500 + 5700 + 120 = 8320
+    // - With 1.25x multiplier: 8320 × 1.25 = 10400
+    // Set to 12000 to allow for exceptional gameplay
+    const MAX_THEORETICAL_SCORE = 12000
     const MIN_VALID_SCORE = 0
 
     if (score > MAX_THEORETICAL_SCORE) {
