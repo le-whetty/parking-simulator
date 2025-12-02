@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { vehicles, Vehicle, VehicleType } from "@/lib/vehicles"
 import Menu from "./menu"
@@ -13,6 +13,13 @@ interface VehicleSelectionProps {
   username?: string | null
 }
 
+// Mapping of vehicle IDs to their sound and image files
+const vehicleMediaMap: Record<VehicleType, { sound: string; image: string }> = {
+  corolla: { sound: '/music/fargo.mp3', image: '/images/fargo.png' },
+  sedona: { sound: '/music/matilda.mp3', image: '/images/matilda.png' },
+  impala: { sound: '/music/deniro.mp3', image: '/images/deniro.png' },
+}
+
 export default function VehicleSelection({ 
   onVehicleSelected, 
   onLogout, 
@@ -21,9 +28,37 @@ export default function VehicleSelection({
   username 
 }: VehicleSelectionProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType | null>(null)
+  const [showOverlay, setShowOverlay] = useState<{ vehicleId: VehicleType; image: string } | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
   const handleSelect = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle.id)
+    
+    // Get the media for this vehicle
+    const media = vehicleMediaMap[vehicle.id]
+    if (!media) return
+    
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause()
+      audioRef.current.currentTime = 0
+    }
+    
+    // Play the sound
+    const audio = new Audio(media.sound)
+    audio.volume = 0.7
+    audio.play().catch((error) => {
+      console.error('Error playing vehicle selection sound:', error)
+    })
+    audioRef.current = audio
+    
+    // Show the animated overlay
+    setShowOverlay({ vehicleId: vehicle.id, image: media.image })
+    
+    // Hide the overlay after 1 second
+    setTimeout(() => {
+      setShowOverlay(null)
+    }, 1000)
   }
 
   const handleStart = () => {
@@ -83,6 +118,17 @@ export default function VehicleSelection({
                     alt={vehicle.name}
                     className="max-w-full max-h-full object-contain"
                   />
+                  {/* Animated Overlay Image */}
+                  {showOverlay?.vehicleId === vehicle.id && (
+                    <img
+                      src={showOverlay.image}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-contain z-10"
+                      style={{
+                        animation: 'vehiclePopup 1s ease-out forwards',
+                      }}
+                    />
+                  )}
                 </div>
 
                 {/* Vehicle Name */}
