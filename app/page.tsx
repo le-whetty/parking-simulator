@@ -2236,7 +2236,11 @@ ${file}
             height: "80px"
           }}
         >
-          <img src="/images/minivan.png" alt="Luke's Car" className="w-full h-full object-contain" />
+          <img 
+            src={selectedVehicle?.image || "/images/minivan.png"} 
+            alt={selectedVehicle?.name || "Luke's Car"} 
+            className="w-full h-full object-contain" 
+          />
           {/* Luke's avatar */}
           <div className="absolute top-[-40px] left-[10px] w-[40px] h-[40px] rounded-full overflow-hidden border-2 border-white bg-white z-40">
             <img
