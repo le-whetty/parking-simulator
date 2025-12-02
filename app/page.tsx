@@ -98,8 +98,8 @@ export default function Home() {
   const parkingTimerRef = useRef<number>(0)
   const isParkedRef = useRef<boolean>(false)
   const parkingMessageShownRef = useRef<boolean>(false)
-  // Track on-screen time for bonus points
-  const onScreenTimeRef = useRef<number>(0) // Time spent on-screen in seconds
+  // Track off-screen time for bonus points (starts at 100%, decreases when off-screen)
+  const offScreenTimeRef = useRef<number>(0) // Time spent off-screen in seconds
   const lastOnScreenCheckRef = useRef<number>(0) // Last time we checked on-screen status
 
   // Add this near the other refs at the top of the component
@@ -489,9 +489,9 @@ ${file}
     parkingSpotTimerRef.current = 0
     setParkingSpotTimer(0)
     
-    // Reset on-screen tracking
-    onScreenTimeRef.current = 0
-    setOnScreenTimeDisplay(0)
+    // Reset off-screen tracking (starts at 100% on-screen)
+    offScreenTimeRef.current = 0
+    setOnScreenTimeDisplay(100) // Start at 100%
     lastOnScreenCheckRef.current = Date.now()
 
     // Clear any existing game loop
@@ -866,13 +866,22 @@ ${file}
       lukeY >= gameBounds.minY &&
       lukeY <= gameBounds.maxY
 
-    // Track on-screen time (frame-rate independent)
-    if (isOnScreen) {
+    // Track off-screen time (frame-rate independent)
+    // Start at 100% on-screen, only decrease when off-screen
+    if (!isOnScreen) {
       const timeSinceLastCheck = deltaTime / 1000 // Convert to seconds
-      onScreenTimeRef.current += timeSinceLastCheck
+      offScreenTimeRef.current += timeSinceLastCheck
+    }
+    
+    // Calculate and update on-screen percentage for display
+    const totalGameTimeSeconds = elapsedTime / 1000
+    if (totalGameTimeSeconds > 0) {
+      const offScreenPercentage = (offScreenTimeRef.current / totalGameTimeSeconds) * 100
+      const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
       // Update display every second
-      if (Math.floor(onScreenTimeRef.current) !== Math.floor((onScreenTimeRef.current - timeSinceLastCheck))) {
-        setOnScreenTimeDisplay(Math.floor(onScreenTimeRef.current))
+      const roundedPercentage = Math.floor(onScreenPercentage)
+      if (roundedPercentage !== onScreenTimeDisplay) {
+        setOnScreenTimeDisplay(roundedPercentage)
       }
     }
     lastOnScreenCheckRef.current = now
@@ -978,11 +987,12 @@ ${file}
         const timeBonus = timeLeftSeconds // 1 point per second
 
         // Calculate on-screen percentage and multiplier
+        // Start at 100%, decrease based on off-screen time
         const totalGameTimeSeconds = elapsedTime / 1000
-        const onScreenTimeSeconds = onScreenTimeRef.current
-        const onScreenPercentage = totalGameTimeSeconds > 0 
-          ? (onScreenTimeSeconds / totalGameTimeSeconds) * 100 
+        const offScreenPercentage = totalGameTimeSeconds > 0 
+          ? (offScreenTimeRef.current / totalGameTimeSeconds) * 100 
           : 0
+        const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
         
         // Apply multiplier based on on-screen percentage
         // 100% = 1.15x (15% bonus), 90% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
@@ -1003,7 +1013,7 @@ ${file}
           console.log(`🏆 Victory bonuses:`)
           console.log(`  - Base score: ${prev} points`)
           console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
-          console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${onScreenTimeSeconds.toFixed(1)}s / ${totalGameTimeSeconds.toFixed(1)}s)`)
+          console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${offScreenTimeRef.current.toFixed(1)}s off-screen / ${totalGameTimeSeconds.toFixed(1)}s total)`)
           console.log(`  - Multiplier: ${onScreenMultiplier}x (+${bonusPoints} points)`)
           console.log(`  - Final score: ${finalScore} dawgs`)
           return finalScore
@@ -1544,11 +1554,12 @@ ${file}
       const timeBonus = timeLeftSeconds // 1 point per second
       
       // Calculate on-screen percentage and multiplier
+      // Start at 100%, decrease based on off-screen time
       const totalGameTimeSeconds = elapsedTime / 1000
-      const onScreenTimeSeconds = onScreenTimeRef.current
-      const onScreenPercentage = totalGameTimeSeconds > 0 
-        ? (onScreenTimeSeconds / totalGameTimeSeconds) * 100 
+      const offScreenPercentage = totalGameTimeSeconds > 0 
+        ? (offScreenTimeRef.current / totalGameTimeSeconds) * 100 
         : 0
+      const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
       
       // Apply multiplier based on on-screen percentage
       // 100% = 1.15x (15% bonus), 90% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
@@ -1569,7 +1580,7 @@ ${file}
         console.log(`🏆 Victory bonuses:`)
         console.log(`  - Base score: ${prev} points`)
         console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
-        console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${onScreenTimeSeconds.toFixed(1)}s / ${totalGameTimeSeconds.toFixed(1)}s)`)
+        console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${offScreenTimeRef.current.toFixed(1)}s off-screen / ${totalGameTimeSeconds.toFixed(1)}s total)`)
         console.log(`  - Multiplier: ${onScreenMultiplier}x (+${bonusPoints} points)`)
         console.log(`  - Final score: ${finalScore} dawgs`)
         return finalScore
@@ -2070,9 +2081,10 @@ ${file}
             {gameState === "playing" && (() => {
               const elapsedTime = Date.now() - gameStartTimeRef.current
               const totalGameTimeSeconds = elapsedTime / 1000
-              const onScreenPercentage = totalGameTimeSeconds > 0 
-                ? (onScreenTimeRef.current / totalGameTimeSeconds) * 100 
+              const offScreenPercentage = totalGameTimeSeconds > 0 
+                ? (offScreenTimeRef.current / totalGameTimeSeconds) * 100 
                 : 0
+              const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
               let multiplier = 1.0
               if (onScreenPercentage >= 100) multiplier = 1.15
               else if (onScreenPercentage >= 90) multiplier = 1.10
