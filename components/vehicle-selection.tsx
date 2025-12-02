@@ -200,9 +200,6 @@ export default function VehicleSelection({
                   <h3 className="text-lg font-bold font-chapeau text-tracksuit-purple-800">
                     {vehicle.name}
                   </h3>
-                  <p className="text-sm font-semibold font-chapeau text-tracksuit-purple-600 italic">
-                    "{vehicle.nickname}"
-                  </p>
                 </div>
 
                 {/* Stats */}
