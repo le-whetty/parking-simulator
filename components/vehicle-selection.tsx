@@ -48,7 +48,11 @@ export default function VehicleSelection({
     const audio = new Audio(media.sound)
     audio.volume = 0.7
     audio.play().catch((error) => {
-      console.error('Error playing vehicle selection sound:', error)
+      // Silently handle audio errors (file might not be loaded yet or browser autoplay restrictions)
+      // Only log if it's not a common autoplay/loading issue
+      if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
+        console.warn('Could not play vehicle selection sound:', error)
+      }
     })
     audioRef.current = audio
     
