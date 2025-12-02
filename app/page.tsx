@@ -1468,9 +1468,6 @@ ${file}
               actualDamage: damage,
               healthBefore: prev,
               healthAfter: newHealth,
-              projectileVelocity: `(${dirX.toFixed(1)}, ${dirY.toFixed(1)})`,
-              projectileSpeed: `${actualSpeed.toFixed(2)}px/frame`,
-              lukePosition: `(${lukeX.toFixed(0)}, ${lukeY.toFixed(0)})`
             })
             if (newHealth <= 0) {
               endGame(false)
