@@ -130,6 +130,7 @@ export default function Home() {
 
   // Add a score state near the other state variables
   const [score, setScore] = useState(0)
+  const [onScreenTimeDisplay, setOnScreenTimeDisplay] = useState(0) // For UI display
 
   const audioManager = useAudioManager()
 
@@ -490,6 +491,7 @@ ${file}
     
     // Reset on-screen tracking
     onScreenTimeRef.current = 0
+    setOnScreenTimeDisplay(0)
     lastOnScreenCheckRef.current = Date.now()
 
     // Clear any existing game loop
@@ -868,6 +870,10 @@ ${file}
     if (isOnScreen) {
       const timeSinceLastCheck = deltaTime / 1000 // Convert to seconds
       onScreenTimeRef.current += timeSinceLastCheck
+      // Update display every second
+      if (Math.floor(onScreenTimeRef.current) !== Math.floor((onScreenTimeRef.current - timeSinceLastCheck))) {
+        setOnScreenTimeDisplay(Math.floor(onScreenTimeRef.current))
+      }
     }
     lastOnScreenCheckRef.current = now
 
@@ -2026,7 +2032,7 @@ ${file}
             {isInParkingSpot && <p className="text-green-500 font-bold">IN PARKING SPOT!</p>}
             {gameState === "playing" && (
               <p className="text-xs text-purple-400">
-                On-screen: {Math.floor(onScreenTimeRef.current)}s (+{Math.floor(onScreenTimeRef.current * 1.5)} bonus)
+                On-screen: {onScreenTimeDisplay}s (+{Math.floor(onScreenTimeDisplay * 1.5)} bonus)
               </p>
             )}
             {parkingSpotTimer > 0 && driversRef.current.every((d) => d.defeated || d.health <= 0) && (
