@@ -1902,6 +1902,10 @@ ${file}
   // Handle victory simulator
   const handleVictorySimulator = () => {
     console.log("Victory Simulator button clicked!")
+    // Stop menu theme music before showing victory screen
+    console.log("Stopping menu theme music before victory simulator...")
+    audioManager.stop("menuTheme")
+    menuThemeStoppedRef.current = true // Mark as stopped
     setIsSimulatorMode(true)
     setHasWon(true)
     setScore(0) // Set score to 0 for simulator
