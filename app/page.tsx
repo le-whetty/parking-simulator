@@ -875,6 +875,11 @@ ${file}
       if (Math.random() < 0.01) { // Log 1% of frames when off-screen
         console.log(`🚫 OFF-SCREEN: Luke at (${lukeX.toFixed(0)}, ${lukeY.toFixed(0)}), bounds: x[${gameBounds.minX}-${gameBounds.maxX}], y[${gameBounds.minY}-${gameBounds.maxY}]`)
       }
+    } else {
+      // Debug logging when on-screen (to capture right boundary)
+      if (Math.random() < 0.005) { // Log 0.5% of frames when on-screen
+        console.log(`✅ ON-SCREEN: Luke at (${lukeX.toFixed(0)}, ${lukeY.toFixed(0)}), bounds: x[${gameBounds.minX}-${gameBounds.maxX}], y[${gameBounds.minY}-${gameBounds.maxY}]`)
+      }
     }
     
     // Calculate and update on-screen percentage for display
