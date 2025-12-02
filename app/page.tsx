@@ -1827,10 +1827,10 @@ ${file}
     trackInitialPageView()
   }, [])
 
-  // Play menu theme music when on start screen (after user interaction from intro screen)
+  // Play menu theme music when on start screen or vehicle selection (after user interaction from intro screen)
   useEffect(() => {
-    if (gameState === "start") {
-      // Reset the stopped flag when returning to start screen
+    if (gameState === "start" || gameState === "vehicle-selection") {
+      // Reset the stopped flag when returning to start/vehicle-selection screen
       menuThemeStoppedRef.current = false
       
       // Initialize audio if not already done
@@ -1839,10 +1839,13 @@ ${file}
       }
       
       // Start menu theme immediately (user has already interacted by clicking intro button)
-      console.log("Starting menu theme music...")
-      audioManager.play("menuTheme")
-    } else {
-      // Stop menu theme when leaving start screen (only if not already stopped)
+      if (gameState === "start") {
+        console.log("Starting menu theme music...")
+        audioManager.play("menuTheme")
+      }
+      // Keep playing if transitioning to vehicle-selection
+    } else if (gameState === "playing") {
+      // Stop menu theme when starting the game (countdown begins)
       if (!menuThemeStoppedRef.current) {
         console.log("Stopping menu theme music...")
         audioManager.stop("menuTheme")

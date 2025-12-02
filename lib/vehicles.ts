@@ -42,7 +42,7 @@ export const vehicles: Vehicle[] = [
     armor: 4,
     impact: 9,
     description: 'The rental car destroyer. Maximum impact, moderate speed, questionable durability. Go out in a blaze of glory.',
-    image: '/images/04-chevvy-impala.png',
+    image: '/images/04-chevy-impala.png',
   },
 ]
 

@@ -50,8 +50,11 @@ export default function VehicleSelection({
 
       {/* Title */}
       <div className="w-full mb-8 text-center">
-        <h1 className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 mb-2">
-          Choose Your Ride 🚗
+        <h1 className="text-4xl font-bold font-chapeau mb-2">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">
+            Choose Your Ride
+          </span>
+          <span className="ml-2">🚗</span>
         </h1>
         <p className="text-tracksuit-purple-700 font-quicksand">
           Select your vehicle and hit the road!
