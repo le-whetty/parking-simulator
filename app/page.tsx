@@ -2079,7 +2079,12 @@ ${file}
           <ProfileMenu onLogout={handleLogout} />
         </div>
         <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 text-white font-quicksand">
-          <VictoryScreen onRestart={startGame} score={score} isSimulator={isSimulatorMode} />
+          <VictoryScreen 
+            onRestart={startGame} 
+            score={score} 
+            isSimulator={isSimulatorMode}
+            vehicle={selectedVehicle?.id || null}
+          />
         </div>
       </div>
     )
