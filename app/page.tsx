@@ -816,15 +816,7 @@ ${file}
     projectile.dataset.dirX = dirX.toString()
     projectile.dataset.dirY = dirY.toString()
     
-    // Log enemy attack
-    console.log('🎯 ENEMY ATTACK:', {
-      driver: driver.name,
-      type: driver.type === 'pregnant' ? 'bottle' : 'crutch',
-      projectileVelocity: `(${(dirX * 3).toFixed(1)}, ${(dirY * 3).toFixed(1)})`,
-      projectileSpeed: 3,
-      driverPosition: `(${driver.position.x.toFixed(0)}, ${driver.position.y.toFixed(0)})`,
-      lukePosition: `(${lukePos.x.toFixed(0)}, ${lukePos.y.toFixed(0)})`
-    })
+    // Enemy attack (no logging)
 
     // Add to game container
     gameContainerRef.current?.appendChild(projectile)
