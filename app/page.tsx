@@ -102,7 +102,7 @@ export default function Home() {
   const comboCountRef = useRef<number>(0) // Current combo streak
   const lastHitTimeRef = useRef<number>(0) // Time of last hit (for combo timeout)
   const comboTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Combo timeout timer
-  const [comboBadge, setComboBadge] = useState<{ image: string; points: number; key: number } | null>(null) // Current combo badge to display
+  const [comboBadge, setComboBadge] = useState<{ image: string; points: number; key: number; x: number; y: number } | null>(null) // Current combo badge to display
   const comboAnimationTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Animation timeout
   const comboAudioRef = useRef<HTMLAudioElement | null>(null) // Combo sound effect
   const reachedMilestonesRef = useRef<Set<number>>(new Set()) // Track which milestones have been reached in current combo streak
@@ -314,7 +314,7 @@ ${file}
   }, [gameState])
 
   // Function to handle combo milestone reached
-  const handleComboMilestone = (hits: number, points: number, image: string) => {
+  const handleComboMilestone = (hits: number, points: number, image: string, x: number, y: number) => {
     // Clear any existing animation timeout
     if (comboAnimationTimeoutRef.current) {
       clearTimeout(comboAnimationTimeoutRef.current)
@@ -338,8 +338,8 @@ ${file}
       }
     })
 
-    // Show badge with unique key to force re-render
-    setComboBadge({ image, points, key: Date.now() })
+    // Show badge with unique key to force re-render at player position
+    setComboBadge({ image, points, key: Date.now(), x, y })
 
     // Auto-hide after animation completes (2 seconds)
     comboAnimationTimeoutRef.current = setTimeout(() => {
@@ -1459,50 +1459,64 @@ ${file}
             return updated
           })
 
-          // Combo system: Increment combo count
-          const now = Date.now()
-          const timeSinceLastHit = now - lastHitTimeRef.current
+          // Combo system: Only count combos when Luke is on-screen
+          const lukeX = lukePositionRef.current.x
+          const lukeY = lukePositionRef.current.y
+          const isOnScreen = 
+            lukeX >= gameBounds.minX &&
+            lukeX <= gameBounds.maxX &&
+            lukeY >= gameBounds.minY &&
+            lukeY <= gameBounds.maxY
           
-          // Reset combo if more than 3 seconds since last hit
-          if (timeSinceLastHit > 3000) {
-            console.log('🔥 COMBO RESET: Timeout (>3s since last hit)')
-            comboCountRef.current = 0
-            reachedMilestonesRef.current = new Set()
-          }
-          
-          // Increment combo
-          comboCountRef.current += 1
-          lastHitTimeRef.current = now
-          const currentCombo = comboCountRef.current
-          
-          console.log(`🔥 COMBO: Hit #${currentCombo} on ${driver.name} (time since last: ${timeSinceLastHit}ms)`)
-          
-          // Clear existing combo timeout
-          if (comboTimeoutRef.current) {
-            clearTimeout(comboTimeoutRef.current)
-            comboTimeoutRef.current = null
-          }
-          
-          // Set combo timeout (3 seconds to reset combo)
-          comboTimeoutRef.current = setTimeout(() => {
-            console.log('🔥 COMBO RESET: Timeout (3s elapsed)')
-            comboCountRef.current = 0
-            reachedMilestonesRef.current = new Set()
-            comboTimeoutRef.current = null
-          }, 3000)
+          if (!isOnScreen) {
+            console.log(`🚫 COMBO BLOCKED: Luke is off-screen at (${lukeX}, ${lukeY})`)
+            // Still add regular hit points, but don't count for combo
+          } else {
+            // Combo system: Increment combo count
+            const now = Date.now()
+            const timeSinceLastHit = now - lastHitTimeRef.current
+            
+            // Reset combo if more than 3 seconds since last hit
+            if (timeSinceLastHit > 3000) {
+              console.log('🔥 COMBO RESET: Timeout (>3s since last hit)')
+              comboCountRef.current = 0
+              reachedMilestonesRef.current = new Set()
+            }
+            
+            // Increment combo
+            comboCountRef.current += 1
+            lastHitTimeRef.current = now
+            const currentCombo = comboCountRef.current
+            
+            console.log(`🔥 COMBO: Hit #${currentCombo} on ${driver.name} (time since last: ${timeSinceLastHit}ms, Luke at ${lukeX}, ${lukeY})`)
+            
+            // Clear existing combo timeout
+            if (comboTimeoutRef.current) {
+              clearTimeout(comboTimeoutRef.current)
+              comboTimeoutRef.current = null
+            }
+            
+            // Set combo timeout (3 seconds to reset combo)
+            comboTimeoutRef.current = setTimeout(() => {
+              console.log('🔥 COMBO RESET: Timeout (3s elapsed)')
+              comboCountRef.current = 0
+              reachedMilestonesRef.current = new Set()
+              comboTimeoutRef.current = null
+            }, 3000)
 
-          // Check for combo milestones (only if not already reached in this streak)
-          const milestone = comboMilestones.find(m => m.hits === currentCombo)
-          if (milestone && !reachedMilestonesRef.current.has(milestone.hits)) {
-            console.log(`🎯 COMBO MILESTONE REACHED: ${milestone.hits} hits = ${milestone.points} bonus points!`)
-            reachedMilestonesRef.current.add(milestone.hits)
-            // Add bonus points for milestone
-            setScore((prev) => prev + milestone.points)
-            scoreEffect(milestone.points, driver.position.x, driver.position.y)
-            // Show combo badge
-            handleComboMilestone(milestone.hits, milestone.points, milestone.image)
-          } else if (milestone && reachedMilestonesRef.current.has(milestone.hits)) {
-            console.log(`⚠️ COMBO MILESTONE ALREADY REACHED: ${milestone.hits} hits (skipping duplicate)`)
+            // Check for combo milestones (only if not already reached in this streak)
+            const milestone = comboMilestones.find(m => m.hits === currentCombo)
+            if (milestone && !reachedMilestonesRef.current.has(milestone.hits)) {
+              console.log(`🎯 COMBO MILESTONE REACHED: ${milestone.hits} hits = ${milestone.points} bonus points!`)
+              reachedMilestonesRef.current.add(milestone.hits)
+              // Add bonus points for milestone
+              setScore((prev) => prev + milestone.points)
+              scoreEffect(milestone.points, driver.position.x, driver.position.y)
+              // Show combo badge at Luke's position
+              handleComboMilestone(milestone.hits, milestone.points, milestone.image, lukeX, lukeY)
+            } else if (milestone && reachedMilestonesRef.current.has(milestone.hits)) {
+              console.log(`⚠️ COMBO MILESTONE ALREADY REACHED: ${milestone.hits} hits (skipping duplicate)`)
+            }
           }
 
           // Add points for hitting a driver
@@ -2269,15 +2283,18 @@ ${file}
         {comboBadge && (
           <div
             key={comboBadge.key}
-            className="absolute top-[100px] left-1/2 transform -translate-x-1/2 z-[90] combo-badge-container"
+            className="absolute z-[90] combo-badge-container"
             style={{
+              left: `${comboBadge.x}px`,
+              top: `${comboBadge.y}px`,
+              transform: 'translate(-50%, -50%)',
               animation: 'comboBadgeAnimation 2s ease-out forwards',
             }}
           >
             <img
               src={comboBadge.image}
               alt={`${comboBadge.points} combo`}
-              className="max-w-[300px] h-auto object-contain"
+              className="max-w-[150px] h-auto object-contain"
               style={{
                 filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.8))',
               }}
