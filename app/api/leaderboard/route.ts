@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,6 +17,10 @@ export async function GET() {
       )
     }
     
+    // Get query parameter for leaderboard type (default to 'contest')
+    const searchParams = request.nextUrl.searchParams
+    const type = searchParams.get('type') || 'contest' // 'contest' or 'all-time'
+    
     // Create a server-side Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
@@ -25,12 +29,52 @@ export async function GET() {
       },
     })
     
-    // Fetch top 10 scores with usernames
-    const { data: scoresData, error: scoresError } = await supabase
-      .from('scores')
-      .select('user_email, score, created_at, username')
-      .order('score', { ascending: false })
-      .limit(10)
+    let scoresData: any[] | null = null
+    let scoresError: any = null
+
+    if (type === 'contest') {
+      // Contest leaderboard: Get each user's personal best (MAX score per user)
+      // Use a subquery to get MAX(score) grouped by user_email, then order by score DESC
+      const { data, error } = await supabase
+        .from('scores')
+        .select('user_email, score, created_at, username')
+        .order('score', { ascending: false })
+        .limit(1000) // Get more records to ensure we can find unique users
+      
+      if (error) {
+        scoresError = error
+      } else {
+        // Group by user_email and take the max score for each user
+        const userBestScores: Record<string, { user_email: string; score: number; created_at: string; username: string | null }> = {}
+        
+        data?.forEach((entry) => {
+          const email = entry.user_email
+          if (!userBestScores[email] || entry.score > userBestScores[email].score) {
+            userBestScores[email] = {
+              user_email: email,
+              score: entry.score,
+              created_at: entry.created_at,
+              username: entry.username || null,
+            }
+          }
+        })
+        
+        // Convert to array, sort by score descending, and take top 10
+        scoresData = Object.values(userBestScores)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10)
+      }
+    } else {
+      // All-time leaderboard: Current behavior - top 10 individual runs
+      const { data, error } = await supabase
+        .from('scores')
+        .select('user_email, score, created_at, username')
+        .order('score', { ascending: false })
+        .limit(10)
+      
+      scoresData = data
+      scoresError = error
+    }
 
     if (scoresError) {
       console.error("Error fetching leaderboard:", scoresError)
@@ -57,7 +101,7 @@ export async function GET() {
       })
     }
 
-    console.log("Leaderboard query result:", { dataCount: scoresData?.length || 0, scoresData })
+    console.log("Leaderboard query result:", { type, dataCount: scoresData?.length || 0, scoresData })
 
     // Map to leaderboard entries with rank, avatar_url, and display_name
     const leaderboard = (scoresData || []).map((entry, index) => ({

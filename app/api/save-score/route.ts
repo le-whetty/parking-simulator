@@ -67,21 +67,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get the user's rank (count scores higher than this one)
-    const { count, error: countError } = await supabase
+    // Get the user's all-time rank (count scores higher than this one)
+    const { count: allTimeCount, error: allTimeCountError } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
       .gt('score', score)
 
-    if (countError) {
-      console.error('Error fetching user rank:', countError)
+    if (allTimeCountError) {
+      console.error('Error fetching all-time rank:', allTimeCountError)
     }
 
-    const rank = (count || 0) + 1
+    const allTimeRank = (allTimeCount || 0) + 1
+
+    // Get the user's contest rank (count users with personal best scores higher than this one)
+    // First, get all users' personal best scores
+    const { data: allScores, error: allScoresError } = await supabase
+      .from('scores')
+      .select('user_email, score')
+      .order('score', { ascending: false })
+      .limit(10000) // Get enough records to find all unique users
+    
+    if (allScoresError) {
+      console.error('Error fetching all scores for contest rank:', allScoresError)
+    }
+
+    // Group by user_email and get max score for each user
+    const userBestScores: Record<string, number> = {}
+    allScores?.forEach((entry) => {
+      const email = entry.user_email
+      if (!userBestScores[email] || entry.score > userBestScores[email]) {
+        userBestScores[email] = entry.score
+      }
+    })
+
+    // Count how many users have a personal best higher than this score
+    const contestRank = Object.values(userBestScores).filter(bestScore => bestScore > score).length + 1
 
     return NextResponse.json({
       success: true,
-      rank,
+      rank: allTimeRank, // Keep 'rank' for backward compatibility (all-time rank)
+      contestRank,
+      allTimeRank,
       score: savedScore,
     })
   } catch (error) {

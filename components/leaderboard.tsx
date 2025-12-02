@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { LeaderboardEntry } from "@/lib/scores"
 import { supabase } from "@/lib/supabase"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface LeaderboardProps {
   userEmail?: string
@@ -11,42 +12,35 @@ interface LeaderboardProps {
 }
 
 export default function Leaderboard({ userEmail, userScore, userRank }: LeaderboardProps) {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [contestLeaderboard, setContestLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [allTimeLeaderboard, setAllTimeLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<"contest" | "all-time">("contest")
 
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        const response = await fetch("/api/leaderboard")
-        if (response.ok) {
-          const data = await response.json()
-          console.log("Leaderboard data received:", data)
-          setLeaderboard(data)
-          
-          // Fetch profile pictures for each user
-          const pics: Record<string, string | null> = {}
-          for (const entry of data) {
-            try {
-              // Get user's auth data to access profile picture
-              // We'll use the admin API approach or get from user metadata
-              // For now, let's try to get it from the current session if available
-              const { data: { session } } = await supabase.auth.getSession()
-              if (session?.user?.email === entry.user_email) {
-                pics[entry.user_email] = session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
-              } else {
-                // For other users, we'd need admin access or store pics in usernames table
-                // For now, we'll leave it null and they can be fetched client-side if needed
-                pics[entry.user_email] = null
-              }
-            } catch (err) {
-              pics[entry.user_email] = null
-            }
-          }
-          setProfilePics(pics)
+        // Fetch contest leaderboard (default)
+        const contestResponse = await fetch("/api/leaderboard?type=contest")
+        if (contestResponse.ok) {
+          const contestData = await contestResponse.json()
+          console.log("Contest leaderboard data received:", contestData)
+          setContestLeaderboard(contestData)
         } else {
-          const errorData = await response.json().catch(() => ({}))
-          console.error("Error fetching leaderboard:", response.status, errorData)
+          const errorData = await contestResponse.json().catch(() => ({}))
+          console.error("Error fetching contest leaderboard:", contestResponse.status, errorData)
+        }
+
+        // Fetch all-time leaderboard
+        const allTimeResponse = await fetch("/api/leaderboard?type=all-time")
+        if (allTimeResponse.ok) {
+          const allTimeData = await allTimeResponse.json()
+          console.log("All-time leaderboard data received:", allTimeData)
+          setAllTimeLeaderboard(allTimeData)
+        } else {
+          const errorData = await allTimeResponse.json().catch(() => ({}))
+          console.error("Error fetching all-time leaderboard:", allTimeResponse.status, errorData)
         }
       } catch (error) {
         console.error("Error fetching leaderboard:", error)
@@ -66,6 +60,8 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
       year: "numeric",
     })
   }
+
+  const currentLeaderboard = activeTab === "contest" ? contestLeaderboard : allTimeLeaderboard
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 max-w-4xl w-full mx-auto border border-gray-200/50 relative overflow-hidden">
@@ -97,107 +93,230 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
         </div>
       )}
 
-      {loading ? (
-        <div className="text-center py-12 text-tracksuit-purple-600 relative z-10">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
-          <p className="font-quicksand">Loading leaderboard...</p>
-        </div>
-      ) : leaderboard.length === 0 ? (
-        <div className="text-center py-12 relative z-10">
-          <div className="text-6xl mb-4">🏆</div>
-          <p className="text-xl text-tracksuit-purple-600 mb-2 font-chapeau">No scores yet</p>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand">Be the first to claim the top spot!</p>
-        </div>
-      ) : (
-        <div className="space-y-3 relative z-10">
-          {/* Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
-            <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-5">Player</div>
-            <div className="col-span-2 text-right">Score</div>
-            <div className="col-span-4 text-right">Date</div>
-          </div>
-          
-          {/* Leaderboard entries */}
-          <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-tracksuit-purple-100/30 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-tracksuit-purple-400/50 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-tracksuit-purple-500/70">
-            {leaderboard.map((entry, index) => {
-              const isCurrentUser = userEmail && entry.user_email === userEmail
-              const isTopThree = entry.rank <= 3
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "contest" | "all-time")} className="relative z-10">
+        <TabsList className="grid w-full grid-cols-2 mb-6 bg-tracksuit-purple-100/50">
+          <TabsTrigger 
+            value="contest" 
+            className="font-chapeau data-[state=active]:bg-tracksuit-purple-600 data-[state=active]:text-white"
+          >
+            🏆 I'm Parkin' Here! Contest
+          </TabsTrigger>
+          <TabsTrigger 
+            value="all-time"
+            className="font-chapeau data-[state=active]:bg-tracksuit-purple-600 data-[state=active]:text-white"
+          >
+            📊 All-Time High Scores
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="contest">
+          {loading ? (
+            <div className="text-center py-12 text-tracksuit-purple-600">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
+              <p className="font-quicksand">Loading leaderboard...</p>
+            </div>
+          ) : contestLeaderboard.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🏆</div>
+              <p className="text-xl text-tracksuit-purple-600 mb-2 font-chapeau">No scores yet</p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand">Be the first to claim the top spot!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
+                <div className="col-span-1 text-center">Rank</div>
+                <div className="col-span-5">Player</div>
+                <div className="col-span-2 text-right">Score</div>
+                <div className="col-span-4 text-right">Date</div>
+              </div>
               
-              return (
-                <div
-                  key={`${entry.user_email}-${entry.created_at}`}
-                  className={`grid grid-cols-12 gap-4 px-6 py-4 rounded-xl transition-all duration-200 ${
-                    isCurrentUser
-                      ? "bg-gradient-to-r from-tracksuit-purple-100 via-tracksuit-purple-50 to-tracksuit-purple-100 border-2 border-tracksuit-purple-400/70 shadow-lg scale-[1.02]"
-                      : isTopThree
-                      ? "bg-gradient-to-r from-tracksuit-green-50/50 via-tracksuit-green-100/30 to-tracksuit-green-50/50 border border-tracksuit-green-300/50 hover:border-tracksuit-green-400/70 hover:shadow-md"
-                      : "bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm"
-                  }`}
-                >
-                  {/* Rank */}
-                  <div className={`col-span-1 flex items-center justify-center ${
-                    entry.rank === 1 ? "text-tracksuit-green-600" : 
-                    entry.rank === 2 ? "text-tracksuit-purple-500" : 
-                    entry.rank === 3 ? "text-tracksuit-purple-400" : 
-                    "text-tracksuit-purple-600"
-                  } font-bold text-lg font-chapeau`}>
-                    {entry.rank === 1 && "🥇"}
-                    {entry.rank === 2 && "🥈"}
-                    {entry.rank === 3 && "🥉"}
-                    {entry.rank > 3 && `#${entry.rank}`}
-                  </div>
+              {/* Leaderboard entries */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-tracksuit-purple-100/30 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-tracksuit-purple-400/50 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-tracksuit-purple-500/70">
+                {contestLeaderboard.map((entry, index) => {
+                  const isCurrentUser = userEmail && entry.user_email === userEmail
+                  const isTopThree = entry.rank <= 3
                   
-                  {/* Player Info with Profile Pic and Username */}
-                  <div className={`col-span-5 flex items-center gap-3 ${
-                    isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
-                  } font-quicksand`}>
-                    {/* Profile Picture */}
-                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 flex-shrink-0">
-                      {entry.avatar_url ? (
-                        <img
-                          src={entry.avatar_url}
-                          alt={entry.username || entry.user_email}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-tracksuit-purple-500 flex items-center justify-center text-white text-xs font-bold">
-                          {(entry.username || entry.user_email).charAt(0).toUpperCase()}
+                  return (
+                    <div
+                      key={`contest-${entry.user_email}-${entry.created_at}`}
+                      className={`grid grid-cols-12 gap-4 px-6 py-4 rounded-xl transition-all duration-200 ${
+                        isCurrentUser
+                          ? "bg-gradient-to-r from-tracksuit-purple-100 via-tracksuit-purple-50 to-tracksuit-purple-100 border-2 border-tracksuit-purple-400/70 shadow-lg scale-[1.02]"
+                          : isTopThree
+                          ? "bg-gradient-to-r from-tracksuit-green-50/50 via-tracksuit-green-100/30 to-tracksuit-green-50/50 border border-tracksuit-green-300/50 hover:border-tracksuit-green-400/70 hover:shadow-md"
+                          : "bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm"
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className={`col-span-1 flex items-center justify-center ${
+                        entry.rank === 1 ? "text-tracksuit-green-600" : 
+                        entry.rank === 2 ? "text-tracksuit-purple-500" : 
+                        entry.rank === 3 ? "text-tracksuit-purple-400" : 
+                        "text-tracksuit-purple-600"
+                      } font-bold text-lg font-chapeau`}>
+                        {entry.rank === 1 && "🥇"}
+                        {entry.rank === 2 && "🥈"}
+                        {entry.rank === 3 && "🥉"}
+                        {entry.rank > 3 && `#${entry.rank}`}
+                      </div>
+                      
+                      {/* Player Info with Profile Pic and Username */}
+                      <div className={`col-span-5 flex items-center gap-3 ${
+                        isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
+                      } font-quicksand`}>
+                        {/* Profile Picture */}
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 flex-shrink-0">
+                          {entry.avatar_url ? (
+                            <img
+                              src={entry.avatar_url}
+                              alt={entry.username || entry.user_email}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-tracksuit-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                              {(entry.username || entry.user_email).charAt(0).toUpperCase()}
+                            </div>
+                          )}
                         </div>
-                      )}
+                        {/* Username and Display Name/Email */}
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          {entry.username && (
+                            <span className="font-semibold">@{entry.username}</span>
+                          )}
+                          <span className={`truncate text-sm ${entry.username ? 'text-tracksuit-purple-600' : ''}`}>
+                            {entry.display_name || entry.user_email}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Score */}
+                      <div className="col-span-2 text-right flex items-center justify-end">
+                        <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
+                          {entry.score.toLocaleString()}
+                        </span>
+                        <span className="ml-1 text-xs text-tracksuit-purple-500 font-quicksand">dawgs</span>
+                      </div>
+                      
+                      {/* Date */}
+                      <div className="col-span-4 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
+                        {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
+                      </div>
                     </div>
-                    {/* Username and Display Name/Email */}
-                    <div className="flex-1 min-w-0 flex items-center gap-2">
-                      {entry.username && (
-                        <span className="font-semibold">@{entry.username}</span>
-                      )}
-                      <span className={`truncate text-sm ${entry.username ? 'text-tracksuit-purple-600' : ''}`}>
-                        {entry.display_name || entry.user_email}
-                      </span>
-                      {isCurrentUser && (
-                        <span className="px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
-                      )}
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="all-time">
+          {loading ? (
+            <div className="text-center py-12 text-tracksuit-purple-600">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
+              <p className="font-quicksand">Loading leaderboard...</p>
+            </div>
+          ) : allTimeLeaderboard.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🏆</div>
+              <p className="text-xl text-tracksuit-purple-600 mb-2 font-chapeau">No scores yet</p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand">Be the first to claim the top spot!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
+                <div className="col-span-1 text-center">Rank</div>
+                <div className="col-span-5">Player</div>
+                <div className="col-span-2 text-right">Score</div>
+                <div className="col-span-4 text-right">Date</div>
+              </div>
+              
+              {/* Leaderboard entries */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-tracksuit-purple-100/30 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-tracksuit-purple-400/50 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-tracksuit-purple-500/70">
+                {allTimeLeaderboard.map((entry, index) => {
+                  const isCurrentUser = userEmail && entry.user_email === userEmail
+                  const isTopThree = entry.rank <= 3
+                  
+                  return (
+                    <div
+                      key={`alltime-${entry.user_email}-${entry.created_at}`}
+                      className={`grid grid-cols-12 gap-4 px-6 py-4 rounded-xl transition-all duration-200 ${
+                        isCurrentUser
+                          ? "bg-gradient-to-r from-tracksuit-purple-100 via-tracksuit-purple-50 to-tracksuit-purple-100 border-2 border-tracksuit-purple-400/70 shadow-lg scale-[1.02]"
+                          : isTopThree
+                          ? "bg-gradient-to-r from-tracksuit-green-50/50 via-tracksuit-green-100/30 to-tracksuit-green-50/50 border border-tracksuit-green-300/50 hover:border-tracksuit-green-400/70 hover:shadow-md"
+                          : "bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm"
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className={`col-span-1 flex items-center justify-center ${
+                        entry.rank === 1 ? "text-tracksuit-green-600" : 
+                        entry.rank === 2 ? "text-tracksuit-purple-500" : 
+                        entry.rank === 3 ? "text-tracksuit-purple-400" : 
+                        "text-tracksuit-purple-600"
+                      } font-bold text-lg font-chapeau`}>
+                        {entry.rank === 1 && "🥇"}
+                        {entry.rank === 2 && "🥈"}
+                        {entry.rank === 3 && "🥉"}
+                        {entry.rank > 3 && `#${entry.rank}`}
+                      </div>
+                      
+                      {/* Player Info with Profile Pic and Username */}
+                      <div className={`col-span-5 flex items-center gap-3 ${
+                        isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
+                      } font-quicksand`}>
+                        {/* Profile Picture */}
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 flex-shrink-0">
+                          {entry.avatar_url ? (
+                            <img
+                              src={entry.avatar_url}
+                              alt={entry.username || entry.user_email}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-tracksuit-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                              {(entry.username || entry.user_email).charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        {/* Username and Display Name/Email */}
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          {entry.username && (
+                            <span className="font-semibold">@{entry.username}</span>
+                          )}
+                          <span className={`truncate text-sm ${entry.username ? 'text-tracksuit-purple-600' : ''}`}>
+                            {entry.display_name || entry.user_email}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Score */}
+                      <div className="col-span-2 text-right flex items-center justify-end">
+                        <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
+                          {entry.score.toLocaleString()}
+                        </span>
+                        <span className="ml-1 text-xs text-tracksuit-purple-500 font-quicksand">dawgs</span>
+                      </div>
+                      
+                      {/* Date */}
+                      <div className="col-span-4 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
+                        {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Score */}
-                  <div className="col-span-2 text-right flex items-center justify-end">
-                    <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
-                      {entry.score.toLocaleString()}
-                    </span>
-                    <span className="ml-1 text-xs text-tracksuit-purple-500 font-quicksand">dawgs</span>
-                  </div>
-                  
-                  {/* Date */}
-                  <div className="col-span-4 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
-                    {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

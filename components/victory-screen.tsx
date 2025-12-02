@@ -35,7 +35,9 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   const audioManager = useAudioManager()
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [username, setUsername] = useState<string | null>(null)
-  const [userRank, setUserRank] = useState<number | null>(null)
+  const [userRank, setUserRank] = useState<number | null>(null) // All-time rank (for backward compatibility)
+  const [contestRank, setContestRank] = useState<number | null>(null)
+  const [allTimeRank, setAllTimeRank] = useState<number | null>(null)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [scoreSaved, setScoreSaved] = useState(false)
   const [murcaSongs, setMurcaSongs] = useState<string[]>([])
@@ -112,7 +114,18 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             
             if (response.ok) {
               const data = await response.json()
-              setUserRank(data.rank)
+              // Set ranks - support both old format (just 'rank') and new format (contestRank, allTimeRank)
+              if (data.contestRank !== undefined && data.allTimeRank !== undefined) {
+                setContestRank(data.contestRank)
+                setAllTimeRank(data.allTimeRank)
+                setUserRank(data.allTimeRank) // Keep for backward compatibility
+              } else {
+                // Fallback to old format
+                setUserRank(data.rank)
+                setAllTimeRank(data.rank)
+                // For contest rank, we'd need to calculate it, but for now just set to null
+                setContestRank(null)
+              }
               setScoreSaved(true)
             } else {
               const errorData = await response.json().catch(() => ({}))
@@ -540,13 +553,24 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
           </div>
 
           {/* Two-column layout above buttons */}
-          <div className={`grid gap-4 w-full ${userEmail && userRank ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {/* Left column - Rank */}
-            {userEmail && userRank && (
+          <div className={`grid gap-4 w-full ${userEmail && (contestRank !== null || allTimeRank !== null) ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {/* Left column - Ranks */}
+            {userEmail && (contestRank !== null || allTimeRank !== null) && (
               <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
-                <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Your Rank</p>
-                <p className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{userRank}</p>
-                <p className="text-sm text-tracksuit-purple-600 mt-2 font-quicksand truncate">
+                <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-3 font-semibold font-chapeau">Your Rankings</p>
+                {contestRank !== null && (
+                  <div className="mb-3">
+                    <p className="text-xs uppercase tracking-wider text-tracksuit-purple-600 mb-1 font-quicksand">Contest Rank</p>
+                    <p className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{contestRank}</p>
+                  </div>
+                )}
+                {allTimeRank !== null && (
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-tracksuit-purple-600 mb-1 font-quicksand">All-Time Rank</p>
+                    <p className="text-3xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">#{allTimeRank}</p>
+                  </div>
+                )}
+                <p className="text-sm text-tracksuit-purple-600 mt-3 font-quicksand truncate">
                   {username ? `@${username}` : userEmail}
                 </p>
               </div>
