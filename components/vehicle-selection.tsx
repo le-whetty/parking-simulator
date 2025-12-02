@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { vehicles, Vehicle, VehicleType } from "@/lib/vehicles"
 import Menu from "./menu"
@@ -31,6 +31,22 @@ export default function VehicleSelection({
   const [showOverlay, setShowOverlay] = useState<{ vehicleId: VehicleType; image: string } | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const imagesPreloadedRef = useRef(false)
+
+  // Preload all overlay images when component mounts
+  useEffect(() => {
+    if (imagesPreloadedRef.current) return
+    
+    const preloadImages = () => {
+      Object.values(vehicleMediaMap).forEach((media) => {
+        const img = new Image()
+        img.src = media.image
+      })
+      imagesPreloadedRef.current = true
+    }
+    
+    preloadImages()
+  }, [])
 
   const handleSelect = (vehicle: Vehicle) => {
     setSelectedVehicle(vehicle.id)
