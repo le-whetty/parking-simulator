@@ -126,8 +126,7 @@ export default function Home() {
   const comboMilestones = [
     { hits: 3, points: 150, image: '/images/150.png' },
     { hits: 5, points: 300, image: '/images/300.png' },
-    { hits: 7, points: 500, image: '/images/500.png' },
-    { hits: 10, points: 1000, image: '/images/1000.png' },
+    { hits: 10, points: 500, image: '/images/500.png' },
   ]
 
   // Game area boundaries - used to keep drivers on screen
