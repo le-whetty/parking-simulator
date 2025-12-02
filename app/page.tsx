@@ -977,18 +977,36 @@ ${file}
         const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
         const timeBonus = timeLeftSeconds // 1 point per second
 
-        // Calculate on-screen bonus (4.5 points per second on-screen)
-        const onScreenTimeSeconds = Math.floor(onScreenTimeRef.current)
-        const onScreenBonus = Math.floor(onScreenTimeSeconds * 4.5) // 4.5 points per second
+        // Calculate on-screen percentage and multiplier
+        const totalGameTimeSeconds = elapsedTime / 1000
+        const onScreenTimeSeconds = onScreenTimeRef.current
+        const onScreenPercentage = totalGameTimeSeconds > 0 
+          ? (onScreenTimeSeconds / totalGameTimeSeconds) * 100 
+          : 0
+        
+        // Apply multiplier based on on-screen percentage
+        // 100% = 1.15x (15% bonus), 90% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
+        let onScreenMultiplier = 1.0
+        if (onScreenPercentage >= 100) {
+          onScreenMultiplier = 1.15
+        } else if (onScreenPercentage >= 90) {
+          onScreenMultiplier = 1.10
+        } else if (onScreenPercentage >= 80) {
+          onScreenMultiplier = 1.05
+        }
 
-        // Add time bonus and on-screen bonus to score
+        // Calculate final score: (base score + time bonus) * multiplier
         setScore((prev) => {
-          const newScore = prev + timeBonus + onScreenBonus
+          const scoreBeforeMultiplier = prev + timeBonus
+          const finalScore = Math.floor(scoreBeforeMultiplier * onScreenMultiplier)
+          const bonusPoints = finalScore - scoreBeforeMultiplier
           console.log(`🏆 Victory bonuses:`)
+          console.log(`  - Base score: ${prev} points`)
           console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
-          console.log(`  - On-screen bonus: ${onScreenBonus} points for ${onScreenTimeSeconds}s on-screen`)
-          console.log(`  - Total: ${newScore} dawgs`)
-          return newScore
+          console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${onScreenTimeSeconds.toFixed(1)}s / ${totalGameTimeSeconds.toFixed(1)}s)`)
+          console.log(`  - Multiplier: ${onScreenMultiplier}x (+${bonusPoints} points)`)
+          console.log(`  - Final score: ${finalScore} dawgs`)
+          return finalScore
         })
 
         // Stop countdown sound
@@ -1525,17 +1543,36 @@ ${file}
       // Add bonus points for time left (1 point per second)
       const timeBonus = timeLeftSeconds // 1 point per second
       
-      // Calculate on-screen bonus (4.5 points per second on-screen)
-      const onScreenTimeSeconds = Math.floor(onScreenTimeRef.current)
-      const onScreenBonus = Math.floor(onScreenTimeSeconds * 4.5) // 4.5 points per second
+      // Calculate on-screen percentage and multiplier
+      const totalGameTimeSeconds = elapsedTime / 1000
+      const onScreenTimeSeconds = onScreenTimeRef.current
+      const onScreenPercentage = totalGameTimeSeconds > 0 
+        ? (onScreenTimeSeconds / totalGameTimeSeconds) * 100 
+        : 0
       
+      // Apply multiplier based on on-screen percentage
+      // 100% = 1.15x (15% bonus), 90% = 1.10x (10% bonus), 80% = 1.05x (5% bonus), <80% = 1.0x
+      let onScreenMultiplier = 1.0
+      if (onScreenPercentage >= 100) {
+        onScreenMultiplier = 1.15
+      } else if (onScreenPercentage >= 90) {
+        onScreenMultiplier = 1.10
+      } else if (onScreenPercentage >= 80) {
+        onScreenMultiplier = 1.05
+      }
+      
+      // Calculate final score: (base score + time bonus) * multiplier
       setScore((prev) => {
-        const newScore = prev + timeBonus + onScreenBonus
+        const scoreBeforeMultiplier = prev + timeBonus
+        const finalScore = Math.floor(scoreBeforeMultiplier * onScreenMultiplier)
+        const bonusPoints = finalScore - scoreBeforeMultiplier
         console.log(`🏆 Victory bonuses:`)
+        console.log(`  - Base score: ${prev} points`)
         console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
-        console.log(`  - On-screen bonus: ${onScreenBonus} points for ${onScreenTimeSeconds}s on-screen`)
-        console.log(`  - Total: ${newScore} dawgs`)
-        return newScore
+        console.log(`  - On-screen: ${onScreenPercentage.toFixed(1)}% (${onScreenTimeSeconds.toFixed(1)}s / ${totalGameTimeSeconds.toFixed(1)}s)`)
+        console.log(`  - Multiplier: ${onScreenMultiplier}x (+${bonusPoints} points)`)
+        console.log(`  - Final score: ${finalScore} dawgs`)
+        return finalScore
       })
 
       // Stop theme music
@@ -2030,11 +2067,23 @@ ${file}
             </div>
             <p className="text-sm">Score: {score}</p>
             {isInParkingSpot && <p className="text-green-500 font-bold">IN PARKING SPOT!</p>}
-            {gameState === "playing" && (
-              <p className="text-xs text-purple-400">
-                On-screen: {onScreenTimeDisplay}s (+{Math.floor(onScreenTimeDisplay * 4.5)} bonus)
-              </p>
-            )}
+            {gameState === "playing" && (() => {
+              const elapsedTime = Date.now() - gameStartTimeRef.current
+              const totalGameTimeSeconds = elapsedTime / 1000
+              const onScreenPercentage = totalGameTimeSeconds > 0 
+                ? (onScreenTimeRef.current / totalGameTimeSeconds) * 100 
+                : 0
+              let multiplier = 1.0
+              if (onScreenPercentage >= 100) multiplier = 1.15
+              else if (onScreenPercentage >= 90) multiplier = 1.10
+              else if (onScreenPercentage >= 80) multiplier = 1.05
+              
+              return (
+                <p className="text-xs text-purple-400">
+                  On-screen: {onScreenPercentage.toFixed(0)}% ({multiplier}x multiplier)
+                </p>
+              )
+            })()}
             {parkingSpotTimer > 0 && driversRef.current.every((d) => d.defeated || d.health <= 0) && (
               <p className="text-yellow-400 font-bold">
                 Parking... {Math.ceil(3 - parkingSpotTimer)}s
