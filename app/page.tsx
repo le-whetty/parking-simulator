@@ -2160,36 +2160,6 @@ ${file}
             </div>
             <p className="text-sm">Score: {score}</p>
             {isInParkingSpot && <p className="text-green-500 font-bold">IN PARKING SPOT!</p>}
-            {gameState === "playing" && (() => {
-              const elapsedTime = Date.now() - gameStartTimeRef.current
-              const totalGameTimeSeconds = elapsedTime / 1000
-              const offScreenPercentage = totalGameTimeSeconds > 0 
-                ? (offScreenTimeRef.current / totalGameTimeSeconds) * 100 
-                : 0
-              const onScreenPercentage = Math.max(0, 100 - offScreenPercentage)
-              let multiplier = 1.0
-              if (onScreenPercentage >= 100) multiplier = 1.25
-              else if (onScreenPercentage >= 95) multiplier = 1.20
-              else if (onScreenPercentage >= 90) multiplier = 1.15
-              else if (onScreenPercentage >= 85) multiplier = 1.10
-              else if (onScreenPercentage >= 80) multiplier = 1.05
-              
-              // Visual indicator if off-screen
-              const lukeX = lukePositionRef.current.x
-              const lukeY = lukePositionRef.current.y
-              const isOnScreenNow =
-                lukeX >= gameBounds.minX &&
-                lukeX <= gameBounds.maxX &&
-                lukeY >= gameBounds.minY &&
-                lukeY <= gameBounds.maxY
-              
-              return (
-                <p className={`text-xs ${isOnScreenNow ? 'text-purple-400' : 'text-red-400'}`}>
-                  On-screen: {onScreenPercentage.toFixed(0)}% ({multiplier}x multiplier)
-                  {!isOnScreenNow && ' ⚠️ OFF-SCREEN'}
-                </p>
-              )
-            })()}
             {parkingSpotTimer > 0 && driversRef.current.every((d) => d.defeated || d.health <= 0) && (
               <p className="text-yellow-400 font-bold">
                 Parking... {Math.ceil(3 - parkingSpotTimer)}s
