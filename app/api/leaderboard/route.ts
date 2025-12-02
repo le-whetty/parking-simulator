@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       // Use a subquery to get MAX(score) grouped by user_email, then order by score DESC
       const { data, error } = await supabase
         .from('scores')
-        .select('user_email, score, created_at, username')
+        .select('user_email, score, created_at, username, vehicle')
         .order('score', { ascending: false })
         .limit(1000) // Get more records to ensure we can find unique users
       
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         scoresError = error
       } else {
         // Group by user_email and take the max score for each user
-        const userBestScores: Record<string, { user_email: string; score: number; created_at: string; username: string | null }> = {}
+        const userBestScores: Record<string, { user_email: string; score: number; created_at: string; username: string | null; vehicle: string | null }> = {}
         
         data?.forEach((entry) => {
           const email = entry.user_email
@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
               score: entry.score,
               created_at: entry.created_at,
               username: entry.username || null,
+              vehicle: entry.vehicle || null,
             }
           }
         })
@@ -68,7 +69,7 @@ export async function GET(request: NextRequest) {
       // All-time leaderboard: Current behavior - top 10 individual runs
       const { data, error } = await supabase
         .from('scores')
-        .select('user_email, score, created_at, username')
+        .select('user_email, score, created_at, username, vehicle')
         .order('score', { ascending: false })
         .limit(10)
       
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     console.log("Leaderboard query result:", { type, dataCount: scoresData?.length || 0, scoresData })
 
-    // Map to leaderboard entries with rank, avatar_url, and display_name
+    // Map to leaderboard entries with rank, avatar_url, display_name, and vehicle
     const leaderboard = (scoresData || []).map((entry, index) => ({
       rank: index + 1,
       user_email: entry.user_email,
@@ -112,6 +113,7 @@ export async function GET(request: NextRequest) {
       display_name: displayNameMap[entry.user_email] || null,
       score: entry.score,
       created_at: entry.created_at,
+      vehicle: entry.vehicle || null,
     }))
 
     return NextResponse.json(leaderboard, {

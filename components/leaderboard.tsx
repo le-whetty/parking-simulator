@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { LeaderboardEntry } from "@/lib/scores"
 import { supabase } from "@/lib/supabase"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { vehicles, VehicleType } from "@/lib/vehicles"
 
 interface LeaderboardProps {
   userEmail?: string
@@ -90,6 +91,12 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
     })
   }
 
+  const getVehicleImage = (vehicleId: string | null): string | null => {
+    if (!vehicleId) return null
+    const vehicle = vehicles.find(v => v.id === vehicleId)
+    return vehicle?.image || null
+  }
+
   const currentLeaderboard = activeTab === "contest" ? contestLeaderboard : allTimeLeaderboard
 
   return (
@@ -164,9 +171,10 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
           {/* Header */}
           <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
             <div className="col-span-1 text-center">Rank</div>
-            <div className="col-span-5">Player</div>
+            <div className="col-span-4">Player</div>
+            <div className="col-span-2 text-center">Vehicle</div>
             <div className="col-span-2 text-right">Score</div>
-            <div className="col-span-4 text-right">Date</div>
+            <div className="col-span-3 text-right">Date</div>
           </div>
           
           {/* Leaderboard entries */}
@@ -200,7 +208,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                       </div>
                       
                       {/* Player Info with Profile Pic and Username */}
-                      <div className={`col-span-5 flex items-center gap-3 ${
+                      <div className={`col-span-4 flex items-center gap-3 ${
                         isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
                       } font-quicksand`}>
                         {/* Profile Picture */}
@@ -231,6 +239,19 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                         </div>
                       </div>
                       
+                      {/* Vehicle Image */}
+                      <div className="col-span-2 flex items-center justify-center">
+                        {entry.vehicle && getVehicleImage(entry.vehicle) ? (
+                          <img
+                            src={getVehicleImage(entry.vehicle)!}
+                            alt={entry.vehicle}
+                            className="h-8 w-auto object-contain"
+                          />
+                        ) : (
+                          <span className="text-xs text-tracksuit-purple-400 font-quicksand">—</span>
+                        )}
+                      </div>
+                      
                       {/* Score */}
                       <div className="col-span-2 text-right flex items-center justify-end">
                         <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
@@ -240,7 +261,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                       </div>
                       
                       {/* Date */}
-                      <div className="col-span-4 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
+                      <div className="col-span-3 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
                         {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
                       </div>
                     </div>
@@ -268,9 +289,10 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
               {/* Header */}
               <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
                 <div className="col-span-1 text-center">Rank</div>
-                <div className="col-span-5">Player</div>
+                <div className="col-span-4">Player</div>
+                <div className="col-span-2 text-center">Vehicle</div>
                 <div className="col-span-2 text-right">Score</div>
-                <div className="col-span-4 text-right">Date</div>
+                <div className="col-span-3 text-right">Date</div>
               </div>
               
               {/* Leaderboard entries */}
@@ -304,7 +326,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                   </div>
                   
                   {/* Player Info with Profile Pic and Username */}
-                  <div className={`col-span-5 flex items-center gap-3 ${
+                  <div className={`col-span-4 flex items-center gap-3 ${
                     isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
                   } font-quicksand`}>
                     {/* Profile Picture */}
@@ -335,6 +357,19 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                     </div>
                   </div>
                   
+                  {/* Vehicle Image */}
+                  <div className="col-span-2 flex items-center justify-center">
+                    {entry.vehicle && getVehicleImage(entry.vehicle) ? (
+                      <img
+                        src={getVehicleImage(entry.vehicle)!}
+                        alt={entry.vehicle}
+                        className="h-8 w-auto object-contain"
+                      />
+                    ) : (
+                      <span className="text-xs text-tracksuit-purple-400 font-quicksand">—</span>
+                    )}
+                  </div>
+                  
                   {/* Score */}
                   <div className="col-span-2 text-right flex items-center justify-end">
                     <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
@@ -344,7 +379,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                   </div>
                   
                   {/* Date */}
-                  <div className="col-span-4 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
+                  <div className="col-span-3 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
                     {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
                   </div>
                 </div>

@@ -15,6 +15,7 @@ export interface LeaderboardEntry {
   display_name?: string | null
   score: number
   created_at: string
+  vehicle?: string | null
 }
 
 /**
