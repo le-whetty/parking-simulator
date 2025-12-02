@@ -98,6 +98,9 @@ export default function Home() {
   const parkingTimerRef = useRef<number>(0)
   const isParkedRef = useRef<boolean>(false)
   const parkingMessageShownRef = useRef<boolean>(false)
+  // Track on-screen time for bonus points
+  const onScreenTimeRef = useRef<number>(0) // Time spent on-screen in seconds
+  const lastOnScreenCheckRef = useRef<number>(0) // Last time we checked on-screen status
 
   // Add this near the other refs at the top of the component
   const themeAudioRef = useRef<HTMLAudioElement | null>(null)
@@ -484,6 +487,10 @@ ${file}
     // Reset parking spot timer
     parkingSpotTimerRef.current = 0
     setParkingSpotTimer(0)
+    
+    // Reset on-screen tracking
+    onScreenTimeRef.current = 0
+    lastOnScreenCheckRef.current = Date.now()
 
     // Clear any existing game loop
     if (gameLoopRef.current) {
@@ -850,6 +857,20 @@ ${file}
     const lukeX = lukePositionRef.current.x
     const lukeY = lukePositionRef.current.y
 
+    // Check if Luke is on-screen (within visible game bounds)
+    const isOnScreen =
+      lukeX >= gameBounds.minX &&
+      lukeX <= gameBounds.maxX &&
+      lukeY >= gameBounds.minY &&
+      lukeY <= gameBounds.maxY
+
+    // Track on-screen time (frame-rate independent)
+    if (isOnScreen) {
+      const timeSinceLastCheck = deltaTime / 1000 // Convert to seconds
+      onScreenTimeRef.current += timeSinceLastCheck
+    }
+    lastOnScreenCheckRef.current = now
+
     // Check if Luke is in the parking spot
     const inSpot =
       lukeX >= PARKING_SPOT_AREA.left &&
@@ -950,10 +971,17 @@ ${file}
         const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
         const timeBonus = timeLeftSeconds // 1 point per second
 
-        // Add time bonus to score
+        // Calculate on-screen bonus (1.5 points per second on-screen)
+        const onScreenTimeSeconds = Math.floor(onScreenTimeRef.current)
+        const onScreenBonus = Math.floor(onScreenTimeSeconds * 1.5) // 1.5 points per second
+
+        // Add time bonus and on-screen bonus to score
         setScore((prev) => {
-          const newScore = prev + timeBonus
-          console.log(`🏆 Victory bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining = Total: ${newScore} dawgs`)
+          const newScore = prev + timeBonus + onScreenBonus
+          console.log(`🏆 Victory bonuses:`)
+          console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
+          console.log(`  - On-screen bonus: ${onScreenBonus} points for ${onScreenTimeSeconds}s on-screen`)
+          console.log(`  - Total: ${newScore} dawgs`)
           return newScore
         })
 
@@ -1491,9 +1519,16 @@ ${file}
       // Add bonus points for time left (1 point per second)
       const timeBonus = timeLeftSeconds // 1 point per second
       
+      // Calculate on-screen bonus (1.5 points per second on-screen)
+      const onScreenTimeSeconds = Math.floor(onScreenTimeRef.current)
+      const onScreenBonus = Math.floor(onScreenTimeSeconds * 1.5) // 1.5 points per second
+      
       setScore((prev) => {
-        const newScore = prev + timeBonus
-        console.log(`🏆 Victory bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining = Total: ${newScore} dawgs`)
+        const newScore = prev + timeBonus + onScreenBonus
+        console.log(`🏆 Victory bonuses:`)
+        console.log(`  - Time bonus: ${timeBonus} points for ${timeLeftSeconds}s remaining`)
+        console.log(`  - On-screen bonus: ${onScreenBonus} points for ${onScreenTimeSeconds}s on-screen`)
+        console.log(`  - Total: ${newScore} dawgs`)
         return newScore
       })
 
@@ -1989,6 +2024,11 @@ ${file}
             </div>
             <p className="text-sm">Score: {score}</p>
             {isInParkingSpot && <p className="text-green-500 font-bold">IN PARKING SPOT!</p>}
+            {gameState === "playing" && (
+              <p className="text-xs text-purple-400">
+                On-screen: {Math.floor(onScreenTimeRef.current)}s (+{Math.floor(onScreenTimeRef.current * 1.5)} bonus)
+              </p>
+            )}
             {parkingSpotTimer > 0 && driversRef.current.every((d) => d.defeated || d.health <= 0) && (
               <p className="text-yellow-400 font-bold">
                 Parking... {Math.ceil(3 - parkingSpotTimer)}s
