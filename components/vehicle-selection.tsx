@@ -47,22 +47,35 @@ export default function VehicleSelection({
     // Play the sound
     const audio = new Audio(media.sound)
     audio.volume = 0.7
+    
+    // Show the animated overlay
+    setShowOverlay({ vehicleId: vehicle.id, image: media.image })
+    
+    // Hide the overlay when the audio finishes playing
+    audio.addEventListener('ended', () => {
+      setShowOverlay(null)
+    })
+    
+    // Also hide overlay if audio fails to load/play (fallback)
+    audio.addEventListener('error', () => {
+      // Hide overlay after a short delay if audio fails
+      setTimeout(() => {
+        setShowOverlay(null)
+      }, 1000)
+    })
+    
     audio.play().catch((error) => {
       // Silently handle audio errors (file might not be loaded yet or browser autoplay restrictions)
       // Only log if it's not a common autoplay/loading issue
       if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
         console.warn('Could not play vehicle selection sound:', error)
       }
+      // Hide overlay if audio fails to play
+      setTimeout(() => {
+        setShowOverlay(null)
+      }, 1000)
     })
     audioRef.current = audio
-    
-    // Show the animated overlay
-    setShowOverlay({ vehicleId: vehicle.id, image: media.image })
-    
-    // Hide the overlay after 1 second
-    setTimeout(() => {
-      setShowOverlay(null)
-    }, 1000)
   }
 
   const handleStart = () => {
