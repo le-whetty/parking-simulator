@@ -20,29 +20,10 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
     if (authError || !user || user.email !== userEmail) {
+      console.error('Auth error:', { authError, user: user?.email, userEmail })
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", details: authError?.message },
         { status: 401 }
-      )
-    }
-
-    // Create game session
-    // First, verify we can access the user
-    const { data: { user: authUser }, error: userError } = await supabase.auth.getUser()
-    if (userError || !authUser) {
-      console.error('Error getting user for session creation:', userError)
-      return NextResponse.json(
-        { error: "Failed to authenticate user", details: userError?.message },
-        { status: 401 }
-      )
-    }
-    
-    // Verify email matches
-    if (authUser.email !== userEmail) {
-      console.error('Email mismatch:', { authEmail: authUser.email, providedEmail: userEmail })
-      return NextResponse.json(
-        { error: "Email mismatch" },
-        { status: 403 }
       )
     }
     
@@ -67,7 +48,6 @@ export async function POST(request: NextRequest) {
       console.error('Insert error details:', JSON.stringify(insertError, null, 2))
       console.error('User ID:', user.id)
       console.error('User email:', user.email)
-      console.error('RLS might be blocking - checking policy...')
       
       // Return detailed error for debugging
       return NextResponse.json(
@@ -75,7 +55,7 @@ export async function POST(request: NextRequest) {
           error: "Failed to create game session", 
           details: insertError.message, 
           code: insertError.code,
-          hint: insertError.code === '42501' ? 'RLS policy might be blocking this insert. Check if auth.uid() is set correctly.' : undefined
+          hint: insertError.code === '42501' ? 'RLS policy might be blocking this insert. Check if auth.uid() matches user_id.' : undefined
         },
         { status: 500 }
       )
