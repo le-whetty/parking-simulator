@@ -66,6 +66,7 @@ export default function Home() {
   const [hasWon, setHasWon] = useState(false) // Victory state
   const [isSimulatorMode, setIsSimulatorMode] = useState(false) // Simulator mode flag
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null) // Selected vehicle
+  const selectedVehicleRef = useRef<Vehicle | null>(null) // Ref for selected vehicle (for game loop closures)
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -466,6 +467,7 @@ ${file}
     setIsSimulatorMode(false) // Reset simulator mode
     // Don't reset selectedVehicle here - it should persist through the game session
     // Only reset when explicitly restarting (e.g., from victory/defeat screens)
+    // Note: selectedVehicleRef.current persists automatically
     victoryRef.current = false
 
     // Set the game start time
@@ -591,14 +593,15 @@ ${file}
 
     // Apply pace multiplier from selected vehicle
     const baseSpeed = 20
-    const paceMultiplier = selectedVehicle ? getPaceMultiplier(selectedVehicle.pace) : 1.0
+    const vehicle = selectedVehicleRef.current
+    const paceMultiplier = vehicle ? getPaceMultiplier(vehicle.pace) : 1.0
     const speed = baseSpeed * paceMultiplier
     
     // Vehicle Stats Tracking: PACE (log once per movement to avoid spam)
     if (!lukePositionRef.current.lastPaceLog || Date.now() - lukePositionRef.current.lastPaceLog > 1000) {
       console.log('🚗 VEHICLE STATS - PACE:', {
-        vehicle: selectedVehicle?.name || 'None',
-        pace: selectedVehicle?.pace || 'N/A',
+        vehicle: vehicle?.name || 'None',
+        pace: vehicle?.pace || 'N/A',
         baseSpeed: baseSpeed,
         paceMultiplier: paceMultiplier.toFixed(2),
         actualSpeed: speed.toFixed(2),
@@ -1295,13 +1298,14 @@ ${file}
               if (d.id === driver.id) {
                 // Apply impact multiplier from selected vehicle
                 const baseDamage = 20
-                const impactMultiplier = selectedVehicle ? getImpactMultiplier(selectedVehicle.impact) : 1.0
+                const vehicle = selectedVehicleRef.current
+                const impactMultiplier = vehicle ? getImpactMultiplier(vehicle.impact) : 1.0
                 const damage = Math.floor(baseDamage * impactMultiplier)
                 
                 // Vehicle Stats Tracking: IMPACT
                 console.log('🚗 VEHICLE STATS - IMPACT:', {
-                  vehicle: selectedVehicle?.name || 'None',
-                  impact: selectedVehicle?.impact || 'N/A',
+                  vehicle: vehicle?.name || 'None',
+                  impact: vehicle?.impact || 'N/A',
                   target: driver.name,
                   baseDamage: baseDamage,
                   impactMultiplier: impactMultiplier.toFixed(2),
@@ -1453,7 +1457,8 @@ ${file}
           setLukeHealth((prev) => {
             // Apply armor multiplier from selected vehicle
             const baseDamage = 4
-            const armorMultiplier = selectedVehicle ? getArmorMultiplier(selectedVehicle.armor) : 1.0
+            const vehicle = selectedVehicleRef.current
+            const armorMultiplier = vehicle ? getArmorMultiplier(vehicle.armor) : 1.0
             const damage = Math.ceil(baseDamage * armorMultiplier)
             const newHealth = prev - damage
             // Calculate actual projectile speed for logging (0.18 px/ms)
@@ -1461,8 +1466,8 @@ ${file}
             const actualSpeed = projectileSpeedPxPerMs * deltaTime
             // Vehicle Stats Tracking: ARMOR
             console.log('🚗 VEHICLE STATS - ARMOR:', {
-              vehicle: selectedVehicle?.name || 'None',
-              armor: selectedVehicle?.armor || 'N/A',
+              vehicle: vehicle?.name || 'None',
+              armor: vehicle?.armor || 'N/A',
               baseDamage: baseDamage,
               armorMultiplier: armorMultiplier.toFixed(2),
               actualDamage: damage,
@@ -2019,6 +2024,7 @@ ${file}
         <VehicleSelection
           onVehicleSelected={async (vehicle) => {
             setSelectedVehicle(vehicle)
+            selectedVehicleRef.current = vehicle // Also update ref for game loop access
             // Track vehicle selection
             try {
               const { data: { session } } = await supabase.auth.getSession()
