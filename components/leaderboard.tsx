@@ -118,7 +118,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
           <div className="text-center">
             <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Your Score</p>
             <p className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 mb-2">
-              {userScore.toLocaleString()} 🌭
+              {userScore.toLocaleString()} dawgs 🌭
             </p>
             <div className="flex items-center justify-center gap-3 text-sm text-tracksuit-purple-700 font-quicksand flex-wrap">
               {contestRank !== null && (
@@ -257,7 +257,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                         <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
                           {entry.score.toLocaleString()}
                         </span>
-                        <span className="ml-1 text-xs text-tracksuit-purple-500 font-quicksand">🌭</span>
+                        <span className="ml-1 text-xs text-tracksuit-purple-500 font-quicksand">dawgs 🌭</span>
                       </div>
                       
                       {/* Date */}
