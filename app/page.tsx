@@ -2319,6 +2319,7 @@ ${file}
             // Start the game with selected vehicle
             startGame()
           }}
+          onBack={() => setGameState("start")}
           onLogout={handleLogout}
           onEditUsername={() => setShowUsernameModal(true)}
           onVictorySimulator={handleVictorySimulator}

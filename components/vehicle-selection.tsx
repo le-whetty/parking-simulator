@@ -7,6 +7,7 @@ import Menu from "./menu"
 
 interface VehicleSelectionProps {
   onVehicleSelected: (vehicle: Vehicle) => void
+  onBack?: () => void
   onLogout?: () => void
   onEditUsername?: () => void
   onVictorySimulator?: () => void
@@ -22,6 +23,7 @@ const vehicleMediaMap: Record<VehicleType, { sound: string; image: string }> = {
 
 export default function VehicleSelection({ 
   onVehicleSelected, 
+  onBack,
   onLogout, 
   onEditUsername, 
   onVictorySimulator,
@@ -136,6 +138,19 @@ export default function VehicleSelection({
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
       <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+
+      {/* Back Button */}
+      {onBack && (
+        <div className="w-full mb-4 flex justify-start">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="font-chapeau border-tracksuit-purple-300 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50"
+          >
+            ← Back
+          </Button>
+        </div>
+      )}
 
       {/* Username Greeting */}
       {username && (
