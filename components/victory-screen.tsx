@@ -538,7 +538,8 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="bg-white/90 backdrop-blur-sm px-8 py-8 rounded-lg transform rotate-[-5deg] border-2 border-tracksuit-purple-400/70 shadow-lg overflow-visible">
                 <div className="text-5xl font-bold font-chapeau drop-shadow-lg flex items-baseline gap-2" style={{ lineHeight: '1.2' }}>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">{score} dawgs 🌭</span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">{score} dawgs</span>
+                  <span>🌭</span>
                 </div>
               </div>
             </div>
