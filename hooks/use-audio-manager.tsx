@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "connorVoiceover"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -79,6 +79,8 @@ export function useAudioManager() {
         ["radio2", "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3"],
         ["radio3", "/music/radio/songs/elijah-lee-who-are-you.mp3"],
         ["radio4", "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3"],
+        // Boss battle voiceover (DLC)
+        ["connorVoiceover", "/music/connor-airbnb.mp3"],
       ]
 
       // Pre-load all sounds

@@ -592,20 +592,41 @@ ${file}
     setLukePosition({ x: 600, y: 400 })
     lukeFacingRef.current = "right"
 
-    // Reset drivers with random directions and positions within the visible area
-    const resetDrivers = drivers.map((driver) => ({
-      ...driver,
-      health: 100,
-      defeated: false,
-      position: {
-        x: gameBounds.minX + Math.random() * (gameBounds.maxX - gameBounds.minX),
-        y: gameBounds.minY + Math.random() * (gameBounds.maxY - gameBounds.minY),
-      },
-      direction: getRandomDirection(),
-      directionChangeTimer: Math.random() * 5 + 3,
-    }))
-    setDrivers(resetDrivers)
-    driversRef.current = resetDrivers // Initialize ref
+    // Initialize boss battle or normal mode
+    if (gameMode === 'boss-battle' && hasBossBattleDLC) {
+      // Boss Battle Mode: Initialize Connor
+      setConnorHealth(1000)
+      connorHealthRef.current = 1000
+      connorDefeatedRef.current = false
+      setConnorPosition({ x: 800, y: 300 })
+      connorPositionRef.current = { x: 800, y: 300 }
+      
+      // Clear regular drivers for boss battle
+      setDrivers([])
+      driversRef.current = []
+      
+      // Play Connor voiceover
+      try {
+        audioManager.play('connorVoiceover')
+      } catch (error) {
+        console.error('Error playing Connor voiceover:', error)
+      }
+    } else {
+      // Normal Mode: Reset drivers with random directions and positions
+      const resetDrivers = drivers.map((driver) => ({
+        ...driver,
+        health: 100,
+        defeated: false,
+        position: {
+          x: gameBounds.minX + Math.random() * (gameBounds.maxX - gameBounds.minX),
+          y: gameBounds.minY + Math.random() * (gameBounds.maxY - gameBounds.minY),
+        },
+        direction: getRandomDirection(),
+        directionChangeTimer: Math.random() * 5 + 3,
+      }))
+      setDrivers(resetDrivers)
+      driversRef.current = resetDrivers // Initialize ref
+    }
     
     // Clear any explosions
     setExplosions([])
@@ -912,6 +933,53 @@ ${file}
 
   // Find the enemyAttack function and update it to use the bottle and crutches images
 
+  // Connor boss attack - fires Tracksuit Values cards
+  const connorAttack = (deltaTimeMs: number) => {
+    if (connorDefeatedRef.current || hasWon || !gameReadyRef.current) return
+    
+    // Connor attacks faster: 1.2 attacks per second
+    const attackRatePerSecond = 1.2
+    const attackProbability = attackRatePerSecond * (deltaTimeMs / 1000)
+    if (Math.random() > attackProbability) return
+
+    // Create projectile element
+    const projectile = document.createElement("div")
+    projectile.className = "absolute z-20"
+
+    // Create image element for Tracksuit Values card (random card 1-6)
+    const projectileImg = document.createElement("img")
+    const cardNumber = Math.floor(Math.random() * 6) + 1
+    projectileImg.src = `/images/tracksuit-value-cards/tracksuit-value-card-${cardNumber}.png`
+    projectileImg.className = "w-16 h-auto"
+    projectileImg.alt = `Tracksuit Value Card ${cardNumber}`
+
+    // Append image to the projectile div
+    projectile.appendChild(projectileImg)
+
+    // Position projectile at Connor's Polestar (center of vehicle, 4x bigger)
+    const connorPos = connorPositionRef.current
+    projectile.style.left = `${connorPos.x + 100}px` // Polestar is 4x bigger, so center offset is larger
+    projectile.style.top = `${connorPos.y + 100}px`
+
+    // Calculate direction vector towards Luke
+    const lukePos = lukePositionRef.current
+    const dx = lukePos.x - connorPos.x
+    const dy = lukePos.y - connorPos.y
+    const distance = Math.sqrt(dx * dx + dy * dy)
+
+    // Normalize and store direction
+    const dirX = dx / distance
+    const dirY = dy / distance
+    projectile.dataset.dirX = dirX.toString()
+    projectile.dataset.dirY = dirY.toString()
+
+    // Add to game container
+    gameContainerRef.current?.appendChild(projectile)
+
+    // Add to enemy projectiles ref
+    enemyProjectilesRef.current.push(projectile)
+  }
+
   // Enemy attack - frame-rate independent
   const enemyAttack = (driver: Driver, deltaTimeMs: number) => {
     if (driver.defeated || hasWon || !gameReadyRef.current) return // Don't attack during countdown
@@ -1074,32 +1142,67 @@ ${file}
       }
     }
 
-    // Check if all drivers are defeated
-    // IMPORTANT: Use driversRef.current which is synced immediately when drivers are updated
-    // Check both defeated flag AND health <= 0 to catch any edge cases
-    const allDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => {
-      const isDefeated = driver.defeated || driver.health <= 0
-      return isDefeated
-    })
-    
-    // Debug: Log victory condition status every frame when in spot
-    if (inSpot && !victoryRef.current) {
-      if (parkingSpotTimerRef.current === 0) {
-        console.log("🔍 Checking victory conditions:")
-        console.log("  - inSpot:", inSpot, "| Luke position:", { x: lukeX, y: lukeY })
-        console.log("  - allDefeated:", allDefeated)
-        console.log("  - driversRef.current length:", driversRef.current.length)
-        // Debug logs removed
+    // Boss Battle Mode: Check if Connor is defeated
+    if (gameMode === 'boss-battle' && hasBossBattleDLC) {
+      // Connor attacks
+      connorAttack(deltaTime)
+      
+      // Victory condition: Connor defeated (no parking required)
+      if (connorHealthRef.current <= 0 && !connorDefeatedRef.current && !victoryRef.current) {
+        connorDefeatedRef.current = true
+        
+        // Calculate time bonus (1 point per second remaining)
+        const currentTime = Date.now()
+        const elapsedTime = currentTime - gameStartTimeRef.current
+        const timeLeftMs = Math.max(0, gameDurationRef.current - elapsedTime)
+        const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
+        const timeBonus = timeLeftSeconds
+        
+        // Calculate score (base score from hits, no parking bonus needed)
+        const baseScore = score
+        const finalScore = baseScore + timeBonus
+        
+        setScore(finalScore)
+        victoryRef.current = true
+        setHasWon(true)
+        
+        // Stop game sounds
+        audioManager.stop("theme")
+        audioManager.stopAll()
+        
+        // Play victory sounds
+        audioManager.play("fireworks")
+        
+        endGame(true)
+        return
       }
-    }
-    
-    // Debug: Log when victory conditions are first met
-    const currentAllDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => driver.defeated || driver.health <= 0)
-    
-    // Victory conditions check (no logging)
+    } else {
+      // Normal Mode: Check if all drivers are defeated
+      // IMPORTANT: Use driversRef.current which is synced immediately when drivers are updated
+      // Check both defeated flag AND health <= 0 to catch any edge cases
+      const allDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => {
+        const isDefeated = driver.defeated || driver.health <= 0
+        return isDefeated
+      })
+      
+      // Debug: Log victory condition status every frame when in spot
+      if (inSpot && !victoryRef.current) {
+        if (parkingSpotTimerRef.current === 0) {
+          console.log("🔍 Checking victory conditions:")
+          console.log("  - inSpot:", inSpot, "| Luke position:", { x: lukeX, y: lukeY })
+          console.log("  - allDefeated:", allDefeated)
+          console.log("  - driversRef.current length:", driversRef.current.length)
+          // Debug logs removed
+        }
+      }
+      
+      // Debug: Log when victory conditions are first met
+      const currentAllDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => driver.defeated || driver.health <= 0)
+      
+      // Victory conditions check (no logging)
 
-    // VICTORY CHECK - Luke must be in parking spot for 3 seconds AFTER all drivers are defeated
-    if (inSpot && currentAllDefeated && !victoryRef.current) {
+      // VICTORY CHECK - Luke must be in parking spot for 3 seconds AFTER all drivers are defeated
+      if (inSpot && currentAllDefeated && !victoryRef.current) {
       // Start countdown sound when timer begins
       if (parkingSpotTimerRef.current === 0) {
         console.log("🔊 Starting countdown sound and pausing theme music")
@@ -1434,6 +1537,84 @@ ${file}
         }
 
       // Check for collisions with drivers
+      // Boss Battle: Check collision with Connor
+      if (gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current) {
+        const connorElement = document.getElementById('connor-boss')
+        if (connorElement) {
+          const hotdogRect = hotdog.getBoundingClientRect()
+          const connorRect = connorElement.getBoundingClientRect()
+          
+          if (
+            hotdogRect.left < connorRect.right &&
+            hotdogRect.right > connorRect.left &&
+            hotdogRect.top < connorRect.bottom &&
+            hotdogRect.bottom > connorRect.top
+          ) {
+            // Hit Connor
+            const baseDamage = 20
+            const vehicle = selectedVehicleRef.current
+            let effectiveImpact = vehicle ? vehicle.impact : 5
+            if (hasBoostsDLC && boostType === 'attack' && effectiveImpact < 10) {
+              effectiveImpact = Math.min(10, effectiveImpact + 2)
+            }
+            const impactMultiplier = vehicle ? getImpactMultiplier(effectiveImpact) : 1.0
+            const damage = Math.floor(baseDamage * impactMultiplier)
+            
+            const newHealth = Math.max(0, connorHealthRef.current - damage)
+            connorHealthRef.current = newHealth
+            setConnorHealth(newHealth)
+            
+            // Remove hotdog
+            hotdog.remove()
+            hotdogsRef.current = hotdogsRef.current.filter((h) => h !== hotdog)
+            
+            // Update score
+            setScore((prev) => prev + 10)
+            
+            // Combo system (same as normal mode)
+            const lukeX = lukePositionRef.current.x
+            const lukeY = lukePositionRef.current.y
+            const isOnScreen = 
+              lukeX >= gameBounds.minX &&
+              lukeX <= gameBounds.maxX &&
+              lukeY >= gameBounds.minY &&
+              lukeY <= gameBounds.maxY
+            
+            if (isOnScreen) {
+              const now = Date.now()
+              const timeSinceLastHit = now - lastHitTimeRef.current
+              
+              if (timeSinceLastHit > 2000) {
+                comboCountRef.current = 0
+                reachedMilestonesRef.current = new Set()
+              }
+              
+              comboCountRef.current += 1
+              lastHitTimeRef.current = now
+              totalHitsRef.current += 1
+              maxComboRef.current = Math.max(maxComboRef.current, comboCountRef.current)
+              
+              // Check combo milestones
+              handleComboMilestone(comboCountRef.current)
+            }
+            
+            // Check if Connor is defeated
+            if (newHealth <= 0) {
+              connorDefeatedRef.current = true
+              setExplosions(prev => [...prev, { 
+                id: 'connor', 
+                x: connorPositionRef.current.x + 200, 
+                y: connorPositionRef.current.y + 200 
+              }])
+              audioManager.play("explosion")
+            }
+            
+            return // Exit early, hotdog hit Connor
+          }
+        }
+      }
+      
+      // Normal Mode: Check collision with drivers
       drivers.forEach((driver) => {
         if (driver.defeated) return
 
@@ -2584,18 +2765,35 @@ ${file}
 
           {/* Driver health bars */}
           <div className="bg-black/50 p-2 rounded-md max-w-xs">
-            <h3 className="text-xs font-bold mb-1">Drivers:</h3>
-            {drivers.map((driver) => (
-              <div key={driver.id} className="flex items-center gap-2 mb-1">
-                <span className="text-xs w-16 truncate">{driver.name}</span>
+            <h3 className="text-xs font-bold mb-1">
+              {gameMode === 'boss-battle' && hasBossBattleDLC ? 'Boss:' : 'Drivers:'}
+            </h3>
+            {gameMode === 'boss-battle' && hasBossBattleDLC ? (
+              // Boss Battle: Show Connor's health
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs w-16 truncate">Connor</span>
                 <div className="w-20 h-2 bg-gray-700 rounded">
                   <div
-                    className={`h-full rounded ${driver.defeated ? "bg-gray-500" : "bg-red-500"}`}
-                    style={{ width: `${driver.health}%` }}
+                    className={`h-full rounded ${connorHealth <= 0 ? "bg-gray-500" : "bg-red-500"}`}
+                    style={{ width: `${Math.max(0, Math.min(100, (connorHealth / 1000) * 100))}%` }}
                   ></div>
                 </div>
+                <span className="text-xs">{connorHealth}/1000</span>
               </div>
-            ))}
+            ) : (
+              // Normal Mode: Show driver health bars
+              drivers.map((driver) => (
+                <div key={driver.id} className="flex items-center gap-2 mb-1">
+                  <span className="text-xs w-16 truncate">{driver.name}</span>
+                  <div className="w-20 h-2 bg-gray-700 rounded">
+                    <div
+                      className={`h-full rounded ${driver.defeated ? "bg-gray-500" : "bg-red-500"}`}
+                      style={{ width: `${driver.health}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -2661,6 +2859,38 @@ ${file}
             </div>
           )}
         </div>
+
+        {/* Connor Boss (Boss Battle Mode) */}
+        {gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current && (
+          <div
+            id="connor-boss"
+            className="absolute z-30"
+            style={{
+              left: `${connorPosition.x}px`,
+              top: `${connorPosition.y}px`,
+              width: "560px", // 4x bigger than Luke's car (140px * 4)
+              height: "320px", // 4x bigger than Luke's car (80px * 4)
+            }}
+          >
+            <img
+              src="/images/polestar.png"
+              alt="Connor's Polestar"
+              className="w-full h-full object-contain"
+            />
+            {/* Connor's avatar */}
+            <div className="absolute top-[-40px] left-[10px] w-[40px] h-[40px] rounded-full overflow-hidden border-2 border-white bg-white z-40">
+              <img
+                src="/images/connor.png"
+                alt="Connor"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Connor's name */}
+            <div className="absolute top-[-60px] left-[10px] text-xs font-bold bg-black/70 px-2 py-1 rounded text-white z-40 whitespace-nowrap">
+              Connor
+            </div>
+          </div>
+        )}
 
         {/* Drivers */}
         {drivers.map((driver) => {
