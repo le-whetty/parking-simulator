@@ -257,7 +257,7 @@ Email: ${email || 'null'}
                 <p className="text-sm text-tracksuit-purple-600 font-quicksand mb-4">
                   {pack.description}
                 </p>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-4">
                   <span className="text-xs text-tracksuit-purple-500 font-quicksand">
                     {pack.items.length} item{pack.items.length !== 1 ? 's' : ''}
                   </span>
@@ -266,9 +266,15 @@ Email: ${email || 'null'}
                       ✓ Unlocked
                     </div>
                   ) : (
-                    <span className="text-xs text-tracksuit-purple-500 font-quicksand">
-                      Click to view →
-                    </span>
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedPack(item.code)
+                      }}
+                      className="font-chapeau text-sm px-4 py-1"
+                    >
+                      View Pack
+                    </Button>
                   )}
                 </div>
               </Card>
