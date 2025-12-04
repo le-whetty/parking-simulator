@@ -197,7 +197,7 @@ export async function syncDLCItemEnabledStatus(userEmail: string, packCode: stri
     const unlocks = await getUserUnlockedDLCs(userEmail)
     const unlock = unlocks.find(u => u.dlc_code === packCode)
     if (unlock) {
-      // Import DLC_PACKS dynamically to avoid circular dependency
+      // Import DLC_PACKS to get pack item definitions
       const { DLC_PACKS } = await import('./dlc-packs')
       const pack = DLC_PACKS[packCode]
       
@@ -209,9 +209,11 @@ export async function syncDLCItemEnabledStatus(userEmail: string, packCode: stri
             // Only set if not already in localStorage (don't overwrite user preference)
             const enabled = unlock.enabled !== false
             localStorage.setItem(key, enabled.toString())
-            console.log(`📦 Synced ${item.id} to localStorage: ${enabled}`)
+            console.log(`📦 Synced ${packCode}/${item.id} to localStorage: ${enabled}`)
           }
         })
+      } else {
+        console.warn(`⚠️ No pack definition found for ${packCode}`)
       }
     }
   } catch (error) {
