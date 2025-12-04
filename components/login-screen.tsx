@@ -146,6 +146,10 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         options: {
           redirectTo: redirectUrl,
           skipBrowserRedirect: false,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       })
       
