@@ -59,16 +59,56 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           console.error("❌ ProfilePage: Session error:", sessionError)
         }
         
+        // Log full session structure
+        console.log("🔍 ProfilePage: Full session object:", JSON.stringify(session, null, 2))
         console.log("🔍 ProfilePage: Session data:", { 
           hasSession: !!session, 
           hasUser: !!session?.user, 
           email: session?.user?.email,
-          fullSession: session
+          userMetadata: session?.user?.user_metadata,
+          identities: session?.user?.identities
         })
         
         // Check for email in multiple ways (session might have different structure)
-        const email = session?.user?.email || session?.user?.user_metadata?.email || null
+        const email = session?.user?.email || 
+                     session?.user?.user_metadata?.email || 
+                     session?.user?.identities?.[0]?.identity_data?.email ||
+                     null
+        
         console.log("🔍 ProfilePage: Extracted email:", email)
+        
+        // In dev mode, if no email, use a placeholder or show message
+        const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true"
+        if (!email && isDevMode) {
+          console.warn("⚠️ ProfilePage: Dev mode - no email found, showing placeholder data")
+          setStats({
+            user_email: 'dev-mode@example.com',
+            username: null,
+            avatar_url: null,
+            display_name: null,
+            date_joined: null,
+            stats: {
+              games_played: 0,
+              victories: 0,
+              victory_percent: 0,
+              drivers_defeated: 0,
+              most_defeated_driver: 'None',
+              contest_rank: 999999,
+              all_time_rank: 999999,
+              top_score: 0,
+              hotdogs_thrown: 0,
+            },
+            achievements: [],
+            title: {
+              current_title: 'Parking Manager',
+              title_level: 1,
+              total_points: 0,
+              points_to_next_level: 0,
+            }
+          })
+          setLoading(false)
+          return
+        }
         
         if (email) {
           setUserEmail(email)
