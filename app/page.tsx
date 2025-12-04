@@ -476,15 +476,34 @@ ${file}
   const startGame = async () => {
     console.log("startGame called!")
     
-    // Check for license plate DLC
+    // Check for DLC unlocks
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.email) {
-        const hasLicensePlate = await hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES)
+        const [hasLicensePlate, hasBoosts] = await Promise.all([
+          hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
+          hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
+        ])
         setHasLicensePlateDLC(hasLicensePlate)
+        setHasBoostsDLC(hasBoosts)
+        
+        // If boosts DLC is unlocked, determine which boost to apply based on vehicle
+        if (hasBoosts && selectedVehicle) {
+          // Apply boost based on vehicle's weakest stat (to balance it out)
+          const stats = [
+            { type: 'speed' as const, value: selectedVehicle.pace },
+            { type: 'armor' as const, value: selectedVehicle.armor },
+            { type: 'attack' as const, value: selectedVehicle.impact },
+          ]
+          const weakestStat = stats.reduce((min, stat) => stat.value < min.value ? stat : min)
+          setBoostType(weakestStat.type)
+          console.log(`🚀 BOOST DLC: Applying ${weakestStat.type} boost to ${selectedVehicle.name}`)
+        } else {
+          setBoostType(null)
+        }
       }
     } catch (error) {
-      console.error("Error checking license plate DLC:", error)
+      console.error("Error checking DLC:", error)
     }
     
     // Track Game Started event
