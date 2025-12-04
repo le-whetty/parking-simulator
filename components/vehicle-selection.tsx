@@ -9,9 +9,11 @@ import Menu from "./menu"
 
 interface VehicleSelectionProps {
   onVehicleSelected: (vehicle: Vehicle) => void
+  onBack?: () => void
   onLogout?: () => void
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewDLCStore?: () => void
   username?: string | null
 }
 
@@ -28,12 +30,15 @@ export default function VehicleSelection({
   onLogout, 
   onEditUsername, 
   onVictorySimulator,
+  onViewDLCStore,
   username 
 }: VehicleSelectionProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType | null>(null)
   const [showOverlay, setShowOverlay] = useState<{ vehicleId: VehicleType; image: string } | null>(null)
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [unlockedDLCs, setUnlockedDLCs] = useState<Set<string>>(new Set())
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const imagesPreloadedRef = useRef(false)
@@ -203,29 +208,67 @@ export default function VehicleSelection({
         </p>
       </div>
 
-      {/* Vehicle Cards Grid */}
-      <div className="grid md:grid-cols-3 gap-6 w-full mb-8">
-        {vehicles.map((vehicle) => {
-          const isSelected = selectedVehicle === vehicle.id
-          const isLocked = vehicle.isDLC && vehicle.dlcCode && !unlockedDLCs.has(vehicle.dlcCode)
-          
-          return (
-            <div
-              key={vehicle.id}
-              onClick={() => !isLocked && handleSelect(vehicle)}
-              className={`bg-white/80 backdrop-blur-sm rounded-xl border-2 shadow-lg transition-all duration-200 ${
-                isLocked
-                  ? 'border-tracksuit-purple-200/30 opacity-60 cursor-not-allowed relative'
-                  : isSelected
-                  ? 'border-tracksuit-purple-500 shadow-xl scale-105 cursor-pointer'
-                  : 'border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300 hover:shadow-xl cursor-pointer'
-              }`}
-            >
-              {isLocked && (
-                <div className="absolute top-2 right-2 bg-tracksuit-purple-600 text-white text-xs px-2 py-1 rounded-full font-chapeau font-semibold z-10">
-                  🔒 DLC
-                </div>
-              )}
+      {/* Vehicle Cards Horizontal Scroll */}
+      <div className="w-full mb-8 relative">
+        {/* Left Arrow */}
+        <button
+          onClick={() => {
+            if (scrollContainerRef.current) {
+              const scrollAmount = scrollContainerRef.current.clientWidth * 0.8
+              scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+            }
+          }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg border-2 border-tracksuit-purple-200 hover:border-tracksuit-purple-400 transition-all"
+          aria-label="Scroll left"
+        >
+          <svg className="w-6 h-6 text-tracksuit-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => {
+            if (scrollContainerRef.current) {
+              const scrollAmount = scrollContainerRef.current.clientWidth * 0.8
+              scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+            }
+          }}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg border-2 border-tracksuit-purple-200 hover:border-tracksuit-purple-400 transition-all"
+          aria-label="Scroll right"
+        >
+          <svg className="w-6 h-6 text-tracksuit-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Scrollable Container */}
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 px-12"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {vehicles.map((vehicle) => {
+            const isSelected = selectedVehicle === vehicle.id
+            const isLocked = vehicle.isDLC && vehicle.dlcCode && !unlockedDLCs.has(vehicle.dlcCode)
+            
+            return (
+              <div
+                key={vehicle.id}
+                onClick={() => !isLocked && handleSelect(vehicle)}
+                className={`bg-white/80 backdrop-blur-sm rounded-xl border-2 shadow-lg transition-all duration-200 flex-shrink-0 w-80 ${
+                  isLocked
+                    ? 'border-tracksuit-purple-200/30 opacity-60 cursor-not-allowed relative'
+                    : isSelected
+                    ? 'border-tracksuit-purple-500 shadow-xl scale-105 cursor-pointer'
+                    : 'border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300 hover:shadow-xl cursor-pointer'
+                }`}
+              >
+                {isLocked && (
+                  <div className="absolute top-2 right-2 bg-tracksuit-purple-600 text-white text-xs px-2 py-1 rounded-full font-chapeau font-semibold z-10">
+                    🔒 DLC
+                  </div>
+                )}
               <div className="p-6 flex flex-col items-center space-y-4">
                 {/* Vehicle Image */}
                 <div className="relative w-full h-32 flex items-center justify-center">

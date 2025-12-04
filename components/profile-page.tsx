@@ -55,6 +55,9 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           if (response.ok) {
             const data = await response.json()
             setStats(data)
+          } else {
+            const errorData = await response.json().catch(() => ({}))
+            console.error("Error loading profile:", response.status, errorData)
           }
         }
       } catch (error) {

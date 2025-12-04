@@ -2306,6 +2306,7 @@ ${file}
         )}
         <VehicleSelection
           onBack={() => setGameState("start")}
+          onViewDLCStore={() => setGameState("dlc-store")}
           onVehicleSelected={async (vehicle) => {
             setSelectedVehicle(vehicle)
             selectedVehicleRef.current = vehicle // Also update ref for game loop access
