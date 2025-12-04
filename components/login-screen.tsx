@@ -99,9 +99,13 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         provider: "google",
         options: {
           redirectTo: redirectUrl,
+          // Force authorization code flow (not implicit/hash-based)
+          flowType: 'pkce',
           queryParams: {
             // Force Supabase to use our redirect URL
             redirect_to: redirectUrl,
+            access_type: 'offline',
+            prompt: 'consent',
           },
           skipBrowserRedirect: false,
         },
