@@ -66,84 +66,45 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     }
   }, [onAuthenticated])
 
+  // Helper function to get the correct URL (works for production, preview, and localhost)
+  const getURL = () => {
+    let url = 
+      process?.env?.NEXT_PUBLIC_SITE_URL ?? // Set this to your site URL in production env
+      process?.env?.NEXT_PUBLIC_VERCEL_URL ?? // Automatically set by Vercel for preview deployments
+      'http://localhost:3000/' // Default for local development
+    
+    // Make sure to include `https://` when not localhost
+    url = url.startsWith('http') ? url : `https://${url}`
+    // Make sure to include a trailing `/`
+    url = url.endsWith('/') ? url : `${url}/`
+    
+    return url
+  }
+
   const handleSignIn = async () => {
     setIsAuthenticating(true)
     setError(null)
     
-    // Force use of current window location
     if (typeof window === 'undefined') {
       setError("Cannot sign in - window not available")
       setIsAuthenticating(false)
       return
     }
     
-    // Detect if we're on a Vercel preview deployment
-    const currentHost = window.location.hostname
-    const currentOrigin = window.location.origin
-    const isPreviewDeployment = currentHost.includes('vercel.app') && 
-                                 currentHost !== 'ts-parking-simulator.vercel.app' &&
-                                 !currentHost.includes('localhost')
-    
-    console.log('🔐 [LOGIN] Preview detection:', {
-      currentHost,
-      currentOrigin,
-      includesVercelApp: currentHost.includes('vercel.app'),
-      isProduction: currentHost === 'ts-parking-simulator.vercel.app',
-      isLocalhost: currentHost.includes('localhost'),
-      isPreviewDeployment
-    })
-    
-    // Use production URL for OAuth redirect (Google Console only allows specific URLs)
-    const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ts-parking-simulator.vercel.app'
-    let redirectUrl = `${productionUrl}/auth/callback`
-    
-    // If preview deployment, pass preview URL as query param (works cross-domain)
-    // Also save to localStorage as fallback for client-side redirect
-    if (isPreviewDeployment) {
-      const previewUrl = currentOrigin
-      redirectUrl += `?preview_url=${encodeURIComponent(previewUrl)}`
-      try {
-        // Also save to localStorage as fallback for client-side redirect
-        localStorage.setItem('preview_redirect_url', previewUrl)
-        const saved = localStorage.getItem('preview_redirect_url')
-        console.log('🔐 [LOGIN] Preview deployment detected:', {
-          previewUrl,
-          redirectUrl,
-          savedToLocalStorage: saved,
-          localStorageMatch: saved === previewUrl
-        })
-      } catch (error) {
-        console.error('🔐 [LOGIN] Failed to save preview URL:', error)
-      }
-    } else {
-      // Clear any saved preview URL if on production
-      const existing = localStorage.getItem('preview_redirect_url')
-      if (existing) {
-        console.log('🔐 [LOGIN] Clearing existing preview URL:', existing)
-        localStorage.removeItem('preview_redirect_url')
-      }
-    }
-    
-    // Log everything for debugging
-    console.log('🔐 [LOGIN] Sign in attempt:', {
-      currentHost,
-      currentOrigin,
-      isPreviewDeployment,
-      previewUrl: isPreviewDeployment ? currentOrigin : null,
-      redirectUrl,
-      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
-      localStoragePreviewUrl: localStorage.getItem('preview_redirect_url')
-    })
-    
     try {
-      console.log('🔐 Full redirect URL being sent:', redirectUrl)
+      const redirectUrl = `${getURL()}auth/callback`
+      
+      console.log('🔐 [LOGIN] Sign in attempt:', {
+        redirectUrl,
+        siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+        vercelUrl: process.env.NEXT_PUBLIC_VERCEL_URL,
+        currentOrigin: window.location.origin
+      })
       
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
-          skipBrowserRedirect: false,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -151,24 +112,6 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         },
       })
       
-      console.log('🔐 OAuth response:', { 
-        error, 
-        data, 
-        url: data?.url,
-        redirectUrl: redirectUrl 
-      })
-      
-      if (data?.url) {
-        console.log('🔐 Redirecting to:', data.url)
-        // Check if the URL contains localhost:8080
-        if (data.url.includes('localhost:8080')) {
-          console.error('ERROR: Supabase is redirecting to localhost:8080!', data.url)
-          setError(`Configuration error: Redirect URL contains localhost:8080. Please check Supabase settings.`)
-          setIsAuthenticating(false)
-          return
-        }
-      }
-
       if (error) {
         setError(error.message)
         setIsAuthenticating(false)
