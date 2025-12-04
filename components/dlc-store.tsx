@@ -236,6 +236,55 @@ Email: ${email || 'null'}
         </ol>
       </Card>
 
+      {/* Dev Mode: Unlock All DLCs */}
+      {isDevMode && (
+        <Card className="w-full mb-6 p-4 bg-yellow-50 border-2 border-yellow-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold font-chapeau text-yellow-800 mb-1">🧪 Dev Mode: Test All DLCs</h3>
+              <p className="text-sm text-yellow-700 font-quicksand">
+                Click to unlock all DLC packs for testing
+              </p>
+            </div>
+            <Button
+              onClick={async () => {
+                try {
+                  const testEmail = userEmail || 'dev-mode@example.com'
+                  const { data, error } = await supabase
+                    .from('dlc_unlocks')
+                    .upsert(
+                      dlcItems.map(item => ({
+                        user_email: testEmail,
+                        dlc_code: item.code,
+                        unlocked_via: 'dev_mode_test',
+                      })),
+                      { onConflict: 'user_email,dlc_code' }
+                    )
+                    .select()
+
+                  if (error) {
+                    console.error('Error unlocking DLCs:', error)
+                    alert('Error unlocking DLCs. Check console for details.')
+                  } else {
+                    console.log('✅ Unlocked all DLCs for testing:', data)
+                    // Reload DLC items
+                    const items = await getDLCItemsWithStatus(testEmail)
+                    setDlcItems(items)
+                    alert('All DLCs unlocked! Refresh the page to see changes.')
+                  }
+                } catch (error) {
+                  console.error('Error unlocking DLCs:', error)
+                  alert('Error unlocking DLCs. Check console for details.')
+                }
+              }}
+              className="font-chapeau bg-yellow-600 hover:bg-yellow-700 text-white"
+            >
+              Unlock All DLCs
+            </Button>
+          </div>
+        </Card>
+      )}
+
       {/* DLC Packs Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
         {dlcItems
