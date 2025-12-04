@@ -485,12 +485,16 @@ ${file}
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.email) {
-        const [hasLicensePlate, hasBoosts] = await Promise.all([
+        const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
           hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
           hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
+          hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
+          hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
         ])
         setHasLicensePlateDLC(hasLicensePlate)
         setHasBoostsDLC(hasBoosts)
+        setHasAudioDLC(hasAudio)
+        setHasBossBattleDLC(hasBossBattle)
         
         // If boosts DLC is unlocked, determine which boost to apply based on vehicle
         if (hasBoosts && selectedVehicle) {
