@@ -22,11 +22,14 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         // Try multiple ways to get email
-        const email = session?.user?.email || session?.user?.user_metadata?.email || null
+        const email = session?.user?.email || 
+                     session?.user?.user_metadata?.email || 
+                     session?.user?.identities?.[0]?.identity_data?.email ||
+                     null
         console.log("🔍 DLC Store: Session check:", { 
           hasSession: !!session, 
           email,
-          fullSession: session
+          fullSession: JSON.stringify(session, null, 2)
         })
         
         if (email) {
@@ -62,11 +65,14 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
           hasUser: !!session?.user, 
           email: session?.user?.email,
           sessionError,
-          fullSession: session
+          fullSession: JSON.stringify(session, null, 2)
         })
         
         // Try multiple ways to get email
-        email = session?.user?.email || session?.user?.user_metadata?.email || null
+        email = session?.user?.email || 
+                session?.user?.user_metadata?.email || 
+                session?.user?.identities?.[0]?.identity_data?.email ||
+                null
         console.log("🔍 DLC Store: Retrieved email from session:", email)
       } catch (error) {
         console.error("Error getting email:", error)
