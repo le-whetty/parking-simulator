@@ -85,13 +85,16 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     
     // Use production URL for OAuth redirect (Google Console only allows specific URLs)
     const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ts-parking-simulator.vercel.app'
+    const redirectUrl = `${productionUrl}/auth/callback`
     
-    // If preview deployment, pass preview URL as query param so callback can redirect back
-    let redirectUrl = `${productionUrl}/auth/callback`
+    // If preview deployment, save preview URL to localStorage for client-side redirect after OAuth
     if (isPreviewDeployment) {
       const previewUrl = window.location.origin
-      redirectUrl += `?preview_url=${encodeURIComponent(previewUrl)}`
-      console.log('🔐 Preview deployment detected, will redirect back to:', previewUrl)
+      localStorage.setItem('preview_redirect_url', previewUrl)
+      console.log('🔐 Preview deployment detected, saved URL to localStorage:', previewUrl)
+    } else {
+      // Clear any saved preview URL if on production
+      localStorage.removeItem('preview_redirect_url')
     }
     
     // Log everything for debugging

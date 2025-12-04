@@ -5,7 +5,6 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next")
-  const previewUrl = requestUrl.searchParams.get("preview_url") // Preview deployment URL to redirect back to
 
   if (code) {
     const supabase = createClient(
@@ -20,27 +19,10 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If preview URL is provided, redirect back to preview deployment
-  if (previewUrl) {
-    try {
-      const previewUrlObj = new URL(previewUrl)
-      const redirectPath = next || "/"
-      const finalUrl = new URL(redirectPath, previewUrlObj.origin)
-      
-      // Preserve any other query params (like auth tokens in hash)
-      // Note: Hash fragments aren't available server-side, but Supabase handles this client-side
-      
-      console.log('🔐 Redirecting back to preview deployment:', finalUrl.toString())
-      return NextResponse.redirect(finalUrl)
-    } catch (error) {
-      console.error('Error parsing preview URL:', error)
-      // Fall through to normal redirect
-    }
-  }
-
-  // Normal redirect (production or no preview URL)
+  // Redirect to root with a flag - client-side code will check localStorage and redirect to preview if needed
   const redirectPath = next || "/"
   const redirectUrl = new URL(redirectPath, requestUrl.origin)
+  redirectUrl.searchParams.set('auth_callback', 'true')
   
   return NextResponse.redirect(redirectUrl)
 }
