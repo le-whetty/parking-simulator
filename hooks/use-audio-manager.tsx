@@ -70,6 +70,15 @@ export function useAudioManager() {
         ["countdown", "/music/countdown.mp3"],
         ["3-2-1", "/music/3-2-1.mp3"],
         ["fireworks", "/music/fireworks.mp3"],
+        // Car horns (DLC)
+        ["carHorn1", "/music/car horns/toot-horn.mp3"],
+        ["carHorn2", "/music/car horns/old-car-horn.mp3"],
+        ["carHorn3", "/music/car horns/la-cucaracha-horn.mp3"],
+        // Radio songs (DLC)
+        ["radio1", "/music/radio/songs/crackazat-alfa.mp3"],
+        ["radio2", "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3"],
+        ["radio3", "/music/radio/songs/elijah-lee-who-are-you.mp3"],
+        ["radio4", "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3"],
       ]
 
       // Pre-load all sounds
