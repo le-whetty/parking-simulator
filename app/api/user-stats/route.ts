@@ -82,8 +82,9 @@ export async function GET(request: NextRequest) {
     const hitEvents = allEvents.filter(e => e.event_type === 'hit')
     const driversDefeated = hitEvents.length
 
-    // Count hotdogs thrown (would need to track this separately, using hit events as proxy for now)
-    const hotdogsThrown = hitEvents.length
+    // Count hotdogs thrown (from hotdog_thrown events)
+    const hotdogThrownEvents = allEvents.filter(e => e.event_type === 'hotdog_thrown')
+    const hotdogsThrown = hotdogThrownEvents.length
 
     // Most defeated driver
     const driverHits: Record<string, number> = {}

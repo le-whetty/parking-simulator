@@ -867,6 +867,13 @@ ${file}
 
     lastHotdogTime.current = now
 
+    // Log hotdog thrown event
+    if (gameSessionIdRef.current) {
+      logGameEvent('hotdog_thrown', {
+        timestamp_ms: now - gameStartTimeRef.current,
+      })
+    }
+
     // Track Hot Dog Fired event
     try {
       const { data: { session } } = await supabase.auth.getSession()
