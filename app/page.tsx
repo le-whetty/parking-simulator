@@ -11,6 +11,8 @@ import StartScreen from "@/components/start-screen"
 import VehicleSelection from "@/components/vehicle-selection"
 import ProfileMenu from "@/components/profile-menu"
 import UsernameModal from "@/components/username-modal"
+import ProfilePage from "@/components/profile-page"
+import DLCStore from "@/components/dlc-store"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
 import { supabase } from "@/lib/supabase"
@@ -18,7 +20,7 @@ import mixpanel from "@/lib/mixpanel"
 import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
 
 // Game states
-type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat"
+type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat" | "profile" | "dlc-store"
 
 // Driver types
 type DriverType = "pregnant" | "injured"
@@ -2174,7 +2176,41 @@ ${file}
           username={username}
           onEditUsername={() => setShowUsernameModal(true)}
           onVictorySimulator={handleVictorySimulator}
+          onViewProfile={() => setGameState("profile")}
+          onViewDLCStore={() => setGameState("dlc-store")}
         />
+      </>
+    )
+  }
+
+  // Render profile page
+  if (gameState === "profile") {
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <ProfilePage onBack={() => setGameState("start")} />
+      </>
+    )
+  }
+
+  // Render DLC store
+  if (gameState === "dlc-store") {
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <DLCStore onBack={() => setGameState("start")} />
       </>
     )
   }

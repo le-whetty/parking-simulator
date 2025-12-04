@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { vehicles, Vehicle, VehicleType } from "@/lib/vehicles"
+import { hasDLCUnlocked } from "@/lib/dlc"
+import { supabase } from "@/lib/supabase"
 import Menu from "./menu"
 
 interface VehicleSelectionProps {
@@ -22,6 +24,7 @@ const vehicleMediaMap: Record<VehicleType, { sound: string; image: string }> = {
 
 export default function VehicleSelection({ 
   onVehicleSelected, 
+  onBack,
   onLogout, 
   onEditUsername, 
   onVictorySimulator,
@@ -29,9 +32,37 @@ export default function VehicleSelection({
 }: VehicleSelectionProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType | null>(null)
   const [showOverlay, setShowOverlay] = useState<{ vehicleId: VehicleType; image: string } | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [unlockedDLCs, setUnlockedDLCs] = useState<Set<string>>(new Set())
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const imagesPreloadedRef = useRef(false)
+
+  // Load user email and DLC unlocks
+  useEffect(() => {
+    async function loadUserAndDLC() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          setUserEmail(session.user.email)
+          
+          // Check which DLCs are unlocked
+          const dlcCodes = ['DLC_VEHICLES'] // Add more as needed
+          const unlocked = new Set<string>()
+          for (const code of dlcCodes) {
+            const hasUnlocked = await hasDLCUnlocked(session.user.email, code)
+            if (hasUnlocked) {
+              unlocked.add(code)
+            }
+          }
+          setUnlockedDLCs(unlocked)
+        }
+      } catch (error) {
+        console.error("Error loading user DLC:", error)
+      }
+    }
+    loadUserAndDLC()
+  }, [])
 
   // Preload all overlay images when component mounts
   useEffect(() => {
@@ -137,6 +168,19 @@ export default function VehicleSelection({
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
       <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
 
+      {/* Back Button */}
+      {onBack && (
+        <div className="w-full mb-4 flex justify-start">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="font-chapeau border-tracksuit-purple-300 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50"
+          >
+            ← Back
+          </Button>
+        </div>
+      )}
+
       {/* Username Greeting */}
       {username && (
         <div className="w-full mb-6 text-center">
@@ -163,16 +207,25 @@ export default function VehicleSelection({
       <div className="grid md:grid-cols-3 gap-6 w-full mb-8">
         {vehicles.map((vehicle) => {
           const isSelected = selectedVehicle === vehicle.id
+          const isLocked = vehicle.isDLC && vehicle.dlcCode && !unlockedDLCs.has(vehicle.dlcCode)
+          
           return (
             <div
               key={vehicle.id}
-              onClick={() => handleSelect(vehicle)}
-              className={`bg-white/80 backdrop-blur-sm rounded-xl border-2 shadow-lg cursor-pointer transition-all duration-200 ${
-                isSelected
-                  ? 'border-tracksuit-purple-500 shadow-xl scale-105'
-                  : 'border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300 hover:shadow-xl'
+              onClick={() => !isLocked && handleSelect(vehicle)}
+              className={`bg-white/80 backdrop-blur-sm rounded-xl border-2 shadow-lg transition-all duration-200 ${
+                isLocked
+                  ? 'border-tracksuit-purple-200/30 opacity-60 cursor-not-allowed relative'
+                  : isSelected
+                  ? 'border-tracksuit-purple-500 shadow-xl scale-105 cursor-pointer'
+                  : 'border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300 hover:shadow-xl cursor-pointer'
               }`}
             >
+              {isLocked && (
+                <div className="absolute top-2 right-2 bg-tracksuit-purple-600 text-white text-xs px-2 py-1 rounded-full font-chapeau font-semibold z-10">
+                  🔒 DLC
+                </div>
+              )}
               <div className="p-6 flex flex-col items-center space-y-4">
                 {/* Vehicle Image */}
                 <div className="relative w-full h-32 flex items-center justify-center">
@@ -261,20 +314,26 @@ export default function VehicleSelection({
                   {vehicle.description}
                 </p>
 
-                {/* Select Button */}
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleSelect(vehicle)
-                  }}
-                  className={`w-full ${
-                    isSelected
-                      ? 'bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white'
-                      : 'bg-tracksuit-purple-200 hover:bg-tracksuit-purple-300 text-tracksuit-purple-800'
-                  } font-chapeau`}
-                >
-                  {isSelected ? '✓ Selected' : 'Select'}
-                </Button>
+                {/* Select Button or Locked State */}
+                {isLocked ? (
+                  <div className="w-full text-center py-2 px-4 bg-gray-200 text-gray-500 rounded-lg font-chapeau cursor-not-allowed">
+                    🔒 DLC Required
+                  </div>
+                ) : (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelect(vehicle)
+                    }}
+                    className={`w-full ${
+                      isSelected
+                        ? 'bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white'
+                        : 'bg-tracksuit-purple-200 hover:bg-tracksuit-purple-300 text-tracksuit-purple-800'
+                    } font-chapeau`}
+                  >
+                    {isSelected ? '✓ Selected' : 'Select'}
+                  </Button>
+                )}
               </div>
             </div>
           )

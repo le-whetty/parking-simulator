@@ -11,9 +11,11 @@ interface StartScreenProps {
   username?: string | null
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewProfile?: () => void
+  onViewDLCStore?: () => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -34,7 +36,7 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} onViewProfile={onViewProfile} onViewDLCStore={onViewDLCStore} />
 
       {/* Username Greeting */}
       {username && (

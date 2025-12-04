@@ -11,9 +11,11 @@ interface MenuProps {
   onLogout?: () => void
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewProfile?: () => void
+  onViewDLCStore?: () => void
 }
 
-export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: MenuProps) {
+export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore }: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -55,6 +57,28 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
                 🥇 Victory Simulator
               </Button>
             )}
+            {onViewProfile && (
+              <Button
+                onClick={onViewProfile}
+                className="font-chapeau text-sm px-4"
+                style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+              >
+                👤 Profile
+              </Button>
+            )}
+            {onViewDLCStore && (
+              <Button
+                onClick={onViewDLCStore}
+                className="font-chapeau text-sm px-4"
+                style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+              >
+                🎮 DLC Store
+              </Button>
+            )}
             <Button
               onClick={async () => {
                 // Track Leaderboard Viewed event
@@ -77,7 +101,7 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
             >
-              🏆 View Leaderboard
+              🏆 Leaderboard
             </Button>
             {onLogout && (
               <div className="flex items-center">
