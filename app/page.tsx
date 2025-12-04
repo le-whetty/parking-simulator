@@ -56,34 +56,39 @@ export default function Home() {
 
   // Handle preview deployment redirect after OAuth callback
   useEffect(() => {
-    console.log('🔐 [CLIENT] Checking for auth callback:', {
-      currentOrigin: window.location.origin,
-      currentHostname: window.location.hostname,
-      currentPath: window.location.pathname,
-      currentSearch: window.location.search,
-      currentHash: window.location.hash,
-      fullUrl: window.location.href
-    })
-    
-    // Check if we have Supabase auth tokens in the hash (indicates OAuth just completed)
-    // Supabase uses hash-based redirects: #access_token=... or #code=...
-    const hasAuthHash = window.location.hash.includes('access_token') || 
-                        window.location.hash.includes('code=') ||
-                        window.location.hash.includes('type=recovery')
-    
-    // Check for auth_callback query param (from our callback route)
-    const urlParams = new URLSearchParams(window.location.search)
-    const hasAuthCallback = urlParams.get('auth_callback') === 'true'
-    
-    console.log('🔐 [CLIENT] Auth callback check:', {
-      hasAuthCallback,
-      hasAuthHash,
-      hash: window.location.hash.substring(0, 100), // First 100 chars of hash
-      urlParams: Object.fromEntries(urlParams.entries())
-    })
-    
-    // If we have auth hash or auth_callback param, check for preview redirect
-    if (hasAuthCallback || hasAuthHash) {
+    // Run this check immediately and also after a short delay to catch hash-based redirects
+    const checkAndRedirect = () => {
+      console.log('🔐 [CLIENT] Checking for auth callback:', {
+        currentOrigin: window.location.origin,
+        currentHostname: window.location.hostname,
+        currentPath: window.location.pathname,
+        currentSearch: window.location.search,
+        currentHash: window.location.hash.substring(0, 200), // First 200 chars
+        fullUrl: window.location.href.substring(0, 200)
+      })
+      
+      // Check if we have Supabase auth tokens in the hash (indicates OAuth just completed)
+      // Supabase uses hash-based redirects: #access_token=... or #code=...
+      const hasAuthHash = window.location.hash.includes('access_token') || 
+                          window.location.hash.includes('code=') ||
+                          window.location.hash.includes('type=recovery') ||
+                          window.location.hash.includes('error=')
+      
+      // Check for auth_callback query param (from our callback route)
+      const urlParams = new URLSearchParams(window.location.search)
+      const hasAuthCallback = urlParams.get('auth_callback') === 'true'
+      
+      console.log('🔐 [CLIENT] Auth callback check:', {
+        hasAuthCallback,
+        hasAuthHash,
+        hashLength: window.location.hash.length,
+        hashPreview: window.location.hash.substring(0, 100),
+        urlParams: Object.fromEntries(urlParams.entries()),
+        cookies: document.cookie
+      })
+      
+      // If we have auth hash or auth_callback param, check for preview redirect
+      if (hasAuthCallback || hasAuthHash) {
       // Check for saved preview URL in localStorage
       let previewUrl: string | null = null
       try {
@@ -152,16 +157,29 @@ export default function Home() {
           window.history.replaceState({}, '', newUrl.toString())
         }
       }
-    } else {
-      // Not an auth callback, but log current state for debugging
-      const storedPreviewUrl = localStorage.getItem('preview_redirect_url')
-      if (storedPreviewUrl) {
-        console.log('🔐 [CLIENT] No auth detected, but preview URL exists in localStorage:', {
-          storedPreviewUrl,
-          currentOrigin: window.location.origin,
-          match: storedPreviewUrl === window.location.origin
-        })
+      } else {
+        // Not an auth callback, but log current state for debugging
+        const storedPreviewUrl = localStorage.getItem('preview_redirect_url')
+        if (storedPreviewUrl) {
+          console.log('🔐 [CLIENT] No auth detected, but preview URL exists in localStorage:', {
+            storedPreviewUrl,
+            currentOrigin: window.location.origin,
+            match: storedPreviewUrl === window.location.origin
+          })
+        }
       }
+    }
+    
+    // Run immediately
+    checkAndRedirect()
+    
+    // Also run after a short delay to catch hash-based redirects that might happen after page load
+    const timeoutId = setTimeout(() => {
+      checkAndRedirect()
+    }, 100)
+    
+    return () => {
+      clearTimeout(timeoutId)
     }
   }, [])
   
