@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js"
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
+  const next = requestUrl.searchParams.get("next")
 
   if (code) {
     const supabase = createClient(
@@ -18,7 +19,17 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // URL will be automatically determined from the request
-  return NextResponse.redirect(new URL("/", request.url))
+  // Check if there's a preview redirect URL in the request (from localStorage via client-side redirect)
+  // We'll handle this client-side since localStorage isn't accessible server-side
+  // The client will check localStorage and redirect if needed
+  
+  // For now, redirect to root with a flag that client can check
+  const redirectPath = next || "/"
+  const redirectUrl = new URL(redirectPath, requestUrl.origin)
+  
+  // Add a query param to signal the client to check for preview redirect
+  redirectUrl.searchParams.set('auth_callback', 'true')
+  
+  return NextResponse.redirect(redirectUrl)
 }
 

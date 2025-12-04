@@ -53,6 +53,31 @@ export default function Home() {
       allEnvVars: Object.keys(process.env).filter(k => k.includes('SKIP') || k.includes('AUTH'))
     })
   }, [isDevMode])
+
+  // Handle preview deployment redirect after OAuth callback
+  useEffect(() => {
+    // Check if we just came from an auth callback
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('auth_callback') === 'true') {
+      // Check for saved preview URL in localStorage
+      const previewUrl = localStorage.getItem('preview_redirect_url')
+      if (previewUrl && window.location.origin !== previewUrl) {
+        // We're on production but should redirect to preview
+        const currentPath = window.location.pathname + window.location.search.replace('auth_callback=true', '').replace(/^&|&$/g, '')
+        const redirectTo = `${previewUrl}${currentPath}${currentPath.includes('?') ? '&' : '?'}auth_callback=true`
+        console.log('🔐 Redirecting back to preview deployment:', redirectTo)
+        window.location.href = redirectTo
+        return
+      } else if (previewUrl && window.location.origin === previewUrl) {
+        // We're already on the preview URL, clean up
+        localStorage.removeItem('preview_redirect_url')
+        // Remove auth_callback param
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('auth_callback')
+        window.history.replaceState({}, '', newUrl.toString())
+      }
+    }
+  }, [])
   
   // Game state - skip auth in dev mode
   const [gameState, setGameState] = useState<GameState>(isDevMode ? "intro" : "auth")

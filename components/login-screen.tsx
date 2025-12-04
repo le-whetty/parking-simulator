@@ -77,13 +77,32 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       return
     }
     
-    // Use window.location.origin to automatically get the current domain
-    const siteUrl = window.location.origin
-    const redirectUrl = `${siteUrl}/auth/callback`
+    // Detect if we're on a Vercel preview deployment
+    const currentHost = window.location.hostname
+    const isPreviewDeployment = currentHost.includes('vercel.app') && 
+                                 currentHost !== 'ts-parking-simulator.vercel.app' &&
+                                 !currentHost.includes('localhost')
+    
+    // If preview deployment, save the URL to localStorage for redirect after OAuth
+    if (isPreviewDeployment) {
+      const previewUrl = window.location.origin
+      localStorage.setItem('preview_redirect_url', previewUrl)
+      console.log('🔐 Preview deployment detected, saved URL:', previewUrl)
+    } else {
+      // Clear any saved preview URL if on production
+      localStorage.removeItem('preview_redirect_url')
+    }
+    
+    // Use production URL for OAuth redirect (Google Console only allows specific URLs)
+    // The callback will handle redirecting back to preview if needed
+    const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ts-parking-simulator.vercel.app'
+    const redirectUrl = `${productionUrl}/auth/callback`
     
     // Log everything for debugging
     console.log('🔐 Sign in attempt:', {
-      siteUrl: siteUrl,
+      currentHost: currentHost,
+      isPreviewDeployment: isPreviewDeployment,
+      previewUrl: isPreviewDeployment ? window.location.origin : null,
       redirectUrl: redirectUrl,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
       envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL
