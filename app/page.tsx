@@ -71,6 +71,8 @@ export default function Home() {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null) // Selected vehicle
   const selectedVehicleRef = useRef<Vehicle | null>(null) // Ref for selected vehicle (for game loop closures)
   const [hasLicensePlateDLC, setHasLicensePlateDLC] = useState(false) // License plate DLC status
+  const [hasBoostsDLC, setHasBoostsDLC] = useState(false) // Stat boosts DLC status
+  const [boostType, setBoostType] = useState<'speed' | 'armor' | 'attack' | null>(null) // Which boost is active
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -691,7 +693,12 @@ ${file}
     // Apply pace multiplier from selected vehicle
     const baseSpeed = 20
     const vehicle = selectedVehicleRef.current
-    const paceMultiplier = vehicle ? getPaceMultiplier(vehicle.pace) : 1.0
+    // Apply boost if DLC enabled
+    let effectivePace = vehicle ? vehicle.pace : 5
+    if (hasBoostsDLC && boostType === 'speed' && effectivePace < 10) {
+      effectivePace = Math.min(10, effectivePace + 2) // Boost speed by 2 (max 10)
+    }
+    const paceMultiplier = vehicle ? getPaceMultiplier(effectivePace) : 1.0
     const speed = baseSpeed * paceMultiplier
     
     // Vehicle Stats Tracking: PACE (log once per movement to avoid spam)
@@ -1411,7 +1418,12 @@ ${file}
                 // Apply impact multiplier from selected vehicle
                 const baseDamage = 20
                 const vehicle = selectedVehicleRef.current
-                const impactMultiplier = vehicle ? getImpactMultiplier(vehicle.impact) : 1.0
+                // Apply boost if DLC enabled
+                let effectiveImpact = vehicle ? vehicle.impact : 5
+                if (hasBoostsDLC && boostType === 'attack' && effectiveImpact < 10) {
+                  effectiveImpact = Math.min(10, effectiveImpact + 2) // Boost attack by 2 (max 10)
+                }
+                const impactMultiplier = vehicle ? getImpactMultiplier(effectiveImpact) : 1.0
                 const damage = Math.floor(baseDamage * impactMultiplier)
                 
                 // Vehicle Stats Tracking: IMPACT
@@ -1644,7 +1656,12 @@ ${file}
             // Apply armor multiplier from selected vehicle
             const baseDamage = 4
             const vehicle = selectedVehicleRef.current
-            const armorMultiplier = vehicle ? getArmorMultiplier(vehicle.armor) : 1.0
+            // Apply boost if DLC enabled
+            let effectiveArmor = vehicle ? vehicle.armor : 5
+            if (hasBoostsDLC && boostType === 'armor' && effectiveArmor < 10) {
+              effectiveArmor = Math.min(10, effectiveArmor + 2) // Boost armor by 2 (max 10)
+            }
+            const armorMultiplier = vehicle ? getArmorMultiplier(effectiveArmor) : 1.0
             const damage = Math.ceil(baseDamage * armorMultiplier)
             const newHealth = prev - damage
             // Calculate actual projectile speed for logging (0.18 px/ms)
