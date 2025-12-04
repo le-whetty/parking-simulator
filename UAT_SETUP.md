@@ -115,10 +115,27 @@ If you want a dedicated UAT URL:
 - Verify branch is pushed to GitHub
 - Check Vercel deployment logs
 
+### Auth redirects to production URL after login?
+This happens if Supabase doesn't have your UAT callback URL configured. Fix it:
+
+1. **Go to Supabase Dashboard** → **Authentication** → **URL Configuration**
+2. **Add your UAT callback URL** to "Redirect URLs":
+   ```
+   https://your-uat-url.vercel.app/auth/callback
+   ```
+3. **Add your UAT site URL** to "Site URL" (or keep production URL if you want both):
+   ```
+   https://your-uat-url.vercel.app
+   ```
+4. The callback route now preserves the origin, so it should redirect back to UAT
+
+**Note**: You can add multiple redirect URLs in Supabase, so both production and UAT can work.
+
 ### Auth not working in UAT?
 - Verify `NEXT_PUBLIC_SKIP_AUTH=false` in Vercel environment variables
 - Check Supabase URL and keys are correct
 - Ensure Supabase project allows the UAT domain in auth settings
+- Add UAT callback URL to Supabase redirect URLs (see above)
 
 ### Can't access production data?
 - Verify Supabase credentials match production

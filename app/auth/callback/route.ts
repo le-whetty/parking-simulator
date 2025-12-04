@@ -18,7 +18,11 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // URL will be automatically determined from the request
-  return NextResponse.redirect(new URL("/", request.url))
+  // Preserve the origin from the request (UAT or production)
+  // This ensures redirects stay on the same domain
+  const origin = requestUrl.origin
+  const redirectUrl = new URL("/", origin)
+  
+  return NextResponse.redirect(redirectUrl)
 }
 
