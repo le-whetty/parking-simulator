@@ -65,20 +65,21 @@ export default function Home() {
       fullUrl: window.location.href
     })
     
-    // Check if we just came from an auth callback (query param or hash)
-    const urlParams = new URLSearchParams(window.location.search)
-    const hashParams = new URLSearchParams(window.location.hash.substring(1))
-    const hasAuthCallback = urlParams.get('auth_callback') === 'true' || hashParams.get('auth_callback') === 'true'
+    // Check if we have Supabase auth tokens in the hash (indicates OAuth just completed)
+    // Supabase uses hash-based redirects: #access_token=... or #code=...
+    const hasAuthHash = window.location.hash.includes('access_token') || 
+                        window.location.hash.includes('code=') ||
+                        window.location.hash.includes('type=recovery')
     
-    // Also check if we have Supabase auth tokens in the hash (indicates OAuth just completed)
-    const hasAuthHash = window.location.hash.includes('access_token') || window.location.hash.includes('code=')
+    // Check for auth_callback query param (from our callback route)
+    const urlParams = new URLSearchParams(window.location.search)
+    const hasAuthCallback = urlParams.get('auth_callback') === 'true'
     
     console.log('🔐 [CLIENT] Auth callback check:', {
       hasAuthCallback,
       hasAuthHash,
-      urlParams: Object.fromEntries(urlParams.entries()),
-      hashParams: Object.fromEntries(hashParams.entries()),
-      hash: window.location.hash
+      hash: window.location.hash.substring(0, 100), // First 100 chars of hash
+      urlParams: Object.fromEntries(urlParams.entries())
     })
     
     // If we have auth hash or auth_callback param, check for preview redirect
@@ -104,14 +105,14 @@ export default function Home() {
         const currentSearch = window.location.search.replace('auth_callback=true', '').replace(/^&|&$/g, '')
         const currentHash = window.location.hash // Preserve hash with auth tokens
         const redirectTo = `${previewUrl}${currentPath}${currentSearch ? (currentPath.includes('?') ? '&' : '?') + currentSearch : ''}${currentHash}`
-        console.log('🔐 [CLIENT] Redirecting back to preview deployment:', {
+        console.log('🔐 [CLIENT] ⚡ REDIRECTING to preview deployment:', {
           from: window.location.origin,
           to: previewUrl,
           redirectTo,
           currentPath,
           currentSearch,
-          currentHash,
-          preservingHash: !!currentHash
+          hasHash: !!currentHash,
+          hashLength: currentHash.length
         })
         // Clear the preview URL from localStorage after redirect
         try {
@@ -124,7 +125,7 @@ export default function Home() {
         return
       } else if (previewUrl && window.location.origin === previewUrl) {
         // We're already on the preview URL, clean up
-        console.log('🔐 [CLIENT] Already on preview URL, cleaning up:', {
+        console.log('🔐 [CLIENT] ✅ Already on preview URL, cleaning up:', {
           previewUrl,
           currentOrigin: window.location.origin
         })
@@ -133,25 +134,29 @@ export default function Home() {
         } catch (error) {
           console.error('🔐 [CLIENT] Error clearing localStorage:', error)
         }
-        // Remove auth_callback param
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete('auth_callback')
-        window.history.replaceState({}, '', newUrl.toString())
+        // Remove auth_callback param but keep hash (Supabase needs it)
+        if (hasAuthCallback) {
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('auth_callback')
+          window.history.replaceState({}, '', newUrl.toString())
+        }
       } else {
         // No preview URL, just clean up the param
         console.log('🔐 [CLIENT] No preview URL found, cleaning up param:', {
           previewUrl,
           currentOrigin: window.location.origin
         })
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete('auth_callback')
-        window.history.replaceState({}, '', newUrl.toString())
+        if (hasAuthCallback) {
+          const newUrl = new URL(window.location.href)
+          newUrl.searchParams.delete('auth_callback')
+          window.history.replaceState({}, '', newUrl.toString())
+        }
       }
     } else {
       // Not an auth callback, but log current state for debugging
       const storedPreviewUrl = localStorage.getItem('preview_redirect_url')
       if (storedPreviewUrl) {
-        console.log('🔐 [CLIENT] No auth_callback param, but preview URL exists in localStorage:', {
+        console.log('🔐 [CLIENT] No auth detected, but preview URL exists in localStorage:', {
           storedPreviewUrl,
           currentOrigin: window.location.origin,
           match: storedPreviewUrl === window.location.origin
