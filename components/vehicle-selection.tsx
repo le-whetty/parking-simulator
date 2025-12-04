@@ -7,17 +7,6 @@ import { hasDLCUnlocked } from "@/lib/dlc"
 import { supabase } from "@/lib/supabase"
 import Menu from "./menu"
 
-// Hide scrollbar styles
-const scrollbarHideStyles = `
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-`
-
 interface VehicleSelectionProps {
   onVehicleSelected: (vehicle: Vehicle) => void
   onBack?: () => void
@@ -181,9 +170,18 @@ export default function VehicleSelection({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
-      <style>{scrollbarHideStyles}</style>
-      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+    <>
+      <style jsx>{`
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
+        <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
 
       {/* Back Button */}
       {onBack && (
