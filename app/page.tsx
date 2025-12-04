@@ -103,6 +103,7 @@ export default function Home() {
   const gameLoopRef = useRef<number | null>(null) // Game loop ref
   const hotdogsRef = useRef<HTMLDivElement[]>([]) // Hotdogs ref
   const lastHotdogTime = useRef(0) // Last hotdog time
+  const lastRadioSwitchTime = useRef(0) // Last radio switch time (for cooldown)
   const enemyProjectilesRef = useRef<HTMLDivElement[]>([]) // Enemy projectiles ref
   // Frame tracking for diagnostics
   const frameCountRef = useRef(0)
@@ -2267,18 +2268,22 @@ ${file}
         }
       }
 
-      // Process radio song change (DLC) - press 'R' key
+      // Process radio song change (DLC) - press 'R' key (with cooldown)
       if (hasAudioDLC && (keysPressed.has("r") || keysPressed.has("R"))) {
-        const nextSong = ((currentRadioSong % 4) + 1) as 1 | 2 | 3 | 4
-        setCurrentRadioSong(nextSong)
-        audioManager.stop("radio1")
-        audioManager.stop("radio2")
-        audioManager.stop("radio3")
-        audioManager.stop("radio4")
-        audioManager.playRadio(nextSong)
-        // Remove 'R' from keysPressed to prevent rapid switching
-        keysPressed.delete("r")
-        keysPressed.delete("R")
+        const now = Date.now()
+        if (now - lastRadioSwitchTime.current > 300) { // 300ms cooldown
+          lastRadioSwitchTime.current = now
+          const nextSong = ((currentRadioSong % 4) + 1) as 1 | 2 | 3 | 4
+          setCurrentRadioSong(nextSong)
+          audioManager.stop("radio1")
+          audioManager.stop("radio2")
+          audioManager.stop("radio3")
+          audioManager.stop("radio4")
+          audioManager.playRadio(nextSong)
+          // Remove 'R' from keysPressed to prevent rapid switching
+          keysPressed.delete("r")
+          keysPressed.delete("R")
+        }
       }
     }, 50) // Process keys every 50ms
 
