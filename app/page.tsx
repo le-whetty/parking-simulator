@@ -2857,9 +2857,9 @@ ${file}
               alt="License Plate"
               className="absolute bottom-0 left-1/2 transform -translate-x-1/2 z-35"
               style={{
-                width: '12%', // <10% of car size as requested
+                width: '48%', // 4x bigger than before (was 12%)
                 height: 'auto',
-                maxHeight: '15%',
+                maxHeight: '60%',
               }}
             />
           )}
