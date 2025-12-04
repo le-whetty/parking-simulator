@@ -61,19 +61,28 @@ export default function Home() {
       currentHostname: window.location.hostname,
       currentPath: window.location.pathname,
       currentSearch: window.location.search,
+      currentHash: window.location.hash,
       fullUrl: window.location.href
     })
     
-    // Check if we just came from an auth callback
+    // Check if we just came from an auth callback (query param or hash)
     const urlParams = new URLSearchParams(window.location.search)
-    const hasAuthCallback = urlParams.get('auth_callback') === 'true'
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    const hasAuthCallback = urlParams.get('auth_callback') === 'true' || hashParams.get('auth_callback') === 'true'
+    
+    // Also check if we have Supabase auth tokens in the hash (indicates OAuth just completed)
+    const hasAuthHash = window.location.hash.includes('access_token') || window.location.hash.includes('code=')
     
     console.log('🔐 [CLIENT] Auth callback check:', {
       hasAuthCallback,
-      urlParams: Object.fromEntries(urlParams.entries())
+      hasAuthHash,
+      urlParams: Object.fromEntries(urlParams.entries()),
+      hashParams: Object.fromEntries(hashParams.entries()),
+      hash: window.location.hash
     })
     
-    if (hasAuthCallback) {
+    // If we have auth hash or auth_callback param, check for preview redirect
+    if (hasAuthCallback || hasAuthHash) {
       // Check for saved preview URL in localStorage
       let previewUrl: string | null = null
       try {
@@ -90,15 +99,19 @@ export default function Home() {
       
       if (previewUrl && window.location.origin !== previewUrl) {
         // We're on production but should redirect to preview
+        // Preserve the hash (contains auth tokens) when redirecting
         const currentPath = window.location.pathname
         const currentSearch = window.location.search.replace('auth_callback=true', '').replace(/^&|&$/g, '')
-        const redirectTo = `${previewUrl}${currentPath}${currentSearch ? (currentPath.includes('?') ? '&' : '?') + currentSearch : ''}`
+        const currentHash = window.location.hash // Preserve hash with auth tokens
+        const redirectTo = `${previewUrl}${currentPath}${currentSearch ? (currentPath.includes('?') ? '&' : '?') + currentSearch : ''}${currentHash}`
         console.log('🔐 [CLIENT] Redirecting back to preview deployment:', {
           from: window.location.origin,
           to: previewUrl,
           redirectTo,
           currentPath,
-          currentSearch
+          currentSearch,
+          currentHash,
+          preservingHash: !!currentHash
         })
         // Clear the preview URL from localStorage after redirect
         try {
@@ -106,7 +119,8 @@ export default function Home() {
         } catch (error) {
           console.error('🔐 [CLIENT] Error clearing localStorage:', error)
         }
-        window.location.href = redirectTo
+        // Use replace instead of href to avoid adding to history
+        window.location.replace(redirectTo)
         return
       } else if (previewUrl && window.location.origin === previewUrl) {
         // We're already on the preview URL, clean up
