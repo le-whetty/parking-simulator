@@ -385,10 +385,11 @@ export default function VehicleSelection({
                     {isSelected ? '✓ Selected' : 'Select'}
                   </Button>
                 )}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Start Game Button */}
