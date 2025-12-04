@@ -95,21 +95,21 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     
     // Use production URL for OAuth redirect (Google Console only allows specific URLs)
     const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ts-parking-simulator.vercel.app'
-    const redirectUrl = `${productionUrl}/auth/callback`
+    let redirectUrl = `${productionUrl}/auth/callback`
     
-    // If preview deployment, save preview URL to both cookie (for server-side) and localStorage (for client-side fallback)
+    // If preview deployment, pass preview URL as query param (works cross-domain)
+    // Also save to localStorage as fallback for client-side redirect
     if (isPreviewDeployment) {
       const previewUrl = currentOrigin
+      redirectUrl += `?preview_url=${encodeURIComponent(previewUrl)}`
       try {
-        // Set cookie (accessible server-side in callback route)
-        document.cookie = `preview_redirect_url=${encodeURIComponent(previewUrl)}; path=/; max-age=600; SameSite=Lax`
-        // Also save to localStorage as fallback
+        // Also save to localStorage as fallback for client-side redirect
         localStorage.setItem('preview_redirect_url', previewUrl)
         const saved = localStorage.getItem('preview_redirect_url')
         console.log('🔐 [LOGIN] Preview deployment detected:', {
           previewUrl,
+          redirectUrl,
           savedToLocalStorage: saved,
-          cookieSet: document.cookie.includes('preview_redirect_url'),
           localStorageMatch: saved === previewUrl
         })
       } catch (error) {
@@ -121,8 +121,6 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
       if (existing) {
         console.log('🔐 [LOGIN] Clearing existing preview URL:', existing)
         localStorage.removeItem('preview_redirect_url')
-        // Clear cookie too
-        document.cookie = 'preview_redirect_url=; path=/; max-age=0'
       }
     }
     

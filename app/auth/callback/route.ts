@@ -6,9 +6,9 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next")
   
-  // Check for preview redirect URL in cookie (set from preview deployment)
-  const cookies = request.cookies
-  const previewUrl = cookies.get('preview_redirect_url')?.value
+  // Check for preview redirect URL in query param (passed from preview deployment)
+  // This works cross-domain unlike cookies/localStorage
+  const previewUrl = requestUrl.searchParams.get("preview_url")
 
   console.log('🔐 [CALLBACK] OAuth callback received:', {
     origin: requestUrl.origin,
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     hasCode: !!code,
     next,
     previewUrl,
-    hasPreviewCookie: !!previewUrl,
+    hasPreviewParam: !!previewUrl,
     fullUrl: requestUrl.toString()
   })
 
@@ -40,12 +40,11 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // If preview URL exists in cookie, redirect there server-side (works even if production doesn't have client code)
+  // If preview URL exists in query param, redirect there server-side
   if (previewUrl) {
     try {
       const previewUrlObj = new URL(previewUrl)
-      // Use a simple redirect page that will handle hash-based redirects client-side
-      const redirectPath = next || "/preview-redirect.html"
+      const redirectPath = next || "/"
       const finalUrl = new URL(redirectPath, previewUrlObj.origin)
       
       // Preserve hash if present (for hash-based redirects)
@@ -64,22 +63,11 @@ export async function GET(request: NextRequest) {
         redirectPath
       })
       
-      // Clear the cookie after use
-      const response = NextResponse.redirect(finalUrl)
-      response.cookies.delete('preview_redirect_url')
-      return response
+      return NextResponse.redirect(finalUrl)
     } catch (error) {
       console.error('🔐 [CALLBACK] Error parsing preview URL:', error)
       // Fall through to normal redirect
     }
-  }
-  
-  // If no preview URL but we have a hash, redirect to preview-redirect.html to check localStorage
-  if (requestUrl.hash && !previewUrl) {
-    const redirectUrl = new URL('/preview-redirect.html', requestUrl.origin)
-    redirectUrl.hash = requestUrl.hash
-    console.log('🔐 [CALLBACK] Hash present but no cookie, redirecting to redirect page:', redirectUrl.toString())
-    return NextResponse.redirect(redirectUrl)
   }
 
   // Normal redirect (production or no preview URL)
