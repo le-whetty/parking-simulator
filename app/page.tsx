@@ -102,6 +102,9 @@ export default function Home() {
 
   // Combo system state
   const comboCountRef = useRef<number>(0) // Current combo streak
+  const maxComboRef = useRef<number>(0) // Maximum combo reached in this game
+  const totalHitsRef = useRef<number>(0) // Total hits/hotdogs that hit targets in this game
+  const totalHotdogsThrownRef = useRef<number>(0) // Total hotdogs thrown (including misses) in this game
   const lastHitTimeRef = useRef<number>(0) // Time of last hit (for combo timeout)
   const comboTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Combo timeout timer
   const [comboBadge, setComboBadge] = useState<{ image: string; points: number; key: number; x: number; y: number } | null>(null) // Current combo badge to display
@@ -777,6 +780,7 @@ ${file}
 
   // Throw a hotdog
   const throwHotdog = async () => {
+    totalHotdogsThrownRef.current += 1 // Track total hotdogs thrown
     if (gameState !== "playing" || hasWon || !gameReadyRef.current) return
 
     const now = Date.now()
@@ -1510,6 +1514,8 @@ ${file}
             comboCountRef.current += 1
             lastHitTimeRef.current = now
             const currentCombo = comboCountRef.current
+            totalHitsRef.current += 1 // Track total hits
+            maxComboRef.current = Math.max(maxComboRef.current, currentCombo) // Track max combo
             
             console.log(`🔥 COMBO: Hit #${currentCombo} on ${driver.name} (time since last: ${timeSinceLastHit}ms, Luke at ${lukeX}, ${lukeY})`)
             
