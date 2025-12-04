@@ -84,8 +84,10 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     // Log everything for debugging
     console.log('🔐 Sign in attempt:', {
       siteUrl: siteUrl,
+      fullLocation: window.location.href,
       redirectUrl: redirectUrl,
       currentPath: window.location.pathname,
+      currentHost: window.location.host,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
       envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL
     })
