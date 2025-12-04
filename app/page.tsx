@@ -868,9 +868,10 @@ ${file}
     lastHotdogTime.current = now
 
     // Log hotdog thrown event
-    if (gameSessionIdRef.current) {
+    if (gameSessionIdRef.current && gameStartTimeRef.current > 0) {
+      const timestamp = Date.now() - gameStartTimeRef.current
       logGameEvent('hotdog_thrown', {
-        timestamp_ms: now - gameStartTimeRef.current,
+        timestamp_ms: timestamp,
       })
     }
 
