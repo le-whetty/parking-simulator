@@ -76,6 +76,8 @@ export default function Home() {
   const [hasAudioDLC, setHasAudioDLC] = useState(false) // Audio DLC status (radio + horn)
   const [selectedHorn, setSelectedHorn] = useState<1 | 2 | 3 | 'random'>(1) // Selected car horn (1-3 or random)
   const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-4)
+  const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
+  const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -2325,6 +2327,9 @@ ${file}
           hasAudioDLC={hasAudioDLC}
           selectedHorn={selectedHorn}
           onHornChange={setSelectedHorn}
+          hasBossBattleDLC={hasBossBattleDLC}
+          gameMode={gameMode}
+          onGameModeChange={setGameMode}
         />
       </>
     )

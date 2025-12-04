@@ -16,9 +16,12 @@ interface StartScreenProps {
   hasAudioDLC?: boolean
   selectedHorn?: 1 | 2 | 3 | 'random'
   onHornChange?: (horn: 1 | 2 | 3 | 'random') => void
+  hasBossBattleDLC?: boolean
+  gameMode?: 'normal' | 'boss-battle'
+  onGameModeChange?: (mode: 'normal' | 'boss-battle') => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasAudioDLC, selectedHorn = 1, onHornChange }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasAudioDLC, selectedHorn = 1, onHornChange, hasBossBattleDLC, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
