@@ -73,6 +73,9 @@ export default function Home() {
   const [hasLicensePlateDLC, setHasLicensePlateDLC] = useState(false) // License plate DLC status
   const [hasBoostsDLC, setHasBoostsDLC] = useState(false) // Stat boosts DLC status
   const [boostType, setBoostType] = useState<'speed' | 'armor' | 'attack' | null>(null) // Which boost is active
+  const [hasAudioDLC, setHasAudioDLC] = useState(false) // Audio DLC status (radio + horn)
+  const [selectedHorn, setSelectedHorn] = useState<1 | 2 | 3 | 'random'>(1) // Selected car horn (1-3 or random)
+  const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-4)
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -654,8 +657,13 @@ ${file}
           gameReadyRef.current = true
           setCountdown(null)
           
-          // Start theme music (let countdown sound play out naturally)
-          audioManager.play("theme")
+          // Start theme music or radio (let countdown sound play out naturally)
+          if (hasAudioDLC) {
+            // Play radio instead of theme
+            audioManager.playRadio(currentRadioSong)
+          } else {
+            audioManager.play("theme")
+          }
           
           // Start the game loop after countdown
           console.log("Starting game loop after countdown...")
@@ -2019,6 +2027,16 @@ ${file}
       // Process shooting separately from movement
       if (keysPressed.has(" ") || keysPressed.has("Space")) {
         throwHotdog()
+      }
+
+      // Process car horn (DLC) - press 'H' key
+      if (hasAudioDLC && (keysPressed.has("h") || keysPressed.has("H"))) {
+        if (selectedHorn === 'random') {
+          const randomHorn = Math.floor(Math.random() * 3) + 1 as 1 | 2 | 3
+          audioManager.playHorn(randomHorn)
+        } else {
+          audioManager.playHorn(selectedHorn)
+        }
       }
     }, 50) // Process keys every 50ms
 
