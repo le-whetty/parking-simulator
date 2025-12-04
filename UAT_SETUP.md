@@ -12,20 +12,38 @@ The UAT environment is a separate deployment that:
 
 ## Vercel Setup
 
-### 1. Create UAT Environment in Vercel
+### 1. Configure Preview Environment for UAT
+
+You have two options:
+
+#### Option A: Use Preview Environment (Recommended)
+The Preview environment can be configured to specifically track your `uat` branch:
 
 1. Go to your Vercel project dashboard
-2. Navigate to **Settings** → **Git**
-3. Under **Production Branch**, ensure `main` or `master` is set
-4. Under **Preview Branches**, add `uat` to automatically deploy
+2. Navigate to **Settings** → **Environments** → **Preview**
+3. Under **Branch Tracking**, ensure it's **Enabled**
+4. Click the **"Branch is"** dropdown and select **"equals"** or **"matches"**
+5. Enter `uat` in the branch field
+6. Click **Save**
+
+This will ensure only the `uat` branch deploys to Preview, giving you a dedicated UAT URL.
+
+#### Option B: Use "All unassigned branches" (Current Setup)
+If you keep "All unassigned branches" selected:
+- The `uat` branch will automatically deploy to Preview
+- Other feature branches will also deploy to Preview
+- You can identify UAT by the branch name in the deployment URL
+
+**Note**: Make sure your Production environment is configured to track `main` or `master` branch only.
 
 ### 2. Configure Environment Variables
 
 In Vercel dashboard, go to **Settings** → **Environment Variables**:
 
-#### For UAT Environment:
-- Select **Environment**: `Preview` (or create a custom `UAT` environment)
-- Add/Update these variables:
+#### For Preview/UAT Environment:
+1. Click **Add New** or edit existing variables
+2. For each variable, select **Environment**: `Preview` (make sure Production is NOT selected)
+3. Add/Update these variables:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL=<production_supabase_url>
@@ -33,7 +51,10 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<production_supabase_anon_key>
 NEXT_PUBLIC_SKIP_AUTH=false
 ```
 
-**Important**: Use the **same Supabase credentials as production** so UAT uses the production database.
+**Important**: 
+- Use the **same Supabase credentials as production** so UAT uses the production database
+- Make sure these variables are **only** assigned to `Preview` environment, not `Production`
+- This ensures UAT has auth enabled while production remains unchanged
 
 ### 3. Deploy UAT Branch
 
