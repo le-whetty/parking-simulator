@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
   if (previewUrl) {
     try {
       const previewUrlObj = new URL(previewUrl)
-      const redirectPath = next || "/"
+      // Use a simple redirect page that will handle hash-based redirects client-side
+      const redirectPath = next || "/preview-redirect.html"
       const finalUrl = new URL(redirectPath, previewUrlObj.origin)
       
       // Preserve hash if present (for hash-based redirects)
@@ -59,7 +60,8 @@ export async function GET(request: NextRequest) {
       console.log('🔐 [CALLBACK] ⚡ Redirecting to preview deployment:', {
         previewUrl,
         finalUrl: finalUrl.toString(),
-        hasHash: !!hash
+        hasHash: !!hash,
+        redirectPath
       })
       
       // Clear the cookie after use
@@ -70,6 +72,14 @@ export async function GET(request: NextRequest) {
       console.error('🔐 [CALLBACK] Error parsing preview URL:', error)
       // Fall through to normal redirect
     }
+  }
+  
+  // If no preview URL but we have a hash, redirect to preview-redirect.html to check localStorage
+  if (requestUrl.hash && !previewUrl) {
+    const redirectUrl = new URL('/preview-redirect.html', requestUrl.origin)
+    redirectUrl.hash = requestUrl.hash
+    console.log('🔐 [CALLBACK] Hash present but no cookie, redirecting to redirect page:', redirectUrl.toString())
+    return NextResponse.redirect(redirectUrl)
   }
 
   // Normal redirect (production or no preview URL)
