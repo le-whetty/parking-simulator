@@ -509,10 +509,12 @@ ${file}
         if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
         if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
         
-        // Check individual item enable status
+        // Check individual item enable status (AFTER sync)
+        console.log(`🔍 Checking FM Radio after sync...`)
         const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
         const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
         const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+        console.log(`📻 FM Radio check result: hasAudio=${hasAudio}, hasFMRadio=${hasFMRadio}`)
         
         console.log("✅ DLC Status:", {
           accessories: hasLicensePlate,

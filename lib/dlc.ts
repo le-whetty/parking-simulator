@@ -226,18 +226,25 @@ export async function syncDLCItemEnabledStatus(userEmail: string, packCode: stri
  * Checks both pack unlock status and item preference
  */
 export function isDLCItemEnabled(packCode: string, itemId: string, packUnlocked: boolean): boolean {
-  if (!packUnlocked) return false
+  if (!packUnlocked) {
+    console.log(`❌ DLC Item ${packCode}/${itemId} disabled: pack not unlocked`)
+    return false
+  }
   
   // Check localStorage for item preference (defaults to enabled)
   if (typeof window !== 'undefined') {
     const key = `dlc_item_enabled_${packCode}_${itemId}`
     const stored = localStorage.getItem(key)
+    console.log(`🔍 Checking DLC item ${packCode}/${itemId}: localStorage key="${key}", value="${stored}"`)
     if (stored !== null) {
-      return stored === 'true'
+      const enabled = stored === 'true'
+      console.log(`✅ DLC Item ${packCode}/${itemId} enabled status from localStorage: ${enabled}`)
+      return enabled
     }
   }
   
   // Default to enabled if pack is unlocked
+  console.log(`✅ DLC Item ${packCode}/${itemId} defaulting to enabled (pack unlocked, no localStorage entry)`)
   return true
 }
 
