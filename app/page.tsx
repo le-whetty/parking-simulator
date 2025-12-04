@@ -70,6 +70,7 @@ export default function Home() {
   const [isSimulatorMode, setIsSimulatorMode] = useState(false) // Simulator mode flag
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null) // Selected vehicle
   const selectedVehicleRef = useRef<Vehicle | null>(null) // Ref for selected vehicle (for game loop closures)
+  const [hasLicensePlateDLC, setHasLicensePlateDLC] = useState(false) // License plate DLC status
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -2513,6 +2514,19 @@ ${file}
             alt={selectedVehicle?.name || "Luke's Car"} 
             className="w-full h-full object-contain" 
           />
+          {/* License Plate Overlay (if DLC unlocked) */}
+          {hasLicensePlateDLC && (
+            <img
+              src="/images/license-plate.png"
+              alt="License Plate"
+              className="absolute bottom-0 left-1/2 transform -translate-x-1/2 z-35"
+              style={{
+                width: '12%', // <10% of car size as requested
+                height: 'auto',
+                maxHeight: '15%',
+              }}
+            />
+          )}
           {/* Luke's avatar */}
           <div className="absolute top-[-40px] left-[10px] w-[40px] h-[40px] rounded-full overflow-hidden border-2 border-white bg-white z-40">
             <img
