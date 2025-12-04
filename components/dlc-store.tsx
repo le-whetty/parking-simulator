@@ -91,7 +91,7 @@ Email: ${email || 'null'}
     
     await navigator.clipboard.writeText(message)
     setCopiedCode(dlcCode)
-    setTimeout(() => setCopiedCode(null), 3000)
+    // Don't auto-hide - let user dismiss manually
   }
 
   if (loading) {
@@ -177,9 +177,19 @@ Email: ${email || 'null'}
             </Button>
             {copiedCode === pack.code && (
               <div className="mt-4 p-4 bg-tracksuit-purple-50 rounded-lg border border-tracksuit-purple-200">
-                <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-2">
-                  <strong>Message copied!</strong> Follow the instructions below to submit your Spark Spend request.
-                </p>
+                <div className="flex items-start justify-between mb-2">
+                  <p className="text-sm text-tracksuit-purple-700 font-quicksand">
+                    <strong>Message copied!</strong> Follow the instructions below to submit your Spark Spend request.
+                  </p>
+                  <Button
+                    onClick={() => setCopiedCode(null)}
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-6 px-2"
+                  >
+                    ✕
+                  </Button>
+                </div>
                 <ol className="list-decimal list-inside space-y-1 text-xs text-tracksuit-purple-600 font-quicksand">
                   <li>Spend at least $10 on a teammate (can't be yourself)</li>
                   <li>Keep the receipt</li>
