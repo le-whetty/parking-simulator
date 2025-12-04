@@ -78,6 +78,11 @@ export default function Home() {
   const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-4)
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
+  const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
+  const connorHealthRef = useRef(1000) // Ref version for game loop
+  const [connorPosition, setConnorPosition] = useState({ x: 800, y: 300 }) // Connor's position
+  const connorPositionRef = useRef({ x: 800, y: 300 }) // Ref version for game loop
+  const connorDefeatedRef = useRef(false) // Track if Connor is defeated
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
