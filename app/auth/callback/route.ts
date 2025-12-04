@@ -5,12 +5,18 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next")
+  
+  // Check for preview redirect URL in cookie (set from preview deployment)
+  const cookies = request.cookies
+  const previewUrl = cookies.get('preview_redirect_url')?.value
 
   console.log('🔐 [CALLBACK] OAuth callback received:', {
     origin: requestUrl.origin,
     hostname: requestUrl.hostname,
     hasCode: !!code,
     next,
+    previewUrl,
+    hasPreviewCookie: !!previewUrl,
     fullUrl: requestUrl.toString()
   })
 
@@ -34,12 +40,44 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Redirect to root with a flag - client-side code will check localStorage and redirect to preview if needed
+  // If preview URL exists in cookie, redirect there server-side (works even if production doesn't have client code)
+  if (previewUrl) {
+    try {
+      const previewUrlObj = new URL(previewUrl)
+      const redirectPath = next || "/"
+      const finalUrl = new URL(redirectPath, previewUrlObj.origin)
+      
+      // Preserve hash if present (for hash-based redirects)
+      const hash = requestUrl.hash
+      if (hash) {
+        finalUrl.hash = hash
+      } else {
+        // If no hash, add auth_callback flag for client-side detection
+        finalUrl.searchParams.set('auth_callback', 'true')
+      }
+      
+      console.log('🔐 [CALLBACK] ⚡ Redirecting to preview deployment:', {
+        previewUrl,
+        finalUrl: finalUrl.toString(),
+        hasHash: !!hash
+      })
+      
+      // Clear the cookie after use
+      const response = NextResponse.redirect(finalUrl)
+      response.cookies.delete('preview_redirect_url')
+      return response
+    } catch (error) {
+      console.error('🔐 [CALLBACK] Error parsing preview URL:', error)
+      // Fall through to normal redirect
+    }
+  }
+
+  // Normal redirect (production or no preview URL)
   const redirectPath = next || "/"
   const redirectUrl = new URL(redirectPath, requestUrl.origin)
   redirectUrl.searchParams.set('auth_callback', 'true')
   
-  console.log('🔐 [CALLBACK] Redirecting to:', {
+  console.log('🔐 [CALLBACK] Redirecting to production:', {
     redirectUrl: redirectUrl.toString(),
     origin: redirectUrl.origin,
     pathname: redirectUrl.pathname,
