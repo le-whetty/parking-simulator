@@ -420,20 +420,40 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   {[1, 2, 3, 4, 5, 6, 7].map((level) => {
                     const isCurrentLevel = stats.title.title_level === level
                     const isCompleted = stats.title.title_level > level
+                    const levelTitles = [
+                      'Parking Manager',
+                      'Intermediate Parking Manager',
+                      'Senior Parking Manager',
+                      'Parking Lead',
+                      'Head of Parking',
+                      'VP Parking',
+                      'Chief Parking Officer',
+                    ]
+                    const levelTitle = levelTitles[level - 1]
                     
                     return (
                       <div key={level} className="flex items-center flex-1">
-                        <div className="flex flex-col items-center flex-1">
+                        <div className="flex flex-col items-center flex-1 relative group">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-chapeau ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-chapeau cursor-help transition-all ${
                               isCurrentLevel
                                 ? 'bg-tracksuit-purple-600 text-white ring-2 ring-tracksuit-purple-300 ring-offset-2'
                                 : isCompleted
                                 ? 'bg-tracksuit-green-500 text-white'
                                 : 'bg-gray-300 text-gray-600'
                             }`}
+                            title={levelTitle}
                           >
                             {level}
+                          </div>
+                          {/* Hover tooltip */}
+                          <div className="absolute bottom-full mb-2 hidden group-hover:block z-10">
+                            <div className="bg-tracksuit-purple-800 text-white text-xs font-quicksand px-2 py-1 rounded whitespace-nowrap shadow-lg">
+                              L{level}: {levelTitle}
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1">
+                                <div className="border-4 border-transparent border-t-tracksuit-purple-800"></div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                         {level < 7 && (
