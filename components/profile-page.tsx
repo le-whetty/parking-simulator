@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { Card } from "@/components/ui/card"
 
+interface Achievement {
+  code: string
+  name: string
+  description: string
+  image_url: string | null
+  category: string
+  unlocked_at: string
+}
+
 interface UserStats {
   user_email: string
   username: string | null
@@ -22,6 +31,7 @@ interface UserStats {
     top_score: number
     hotdogs_thrown: number
   }
+  achievements?: Achievement[]
 }
 
 interface ProfilePageProps {
@@ -223,12 +233,12 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         </p>
       </Card>
 
-      {/* Progression Section - Placeholder */}
+      {/* Progression Section */}
       <Card className="w-full p-6 mb-6">
         <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-4">
           Progression
         </h3>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-6">
           <img 
             src="/images/parking-permit.png" 
             alt="Parking Permit" 
@@ -239,9 +249,62 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             <p className="text-sm text-tracksuit-purple-500 font-quicksand">Your progression badge</p>
           </div>
         </div>
-        <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-4 italic">
-          Achievements and titles coming soon!
-        </p>
+
+        {/* Achievements */}
+        <div className="mt-6">
+          <h4 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-4">
+            Achievements ({stats.achievements?.length || 0})
+          </h4>
+          {stats.achievements && stats.achievements.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {stats.achievements.map((achievement) => (
+                <div
+                  key={achievement.code}
+                  className="p-4 bg-gradient-to-r from-tracksuit-green-50 via-tracksuit-green-100/50 to-tracksuit-green-50 border-2 border-tracksuit-green-300/50 rounded-lg"
+                >
+                  <div className="flex items-start gap-3">
+                    {achievement.image_url ? (
+                      <img
+                        src={achievement.image_url}
+                        alt={achievement.name}
+                        className="w-12 h-12 object-contain flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-tracksuit-green-500 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
+                        ✓
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h5 className="font-bold font-chapeau text-tracksuit-purple-800 mb-1">
+                        {achievement.name}
+                      </h5>
+                      <p className="text-xs text-tracksuit-purple-600 font-quicksand mb-2">
+                        {achievement.description}
+                      </p>
+                      <p className="text-xs text-tracksuit-purple-500 font-quicksand">
+                        Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-tracksuit-purple-500 font-quicksand italic">
+              No achievements unlocked yet. Keep playing to earn badges!
+            </p>
+          )}
+        </div>
+
+        {/* Titles - Placeholder */}
+        <div className="mt-6">
+          <h4 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-4">
+            Title
+          </h4>
+          <p className="text-sm text-tracksuit-purple-500 font-quicksand italic">
+            Title progression system coming soon!
+          </p>
+        </div>
       </Card>
     </div>
   )

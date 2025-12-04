@@ -2227,6 +2227,7 @@ ${file}
           />
         )}
         <VehicleSelection
+          onBack={() => setGameState("start")}
           onVehicleSelected={async (vehicle) => {
             setSelectedVehicle(vehicle)
             selectedVehicleRef.current = vehicle // Also update ref for game loop access

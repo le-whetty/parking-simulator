@@ -127,6 +127,32 @@ export async function GET(request: NextRequest) {
     // Date joined (from username creation)
     const dateJoined = usernameData?.created_at || null
 
+    // Get user achievements
+    const { data: userAchievements } = await supabase
+      .from('user_achievements')
+      .select(`
+        achievement_code,
+        unlocked_at,
+        achievements (
+          code,
+          name,
+          description,
+          image_url,
+          category
+        )
+      `)
+      .eq('user_email', userEmail)
+      .order('unlocked_at', { ascending: false })
+
+    const achievements = (userAchievements || []).map((ua: any) => ({
+      code: ua.achievement_code,
+      name: ua.achievements?.name || '',
+      description: ua.achievements?.description || '',
+      image_url: ua.achievements?.image_url || null,
+      category: ua.achievements?.category || 'general',
+      unlocked_at: ua.unlocked_at,
+    }))
+
     return NextResponse.json({
       user_email: userEmail,
       username: usernameData?.username || null,
@@ -143,7 +169,8 @@ export async function GET(request: NextRequest) {
         all_time_rank: allTimeRank,
         top_score: topScore,
         hotdogs_thrown: hotdogsThrown,
-      }
+      },
+      achievements
     })
   } catch (error) {
     console.error("Error fetching user stats:", error)
