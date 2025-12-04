@@ -18,6 +18,7 @@ import { ExplosionManager } from "@/components/explosion-manager"
 import { supabase } from "@/lib/supabase"
 import mixpanel from "@/lib/mixpanel"
 import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
+import { ACHIEVEMENT_CODES } from "@/lib/achievements"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat" | "profile" | "dlc-store"
@@ -1818,6 +1819,22 @@ ${file}
               score: score,
               vehicle_type: selectedVehicle?.id || null,
             })
+
+            // Check and award achievements on victory
+            const elapsedTimeSeconds = gameStartTimeRef.current > 0 
+              ? (Date.now() - gameStartTimeRef.current) / 1000
+              : 0
+            
+            await checkAndAwardAchievements(
+              session.user.email!,
+              {
+                perfectParking: lukeHealth === 100,
+                speedDemon: elapsedTimeSeconds < 20, // Under 20 seconds
+                tankCommander: lukeHealth <= 10,
+                comboMaster: maxComboRef.current >= 50,
+                gameSessionId: gameSessionIdRef.current || undefined,
+              }
+            )
           } else {
             mixpanel.track('Defeat', {
               user_id: session.user.id,
@@ -1853,6 +1870,61 @@ ${file}
 
     enemyProjectilesRef.current.forEach((projectile) => projectile.remove())
     enemyProjectilesRef.current = []
+  }
+
+  // Function to check and award achievements
+  async function checkAndAwardAchievements(
+    userEmail: string,
+    conditions: {
+      perfectParking: boolean
+      speedDemon: boolean
+      tankCommander: boolean
+      comboMaster: boolean
+      gameSessionId?: string
+    }
+  ) {
+    try {
+      const achievementsToAward: string[] = []
+
+      if (conditions.perfectParking) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.PERFECT_PARKING)
+      }
+      if (conditions.speedDemon) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.SPEED_DEMON)
+      }
+      if (conditions.tankCommander) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.TANK_COMMANDER)
+      }
+      if (conditions.comboMaster) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.COMBO_MASTER)
+      }
+
+      // Award achievements
+      for (const achievementCode of achievementsToAward) {
+        try {
+          const response = await fetch('/api/award-achievement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userEmail,
+              achievementCode,
+              gameSessionId: conditions.gameSessionId,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && !data.alreadyUnlocked) {
+              console.log(`🎉 Achievement unlocked: ${achievementCode}`)
+            }
+          }
+        } catch (error) {
+          console.error(`Error awarding achievement ${achievementCode}:`, error)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error)
+    }
   }
 
   // Toggle debug mode
