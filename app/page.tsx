@@ -2521,6 +2521,26 @@ ${file}
           </div>
         )}
 
+        {/* Radio song change button (DLC) */}
+        {hasAudioDLC && gameState === "playing" && (
+          <div className="absolute top-4 right-4 z-50">
+            <Button
+              onClick={() => {
+                const nextSong = ((currentRadioSong % 4) + 1) as 1 | 2 | 3 | 4
+                setCurrentRadioSong(nextSong)
+                audioManager.stop("radio1")
+                audioManager.stop("radio2")
+                audioManager.stop("radio3")
+                audioManager.stop("radio4")
+                audioManager.playRadio(nextSong)
+              }}
+              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau px-3 py-1 text-sm mb-2"
+            >
+              📻 Next Song
+            </Button>
+          </div>
+        )}
+
         {/* Game UI */}
         <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-start">
           <div className="bg-black/50 p-2 rounded-md">
