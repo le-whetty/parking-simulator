@@ -474,6 +474,17 @@ ${file}
   const startGame = async () => {
     console.log("startGame called!")
     
+    // Check for license plate DLC
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user?.email) {
+        const hasLicensePlate = await hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES)
+        setHasLicensePlateDLC(hasLicensePlate)
+      }
+    } catch (error) {
+      console.error("Error checking license plate DLC:", error)
+    }
+    
     // Track Game Started event
     try {
       const { data: { session } } = await supabase.auth.getSession()
