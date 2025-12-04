@@ -57,13 +57,6 @@ A fun, competitive browser game where players help Luke Amundson secure the cove
    NEXT_PUBLIC_SKIP_AUTH=false  # Set to "true" to skip auth in development
    ```
 
-   **Environments:**
-   - **Dev** (`localhost`): `NEXT_PUBLIC_SKIP_AUTH=true` - Skip auth, use production DB (read-only)
-   - **UAT** (`uat` branch): `NEXT_PUBLIC_SKIP_AUTH=false` - Full auth, use production DB (read/write)
-   - **Production** (`main` branch): `NEXT_PUBLIC_SKIP_AUTH=false` - Full auth, production DB
-   
-   See `UAT_SETUP.md` for UAT environment configuration.
-
 4. **Set up Supabase Database**
    
    You'll need to create the following tables in your Supabase database:
