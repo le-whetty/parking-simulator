@@ -7,6 +7,17 @@ import { hasDLCUnlocked } from "@/lib/dlc"
 import { supabase } from "@/lib/supabase"
 import Menu from "./menu"
 
+// Hide scrollbar styles
+const scrollbarHideStyles = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`
+
 interface VehicleSelectionProps {
   onVehicleSelected: (vehicle: Vehicle) => void
   onBack?: () => void
@@ -171,6 +182,7 @@ export default function VehicleSelection({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
+      <style>{scrollbarHideStyles}</style>
       <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
 
       {/* Back Button */}
@@ -359,9 +371,17 @@ export default function VehicleSelection({
 
                 {/* Select Button or Locked State */}
                 {isLocked ? (
-                  <div className="w-full text-center py-2 px-4 bg-gray-200 text-gray-500 rounded-lg font-chapeau cursor-not-allowed">
-                    🔒 DLC Required
-                  </div>
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (onViewDLCStore) {
+                        onViewDLCStore()
+                      }
+                    }}
+                    className="w-full bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau"
+                  >
+                    🔓 Unlock DLC
+                  </Button>
                 ) : (
                   <Button
                     onClick={(e) => {
