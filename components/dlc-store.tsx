@@ -21,8 +21,13 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
     async function loadDLC() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        const email = session?.user?.email || null
-        console.log("🔍 DLC Store: Session check:", { hasSession: !!session, email })
+        // Try multiple ways to get email
+        const email = session?.user?.email || session?.user?.user_metadata?.email || null
+        console.log("🔍 DLC Store: Session check:", { 
+          hasSession: !!session, 
+          email,
+          fullSession: session
+        })
         
         if (email) {
           setUserEmail(email)
@@ -30,7 +35,7 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
           console.log(`📦 DLC Store: Loaded ${items.length} items`, items)
           setDlcItems(items)
         } else {
-          console.warn("⚠️ DLC Store: No session found")
+          console.warn("⚠️ DLC Store: No email found in session")
           // Still try to load items (they should be publicly readable)
           const items = await getDLCItemsWithStatus('')
           console.log(`📦 DLC Store: Loaded ${items.length} items without session`, items)
