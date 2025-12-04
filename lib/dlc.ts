@@ -197,33 +197,22 @@ export async function syncDLCItemEnabledStatus(userEmail: string, packCode: stri
     const unlocks = await getUserUnlockedDLCs(userEmail)
     const unlock = unlocks.find(u => u.dlc_code === packCode)
     if (unlock) {
-      // Get all items in this pack
-      const items = await getAvailableDLCItems()
-      const packItems = items.filter(item => {
-        // Map pack codes to item IDs
-        if (packCode === DLC_CODES.AUDIO) {
-          return item.id === DLC_ITEM_IDS.FM_RADIO || item.id === DLC_ITEM_IDS.CAR_HORN
-        } else if (packCode === DLC_CODES.ACCESSORIES) {
-          return item.id === DLC_ITEM_IDS.LICENSE_PLATE
-        } else if (packCode === DLC_CODES.BOOSTS) {
-          return item.id === DLC_ITEM_IDS.RED_BULL_FRIDGE || item.id === DLC_ITEM_IDS.TRUCOAT || item.id === DLC_ITEM_IDS.COSTCO_CARD
-        } else if (packCode === DLC_CODES.VEHICLES) {
-          return item.id === DLC_ITEM_IDS.CARAVAN || item.id === DLC_ITEM_IDS.SWIFT
-        } else if (packCode === DLC_CODES.BOSS_BATTLE) {
-          return item.id === DLC_ITEM_IDS.CONNOR_BOSS
-        }
-        return false
-      })
+      // Import DLC_PACKS dynamically to avoid circular dependency
+      const { DLC_PACKS } = await import('./dlc-packs')
+      const pack = DLC_PACKS[packCode]
       
-      // Sync each item's enabled status (defaults to true if not explicitly disabled)
-      packItems.forEach(item => {
-        const key = `dlc_item_enabled_${packCode}_${item.id}`
-        if (localStorage.getItem(key) === null) {
-          // Only set if not already in localStorage (don't overwrite user preference)
-          const enabled = unlock.enabled !== false
-          localStorage.setItem(key, enabled.toString())
-        }
-      })
+      if (pack) {
+        // Sync each item's enabled status (defaults to true if not explicitly disabled)
+        pack.items.forEach(item => {
+          const key = `dlc_item_enabled_${packCode}_${item.id}`
+          if (localStorage.getItem(key) === null) {
+            // Only set if not already in localStorage (don't overwrite user preference)
+            const enabled = unlock.enabled !== false
+            localStorage.setItem(key, enabled.toString())
+            console.log(`📦 Synced ${item.id} to localStorage: ${enabled}`)
+          }
+        })
+      }
     }
   } catch (error) {
     console.error('Error syncing DLC enabled status:', error)
