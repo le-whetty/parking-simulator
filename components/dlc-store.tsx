@@ -21,9 +21,12 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
     async function loadDLC() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user?.email) {
-          setUserEmail(session.user.email)
-          const items = await getDLCItemsWithStatus(session.user.email)
+        const email = session?.user?.email || null
+        console.log("🔍 DLC Store: Session check:", { hasSession: !!session, email })
+        
+        if (email) {
+          setUserEmail(email)
+          const items = await getDLCItemsWithStatus(email)
           console.log(`📦 DLC Store: Loaded ${items.length} items`, items)
           setDlcItems(items)
         } else {

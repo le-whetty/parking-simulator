@@ -52,22 +52,70 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
   useEffect(() => {
     async function loadProfile() {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        console.log("🔍 ProfilePage: Starting to load profile...")
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (sessionError) {
+          console.error("❌ ProfilePage: Session error:", sessionError)
+        }
+        
+        console.log("🔍 ProfilePage: Session data:", { 
+          hasSession: !!session, 
+          hasUser: !!session?.user, 
+          email: session?.user?.email 
+        })
+        
         if (session?.user?.email) {
           setUserEmail(session.user.email)
           
           // Fetch user stats
-          const response = await fetch(`/api/user-stats?user_email=${encodeURIComponent(session.user.email)}`)
+          const apiUrl = `/api/user-stats?user_email=${encodeURIComponent(session.user.email)}`
+          console.log("🔍 ProfilePage: Fetching from:", apiUrl)
+          
+          const response = await fetch(apiUrl)
+          console.log("🔍 ProfilePage: Response status:", response.status, response.statusText)
+          
           if (response.ok) {
             const data = await response.json()
+            console.log("✅ ProfilePage: Received data:", data)
             setStats(data)
           } else {
             const errorData = await response.json().catch(() => ({}))
-            console.error("Error loading profile:", response.status, errorData)
+            console.error("❌ ProfilePage: Error loading profile:", response.status, errorData)
+            // Set minimal stats on error
+            setStats({
+              user_email: session.user.email,
+              username: null,
+              avatar_url: null,
+              display_name: null,
+              date_joined: null,
+              stats: {
+                games_played: 0,
+                victories: 0,
+                victory_percent: 0,
+                drivers_defeated: 0,
+                most_defeated_driver: 'None',
+                contest_rank: 999999,
+                all_time_rank: 999999,
+                top_score: 0,
+                hotdogs_thrown: 0,
+              },
+              achievements: [],
+              title: {
+                current_title: 'Parking Manager',
+                title_level: 1,
+                total_points: 0,
+                points_to_next_level: 0,
+              }
+            })
           }
+        } else {
+          console.warn("⚠️ ProfilePage: No session or email found")
+          setLoading(false)
         }
       } catch (error) {
-        console.error("Error loading profile:", error)
+        console.error("❌ ProfilePage: Error loading profile:", error)
+        setLoading(false)
       } finally {
         setLoading(false)
       }
