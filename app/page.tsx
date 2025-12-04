@@ -731,7 +731,13 @@ ${file}
           
           // Start theme music or radio (let countdown sound play out naturally)
           // Check if FM Radio is enabled (individual item check)
+          // Direct localStorage check for debugging
+          const radioKey = `dlc_item_enabled_${DLC_CODES.AUDIO}_${DLC_ITEM_IDS.FM_RADIO}`
+          const directCheck = typeof window !== 'undefined' ? localStorage.getItem(radioKey) : null
+          console.log(`🔍 Direct localStorage check: key="${radioKey}", value="${directCheck}", all localStorage keys:`, Object.keys(localStorage).filter(k => k.includes('dlc_item_enabled')))
+          
           const fmRadioEnabled = hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudioDLC)
+          console.log(`🎵 Final FM Radio check: hasAudioDLC=${hasAudioDLC}, fmRadioEnabled=${fmRadioEnabled}`)
           if (fmRadioEnabled) {
             // Play radio instead of theme
             console.log("📻 Starting FM Radio (DLC enabled)")
