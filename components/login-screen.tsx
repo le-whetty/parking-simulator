@@ -79,12 +79,13 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     
     // Use window.location.origin to automatically get the current domain
     const siteUrl = window.location.origin
-    const redirectUrl = `${siteUrl}/auth/callback`
+    const redirectUrl = `${siteUrl}/auth/callback?next=${encodeURIComponent(window.location.pathname + window.location.search)}`
     
     // Log everything for debugging
     console.log('🔐 Sign in attempt:', {
       siteUrl: siteUrl,
       redirectUrl: redirectUrl,
+      currentPath: window.location.pathname,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
       envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL
     })
@@ -96,6 +97,10 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
         provider: "google",
         options: {
           redirectTo: redirectUrl,
+          queryParams: {
+            // Force Supabase to use our redirect URL
+            redirect_to: redirectUrl,
+          },
           skipBrowserRedirect: false,
         },
       })

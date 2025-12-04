@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js"
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get("code")
+  const next = requestUrl.searchParams.get("next") // Check for next parameter
 
   if (code) {
     const supabase = createClient(
@@ -21,7 +22,17 @@ export async function GET(request: NextRequest) {
   // Preserve the origin from the request (UAT or production)
   // This ensures redirects stay on the same domain
   const origin = requestUrl.origin
-  const redirectUrl = new URL("/", origin)
+  
+  // If there's a next parameter, use it; otherwise redirect to root
+  const redirectPath = next || "/"
+  const redirectUrl = new URL(redirectPath, origin)
+  
+  console.log('🔐 Auth callback redirect:', {
+    origin,
+    redirectPath,
+    redirectUrl: redirectUrl.toString(),
+    requestUrl: requestUrl.toString()
+  })
   
   return NextResponse.redirect(redirectUrl)
 }
