@@ -1340,6 +1340,22 @@ ${file}
       }
     }
 
+    // Boss Battle: Update Connor's position (simple movement pattern)
+    if (gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current) {
+      // Connor moves slowly in a pattern (can be enhanced later)
+      const connorPos = connorPositionRef.current
+      const timeMs = Date.now()
+      const newX = connorPos.x + Math.sin(timeMs / 2000) * 0.5 // Slow horizontal movement
+      const newY = connorPos.y + Math.cos(timeMs / 2000) * 0.5 // Slow vertical movement
+      
+      // Keep Connor within bounds (accounting for 4x size)
+      const boundedX = Math.max(gameBounds.minX, Math.min(gameBounds.maxX - 560, newX))
+      const boundedY = Math.max(gameBounds.minY, Math.min(gameBounds.maxY - 320, newY))
+      
+      connorPositionRef.current = { x: boundedX, y: boundedY }
+      setConnorPosition({ x: boundedX, y: boundedY })
+    }
+    
     // Update drivers with dynamic movement
     // DOM updates happen every frame for smooth movement
     // React state is updated every frame but DOM takes precedence (no visual stutter)
