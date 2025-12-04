@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
-import { getDLCItemsWithStatus, DLC_CODES } from "@/lib/dlc"
+import { getDLCItemsWithStatus } from "@/lib/dlc"
 import type { DLCItem } from "@/lib/dlc"
+import { DLC_PACKS } from "@/lib/dlc-packs"
 
 interface DLCStoreProps {
   onBack: () => void
@@ -16,6 +17,7 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
   const [dlcItems, setDlcItems] = useState<(DLCItem & { unlocked: boolean; unlocked_at?: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
+  const [selectedPack, setSelectedPack] = useState<string | null>(null)
 
   useEffect(() => {
     async function loadDLC() {
@@ -103,6 +105,97 @@ Email: ${email || 'null'}
     )
   }
 
+  // If a pack is selected, show pack detail view
+  if (selectedPack && DLC_PACKS[selectedPack]) {
+    const pack = DLC_PACKS[selectedPack]
+    const packStatus = dlcItems.find(item => item.code === pack.code)
+    const isUnlocked = packStatus?.unlocked || false
+
+    return (
+      <div className="flex flex-col items-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
+        {/* Header */}
+        <div className="w-full mb-8">
+          <Button onClick={() => setSelectedPack(null)} variant="outline" className="mb-4 font-chapeau">
+            ← Back to Packs
+          </Button>
+          <h1 className="text-4xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 mb-2">
+            {pack.name}
+          </h1>
+          <p className="text-tracksuit-purple-700 font-quicksand">
+            {pack.description}
+          </p>
+        </div>
+
+        {/* Pack Items Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-6">
+          {pack.items.map((item) => (
+            <Card
+              key={item.id}
+              className="p-6 border-2 border-tracksuit-purple-200/50"
+            >
+              {item.image_url && (
+                <div className="w-full h-32 mb-4 flex items-center justify-center bg-white rounded-lg border border-tracksuit-purple-200">
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="max-w-full max-h-full object-contain"
+                  />
+                </div>
+              )}
+              <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-2">
+                {item.name}
+              </h3>
+              <p className="text-sm text-tracksuit-purple-600 font-quicksand">
+                {item.description}
+              </p>
+            </Card>
+          ))}
+        </div>
+
+        {/* Buy Pack Button */}
+        {isUnlocked ? (
+          <Card className="w-full p-6 bg-gradient-to-r from-tracksuit-green-50 via-tracksuit-green-100/50 to-tracksuit-green-50 border-2 border-tracksuit-green-300/50">
+            <div className="flex items-center justify-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-tracksuit-green-200 text-tracksuit-green-800 rounded-full text-sm font-semibold font-chapeau">
+                ✓ Unlocked
+              </div>
+              {packStatus?.unlocked_at && (
+                <span className="text-xs text-tracksuit-purple-500 font-quicksand">
+                  Unlocked {new Date(packStatus.unlocked_at).toLocaleDateString()}
+                </span>
+              )}
+            </div>
+          </Card>
+        ) : (
+          <Card className="w-full p-6">
+            <Button
+              onClick={() => copyToClipboard(pack.code)}
+              className="w-full font-chapeau text-lg py-6"
+              disabled={copiedCode === pack.code}
+            >
+              {copiedCode === pack.code ? '✓ Copied!' : 'Buy DLC Pack'}
+            </Button>
+            {copiedCode === pack.code && (
+              <div className="mt-4 p-4 bg-tracksuit-purple-50 rounded-lg border border-tracksuit-purple-200">
+                <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-2">
+                  <strong>Message copied!</strong> Follow the instructions below to submit your Spark Spend request.
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-xs text-tracksuit-purple-600 font-quicksand">
+                  <li>Spend at least $10 on a teammate (can't be yourself)</li>
+                  <li>Keep the receipt</li>
+                  <li>Submit it to <a href="https://airtable.com/appPCzcCydIa5NG3G/shrKp6ii5PWAaQDDZ" target="_blank" rel="noopener noreferrer" className="underline">Spark Spend fund</a></li>
+                  <li>Paste the copied message into the "Why did you spend it?" question</li>
+                  <li>Submit the form</li>
+                </ol>
+              </div>
+            )}
+          </Card>
+        )}
+      </div>
+    )
+  }
+
+  // Main pack list view
   return (
     <div className="flex flex-col items-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
       {/* Header */}
@@ -122,8 +215,8 @@ Email: ${email || 'null'}
       <Card className="w-full mb-6 p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 border-2 border-tracksuit-purple-300/50">
         <h2 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-3">How to Unlock DLC</h2>
         <ol className="list-decimal list-inside space-y-2 text-tracksuit-purple-700 font-quicksand">
-          <li>Click "Buy DLC Pack" on any pack below</li>
-          <li>Copy the message that appears</li>
+          <li>Click on any pack below to view its contents</li>
+          <li>Click "Buy DLC Pack" to copy the unlock message</li>
           <li>Spend at least $10 on a teammate (can't be yourself)</li>
           <li>Keep the receipt</li>
           <li>Submit it to <a href="https://airtable.com/appPCzcCydIa5NG3G/shrKp6ii5PWAaQDDZ" target="_blank" rel="noopener noreferrer" className="text-tracksuit-purple-600 underline">Spark Spend fund</a></li>
@@ -135,59 +228,52 @@ Email: ${email || 'null'}
 
       {/* DLC Packs Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-        {dlcItems.map((item) => (
-          <Card
-            key={item.id}
-            className={`p-6 ${item.unlocked ? 'bg-gradient-to-r from-tracksuit-green-50 via-tracksuit-green-100/50 to-tracksuit-green-50 border-2 border-tracksuit-green-300/50' : 'border-2 border-tracksuit-purple-200/50'}`}
-          >
-            {item.image_url && (
-              <div className="w-full h-32 mb-4 flex items-center justify-center bg-white rounded-lg border border-tracksuit-purple-200">
-                <img
-                  src={item.image_url}
-                  alt={item.name}
-                  className="max-w-full max-h-full object-contain"
-                />
-              </div>
-            )}
-            <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-2">
-              {item.name}
-            </h3>
-            {item.description && (
-              <p className="text-sm text-tracksuit-purple-600 font-quicksand mb-4">
-                {item.description}
-              </p>
-            )}
-            {item.unlocked ? (
-              <div className="mt-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 bg-tracksuit-green-200 text-tracksuit-green-800 rounded-full text-sm font-semibold font-chapeau">
-                  ✓ Unlocked
-                </div>
-                {item.unlocked_at && (
-                  <p className="text-xs text-tracksuit-purple-500 font-quicksand mt-2">
-                    Unlocked {new Date(item.unlocked_at).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="mt-4">
-                <Button
-                  onClick={() => copyToClipboard(item.code)}
-                  className="w-full font-chapeau"
-                  disabled={copiedCode === item.code}
-                >
-                  {copiedCode === item.code ? '✓ Copied!' : 'Buy DLC Pack'}
-                </Button>
-                {copiedCode === item.code && (
-                  <div className="mt-3 p-3 bg-tracksuit-purple-50 rounded-lg border border-tracksuit-purple-200">
-                    <p className="text-xs text-tracksuit-purple-700 font-quicksand mb-2">
-                      <strong>Message copied!</strong> Follow the instructions above to submit your Spark Spend request.
-                    </p>
+        {dlcItems
+          .filter(item => DLC_PACKS[item.code]) // Only show packs we have definitions for
+          .map((item) => {
+            const pack = DLC_PACKS[item.code]
+            return (
+              <Card
+                key={item.id}
+                className={`p-6 cursor-pointer transition-all hover:shadow-lg ${
+                  item.unlocked 
+                    ? 'bg-gradient-to-r from-tracksuit-green-50 via-tracksuit-green-100/50 to-tracksuit-green-50 border-2 border-tracksuit-green-300/50' 
+                    : 'border-2 border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300'
+                }`}
+                onClick={() => setSelectedPack(item.code)}
+              >
+                {pack.image_url && (
+                  <div className="w-full h-32 mb-4 flex items-center justify-center bg-white rounded-lg border border-tracksuit-purple-200">
+                    <img
+                      src={pack.image_url}
+                      alt={pack.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
                   </div>
                 )}
-              </div>
-            )}
-          </Card>
-        ))}
+                <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-2">
+                  {pack.name}
+                </h3>
+                <p className="text-sm text-tracksuit-purple-600 font-quicksand mb-4">
+                  {pack.description}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-tracksuit-purple-500 font-quicksand">
+                    {pack.items.length} item{pack.items.length !== 1 ? 's' : ''}
+                  </span>
+                  {item.unlocked ? (
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-tracksuit-green-200 text-tracksuit-green-800 rounded-full text-sm font-semibold font-chapeau">
+                      ✓ Unlocked
+                    </div>
+                  ) : (
+                    <span className="text-xs text-tracksuit-purple-500 font-quicksand">
+                      Click to view →
+                    </span>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
       </div>
 
       {dlcItems.length === 0 && (
@@ -198,4 +284,3 @@ Email: ${email || 'null'}
     </div>
   )
 }
-
