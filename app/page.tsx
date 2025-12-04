@@ -2079,7 +2079,7 @@ ${file}
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
     }
-  }, [gameState, showUsernameModal])
+  }, [gameState, showUsernameModal, hasAudioDLC, selectedHorn])
 
   // Render start screen
   const onInitializeAudio = () => {
@@ -2322,6 +2322,9 @@ ${file}
           onVictorySimulator={handleVictorySimulator}
           onViewProfile={() => setGameState("profile")}
           onViewDLCStore={() => setGameState("dlc-store")}
+          hasAudioDLC={hasAudioDLC}
+          selectedHorn={selectedHorn}
+          onHornChange={setSelectedHorn}
         />
       </>
     )
