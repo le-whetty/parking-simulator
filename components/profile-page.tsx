@@ -416,35 +416,36 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               
               {/* Level Progression Visualization */}
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1 mb-2">
                   {[1, 2, 3, 4, 5, 6, 7].map((level) => {
                     const isCurrentLevel = stats.title.title_level === level
                     const isCompleted = stats.title.title_level > level
-                    const levelNames = [
-                      'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'
-                    ]
                     
                     return (
-                      <div key={level} className="flex flex-col items-center flex-1">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-chapeau ${
-                            isCurrentLevel
-                              ? 'bg-tracksuit-purple-600 text-white ring-2 ring-tracksuit-purple-300 ring-offset-2'
-                              : isCompleted
-                              ? 'bg-tracksuit-green-500 text-white'
-                              : 'bg-gray-300 text-gray-600'
-                          }`}
-                        >
-                          {level}
+                      <div key={level} className="flex items-center flex-1">
+                        <div className="flex flex-col items-center flex-1">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-chapeau ${
+                              isCurrentLevel
+                                ? 'bg-tracksuit-purple-600 text-white ring-2 ring-tracksuit-purple-300 ring-offset-2'
+                                : isCompleted
+                                ? 'bg-tracksuit-green-500 text-white'
+                                : 'bg-gray-300 text-gray-600'
+                            }`}
+                          >
+                            {level}
+                          </div>
                         </div>
                         {level < 7 && (
                           <div
-                            className={`h-1 flex-1 mt-1 ${
-                              isCompleted || isCurrentLevel
+                            className={`h-1 flex-1 mx-1 ${
+                              isCompleted
+                                ? 'bg-tracksuit-green-500'
+                                : isCurrentLevel
                                 ? 'bg-tracksuit-purple-500'
                                 : 'bg-gray-300'
                             }`}
-                            style={{ width: '100%', minWidth: '20px' }}
+                            style={{ minWidth: '8px' }}
                           />
                         )}
                       </div>
@@ -452,8 +453,8 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   })}
                 </div>
                 <div className="flex justify-between mt-1 text-xs text-tracksuit-purple-600 font-quicksand">
-                  <span>Parking Manager</span>
-                  <span>Chief Parking Officer</span>
+                  <span>L1: Parking Manager</span>
+                  <span>L7: Chief Parking Officer</span>
                 </div>
               </div>
 
