@@ -2590,7 +2590,7 @@ ${file}
           selectedHorn={selectedHorn}
           onHornChange={(horn) => {
             setSelectedHorn(horn)
-            setSelectedHorn(horn) // Save to localStorage
+            saveSelectedHorn(horn) // Save to localStorage
           }}
           hasBossBattleDLC={hasBossBattleDLC}
           gameMode={gameMode}
