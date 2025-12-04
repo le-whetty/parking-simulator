@@ -7,7 +7,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    flowType: 'pkce', // Use PKCE flow (authorization code) instead of implicit flow
   },
 })
 
