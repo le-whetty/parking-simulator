@@ -405,7 +405,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           </h4>
           {stats.title ? (
             <div className="p-4 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 border-2 border-tracksuit-purple-300/50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-4">
                 <h5 className="text-xl font-bold font-chapeau text-tracksuit-purple-800">
                   {stats.title.current_title}
                 </h5>
@@ -413,6 +413,50 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                   L{stats.title.title_level}
                 </span>
               </div>
+              
+              {/* Level Progression Visualization */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  {[1, 2, 3, 4, 5, 6, 7].map((level) => {
+                    const isCurrentLevel = stats.title.title_level === level
+                    const isCompleted = stats.title.title_level > level
+                    const levelNames = [
+                      'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7'
+                    ]
+                    
+                    return (
+                      <div key={level} className="flex flex-col items-center flex-1">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold font-chapeau ${
+                            isCurrentLevel
+                              ? 'bg-tracksuit-purple-600 text-white ring-2 ring-tracksuit-purple-300 ring-offset-2'
+                              : isCompleted
+                              ? 'bg-tracksuit-green-500 text-white'
+                              : 'bg-gray-300 text-gray-600'
+                          }`}
+                        >
+                          {level}
+                        </div>
+                        {level < 7 && (
+                          <div
+                            className={`h-1 flex-1 mt-1 ${
+                              isCompleted || isCurrentLevel
+                                ? 'bg-tracksuit-purple-500'
+                                : 'bg-gray-300'
+                            }`}
+                            style={{ width: '100%', minWidth: '20px' }}
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="flex justify-between mt-1 text-xs text-tracksuit-purple-600 font-quicksand">
+                  <span>Parking Manager</span>
+                  <span>Chief Parking Officer</span>
+                </div>
+              </div>
+
               {stats.title.points_to_next_level > 0 ? (
                 <div className="mt-3">
                   <div className="flex justify-between items-center mb-1">
@@ -435,11 +479,11 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
                     {stats.title.total_points.toLocaleString()} / {(stats.title.total_points + stats.title.points_to_next_level).toLocaleString()} points
                   </p>
                 </div>
-              ) : (
+              ) : stats.title.title_level === 7 ? (
                 <p className="text-sm text-tracksuit-green-600 font-quicksand font-semibold mt-2">
                   🏆 Maximum level achieved!
                 </p>
-              )}
+              ) : null}
             </div>
           ) : (
             <div className="p-4 bg-tracksuit-purple-50 border-2 border-tracksuit-purple-200/50 rounded-lg">
