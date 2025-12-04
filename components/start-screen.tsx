@@ -114,37 +114,50 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
           <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">Select Car Horn 🚗</h3>
           <div className="flex flex-wrap gap-2 justify-center">
             <Button
-              onClick={() => onHornChange(1)}
+              onClick={() => {
+                audioManager.playHorn(1)
+                onHornChange(1)
+              }}
               className={`font-chapeau text-sm px-4 py-2 ${
                 selectedHorn === 1
                   ? 'bg-tracksuit-purple-600 text-white'
                   : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
               }`}
             >
-              Horn 1
+              Toot Toot
             </Button>
             <Button
-              onClick={() => onHornChange(2)}
+              onClick={() => {
+                audioManager.playHorn(2)
+                onHornChange(2)
+              }}
               className={`font-chapeau text-sm px-4 py-2 ${
                 selectedHorn === 2
                   ? 'bg-tracksuit-purple-600 text-white'
                   : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
               }`}
             >
-              Horn 2
+              Old Timey
             </Button>
             <Button
-              onClick={() => onHornChange(3)}
+              onClick={() => {
+                audioManager.playHorn(3)
+                onHornChange(3)
+              }}
               className={`font-chapeau text-sm px-4 py-2 ${
                 selectedHorn === 3
                   ? 'bg-tracksuit-purple-600 text-white'
                   : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
               }`}
             >
-              Horn 3
+              La Cucaracha
             </Button>
             <Button
-              onClick={() => onHornChange('random')}
+              onClick={() => {
+                const randomHorn = Math.floor(Math.random() * 3) + 1 as 1 | 2 | 3
+                audioManager.playHorn(randomHorn)
+                onHornChange('random')
+              }}
               className={`font-chapeau text-sm px-4 py-2 ${
                 selectedHorn === 'random'
                   ? 'bg-tracksuit-purple-600 text-white'

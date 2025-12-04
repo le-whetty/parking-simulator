@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase"
 import { getDLCItemsWithStatus, setDLCItemEnabled, isDLCItemEnabled, getSelectedHorn, setSelectedHorn, DLC_CODES } from "@/lib/dlc"
 import type { DLCItem } from "@/lib/dlc"
 import { DLC_PACKS } from "@/lib/dlc-packs"
+import { useAudioManager } from "@/hooks/use-audio-manager"
 
 interface DLCStoreProps {
   onBack: () => void
@@ -20,6 +21,14 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [selectedPack, setSelectedPack] = useState<string | null>(null)
   const [selectedHorn, setSelectedHornState] = useState<1 | 2 | 3 | 'random'>(1)
+  const audioManager = useAudioManager()
+  
+  // Horn name mapping
+  const hornNames: Record<1 | 2 | 3, string> = {
+    1: "Toot Toot",
+    2: "Old Timey",
+    3: "La Cucaracha",
+  }
   
   // Check if we're in dev mode (skip auth)
   const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true" || process.env.NEXT_PUBLIC_SKIP_AUTH === "1"
@@ -195,6 +204,15 @@ Email: ${email || 'null'}
                         <Button
                           key={horn}
                           onClick={() => {
+                            // Play preview sound
+                            if (horn !== 'random') {
+                              audioManager.playHorn(horn)
+                            } else {
+                              // Play random horn for preview
+                              const randomHorn = Math.floor(Math.random() * 3) + 1 as 1 | 2 | 3
+                              audioManager.playHorn(randomHorn)
+                            }
+                            // Save selection
                             setSelectedHorn(horn)
                             setSelectedHornState(horn)
                           }}
@@ -204,7 +222,7 @@ Email: ${email || 'null'}
                               : 'bg-white text-tracksuit-purple-800 hover:bg-tracksuit-purple-100'
                           }`}
                         >
-                          {horn === 'random' ? '🎲 Random' : `Horn ${horn}`}
+                          {horn === 'random' ? '🎲 Random' : hornNames[horn]}
                         </Button>
                       ))}
                     </div>
