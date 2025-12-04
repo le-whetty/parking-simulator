@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -100,6 +100,12 @@ export function useAudioManager() {
         if (type === "menuTheme") {
           audio.loop = true
           console.log("Menu theme audio element created:", audio.src)
+        }
+        
+        // Enable looping for radio songs
+        if (type.startsWith("radio")) {
+          audio.loop = true
+          console.log(`Radio song ${type} audio element created:`, audio.src)
         }
 
         // Store in our map
@@ -299,6 +305,19 @@ export function useAudioManager() {
     }
   }
 
+  // Play radio song (replaces theme music when radio DLC is enabled)
+  const playRadio = (songIndex: number) => {
+    const radioType = `radio${songIndex}` as SoundType
+    stop("theme") // Stop regular theme
+    play(radioType)
+  }
+
+  // Play car horn
+  const playHorn = (hornIndex: number) => {
+    const hornType = `carHorn${hornIndex}` as SoundType
+    play(hornType)
+  }
+
   return {
     initialized,
     enabled,
@@ -306,5 +325,7 @@ export function useAudioManager() {
     play,
     stop,
     stopAll,
+    playRadio,
+    playHorn,
   }
 }
