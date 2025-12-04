@@ -18,6 +18,9 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
   const [loading, setLoading] = useState(true)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [selectedPack, setSelectedPack] = useState<string | null>(null)
+  
+  // Check if we're in dev mode (skip auth)
+  const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true" || process.env.NEXT_PUBLIC_SKIP_AUTH === "1"
 
   useEffect(() => {
     async function loadDLC() {
