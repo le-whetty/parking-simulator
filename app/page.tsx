@@ -19,7 +19,7 @@ import { supabase } from "@/lib/supabase"
 import mixpanel from "@/lib/mixpanel"
 import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
 import { ACHIEVEMENT_CODES } from "@/lib/achievements"
-import { hasDLCUnlocked, DLC_CODES, isDLCItemEnabled, getSelectedHorn, setSelectedHorn, DLC_ITEM_IDS } from "@/lib/dlc"
+import { hasDLCUnlocked, DLC_CODES, isDLCItemEnabled, getSelectedHorn, setSelectedHorn, DLC_ITEM_IDS, syncDLCItemEnabledStatus } from "@/lib/dlc"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat" | "profile" | "dlc-store"
@@ -503,6 +503,12 @@ ${file}
           hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
           hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
         ])
+        
+        // Sync enabled status from database to localStorage for unlocked packs
+        if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
+        if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
+        if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
+        
         // Check individual item enable status
         const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
         const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)

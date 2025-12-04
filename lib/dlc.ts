@@ -187,6 +187,50 @@ export const DLC_ITEM_IDS = {
 } as const
 
 /**
+ * Sync DLC item enabled status from database to localStorage
+ * This ensures localStorage is up-to-date when checking item status
+ */
+export async function syncDLCItemEnabledStatus(userEmail: string, packCode: string): Promise<void> {
+  if (typeof window === 'undefined') return
+  
+  try {
+    const unlocks = await getUserUnlockedDLCs(userEmail)
+    const unlock = unlocks.find(u => u.dlc_code === packCode)
+    if (unlock) {
+      // Get all items in this pack
+      const items = await getAvailableDLCItems()
+      const packItems = items.filter(item => {
+        // Map pack codes to item IDs
+        if (packCode === DLC_CODES.AUDIO) {
+          return item.id === DLC_ITEM_IDS.FM_RADIO || item.id === DLC_ITEM_IDS.CAR_HORN
+        } else if (packCode === DLC_CODES.ACCESSORIES) {
+          return item.id === DLC_ITEM_IDS.LICENSE_PLATE
+        } else if (packCode === DLC_CODES.BOOSTS) {
+          return item.id === DLC_ITEM_IDS.RED_BULL_FRIDGE || item.id === DLC_ITEM_IDS.TRUCOAT || item.id === DLC_ITEM_IDS.COSTCO_CARD
+        } else if (packCode === DLC_CODES.VEHICLES) {
+          return item.id === DLC_ITEM_IDS.CARAVAN || item.id === DLC_ITEM_IDS.SWIFT
+        } else if (packCode === DLC_CODES.BOSS_BATTLE) {
+          return item.id === DLC_ITEM_IDS.CONNOR_BOSS
+        }
+        return false
+      })
+      
+      // Sync each item's enabled status (defaults to true if not explicitly disabled)
+      packItems.forEach(item => {
+        const key = `dlc_item_enabled_${packCode}_${item.id}`
+        if (localStorage.getItem(key) === null) {
+          // Only set if not already in localStorage (don't overwrite user preference)
+          const enabled = unlock.enabled !== false
+          localStorage.setItem(key, enabled.toString())
+        }
+      })
+    }
+  } catch (error) {
+    console.error('Error syncing DLC enabled status:', error)
+  }
+}
+
+/**
  * Check if an individual DLC item is enabled
  * Checks both pack unlock status and item preference
  */
