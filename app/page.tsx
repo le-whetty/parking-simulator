@@ -56,33 +56,92 @@ export default function Home() {
 
   // Handle preview deployment redirect after OAuth callback
   useEffect(() => {
+    console.log('🔐 [CLIENT] Checking for auth callback:', {
+      currentOrigin: window.location.origin,
+      currentHostname: window.location.hostname,
+      currentPath: window.location.pathname,
+      currentSearch: window.location.search,
+      fullUrl: window.location.href
+    })
+    
     // Check if we just came from an auth callback
     const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('auth_callback') === 'true') {
+    const hasAuthCallback = urlParams.get('auth_callback') === 'true'
+    
+    console.log('🔐 [CLIENT] Auth callback check:', {
+      hasAuthCallback,
+      urlParams: Object.fromEntries(urlParams.entries())
+    })
+    
+    if (hasAuthCallback) {
       // Check for saved preview URL in localStorage
-      const previewUrl = localStorage.getItem('preview_redirect_url')
+      let previewUrl: string | null = null
+      try {
+        previewUrl = localStorage.getItem('preview_redirect_url')
+        console.log('🔐 [CLIENT] localStorage check:', {
+          previewUrl,
+          currentOrigin: window.location.origin,
+          match: previewUrl === window.location.origin,
+          localStorageAvailable: typeof Storage !== 'undefined'
+        })
+      } catch (error) {
+        console.error('🔐 [CLIENT] Error reading localStorage:', error)
+      }
+      
       if (previewUrl && window.location.origin !== previewUrl) {
         // We're on production but should redirect to preview
         const currentPath = window.location.pathname
         const currentSearch = window.location.search.replace('auth_callback=true', '').replace(/^&|&$/g, '')
         const redirectTo = `${previewUrl}${currentPath}${currentSearch ? (currentPath.includes('?') ? '&' : '?') + currentSearch : ''}`
-        console.log('🔐 Redirecting back to preview deployment:', redirectTo)
+        console.log('🔐 [CLIENT] Redirecting back to preview deployment:', {
+          from: window.location.origin,
+          to: previewUrl,
+          redirectTo,
+          currentPath,
+          currentSearch
+        })
         // Clear the preview URL from localStorage after redirect
-        localStorage.removeItem('preview_redirect_url')
+        try {
+          localStorage.removeItem('preview_redirect_url')
+        } catch (error) {
+          console.error('🔐 [CLIENT] Error clearing localStorage:', error)
+        }
         window.location.href = redirectTo
         return
       } else if (previewUrl && window.location.origin === previewUrl) {
         // We're already on the preview URL, clean up
-        localStorage.removeItem('preview_redirect_url')
+        console.log('🔐 [CLIENT] Already on preview URL, cleaning up:', {
+          previewUrl,
+          currentOrigin: window.location.origin
+        })
+        try {
+          localStorage.removeItem('preview_redirect_url')
+        } catch (error) {
+          console.error('🔐 [CLIENT] Error clearing localStorage:', error)
+        }
         // Remove auth_callback param
         const newUrl = new URL(window.location.href)
         newUrl.searchParams.delete('auth_callback')
         window.history.replaceState({}, '', newUrl.toString())
       } else {
         // No preview URL, just clean up the param
+        console.log('🔐 [CLIENT] No preview URL found, cleaning up param:', {
+          previewUrl,
+          currentOrigin: window.location.origin
+        })
         const newUrl = new URL(window.location.href)
         newUrl.searchParams.delete('auth_callback')
         window.history.replaceState({}, '', newUrl.toString())
+      }
+    } else {
+      // Not an auth callback, but log current state for debugging
+      const storedPreviewUrl = localStorage.getItem('preview_redirect_url')
+      if (storedPreviewUrl) {
+        console.log('🔐 [CLIENT] No auth_callback param, but preview URL exists in localStorage:', {
+          storedPreviewUrl,
+          currentOrigin: window.location.origin,
+          match: storedPreviewUrl === window.location.origin
+        })
       }
     }
   }, [])

@@ -6,12 +6,27 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code")
   const next = requestUrl.searchParams.get("next")
 
+  console.log('🔐 [CALLBACK] OAuth callback received:', {
+    origin: requestUrl.origin,
+    hostname: requestUrl.hostname,
+    hasCode: !!code,
+    next,
+    fullUrl: requestUrl.toString()
+  })
+
   if (code) {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
     )
-    const { data: { session } } = await supabase.auth.exchangeCodeForSession(code)
+    const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
+    
+    console.log('🔐 [CALLBACK] Session exchange:', {
+      hasSession: !!session,
+      hasError: !!error,
+      userId: session?.user?.id,
+      email: session?.user?.email
+    })
     
     // Track Sign Up event on successful authentication
     if (session?.user) {
@@ -23,6 +38,13 @@ export async function GET(request: NextRequest) {
   const redirectPath = next || "/"
   const redirectUrl = new URL(redirectPath, requestUrl.origin)
   redirectUrl.searchParams.set('auth_callback', 'true')
+  
+  console.log('🔐 [CALLBACK] Redirecting to:', {
+    redirectUrl: redirectUrl.toString(),
+    origin: redirectUrl.origin,
+    pathname: redirectUrl.pathname,
+    search: redirectUrl.search
+  })
   
   return NextResponse.redirect(redirectUrl)
 }

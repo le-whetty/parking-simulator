@@ -79,9 +79,19 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     
     // Detect if we're on a Vercel preview deployment
     const currentHost = window.location.hostname
+    const currentOrigin = window.location.origin
     const isPreviewDeployment = currentHost.includes('vercel.app') && 
                                  currentHost !== 'ts-parking-simulator.vercel.app' &&
                                  !currentHost.includes('localhost')
+    
+    console.log('🔐 [LOGIN] Preview detection:', {
+      currentHost,
+      currentOrigin,
+      includesVercelApp: currentHost.includes('vercel.app'),
+      isProduction: currentHost === 'ts-parking-simulator.vercel.app',
+      isLocalhost: currentHost.includes('localhost'),
+      isPreviewDeployment
+    })
     
     // Use production URL for OAuth redirect (Google Console only allows specific URLs)
     const productionUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://ts-parking-simulator.vercel.app'
@@ -89,22 +99,37 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     
     // If preview deployment, save preview URL to localStorage for client-side redirect after OAuth
     if (isPreviewDeployment) {
-      const previewUrl = window.location.origin
-      localStorage.setItem('preview_redirect_url', previewUrl)
-      console.log('🔐 Preview deployment detected, saved URL to localStorage:', previewUrl)
+      const previewUrl = currentOrigin
+      try {
+        localStorage.setItem('preview_redirect_url', previewUrl)
+        const saved = localStorage.getItem('preview_redirect_url')
+        console.log('🔐 [LOGIN] Preview deployment detected:', {
+          previewUrl,
+          savedToLocalStorage: saved,
+          localStorageMatch: saved === previewUrl
+        })
+      } catch (error) {
+        console.error('🔐 [LOGIN] Failed to save preview URL to localStorage:', error)
+      }
     } else {
       // Clear any saved preview URL if on production
-      localStorage.removeItem('preview_redirect_url')
+      const existing = localStorage.getItem('preview_redirect_url')
+      if (existing) {
+        console.log('🔐 [LOGIN] Clearing existing preview URL from localStorage:', existing)
+        localStorage.removeItem('preview_redirect_url')
+      }
     }
     
     // Log everything for debugging
-    console.log('🔐 Sign in attempt:', {
-      currentHost: currentHost,
-      isPreviewDeployment: isPreviewDeployment,
-      previewUrl: isPreviewDeployment ? window.location.origin : null,
-      redirectUrl: redirectUrl,
+    console.log('🔐 [LOGIN] Sign in attempt:', {
+      currentHost,
+      currentOrigin,
+      isPreviewDeployment,
+      previewUrl: isPreviewDeployment ? currentOrigin : null,
+      redirectUrl,
       supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-      envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL
+      envSiteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+      localStoragePreviewUrl: localStorage.getItem('preview_redirect_url')
     })
     
     try {
