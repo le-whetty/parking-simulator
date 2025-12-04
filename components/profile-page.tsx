@@ -32,6 +32,12 @@ interface UserStats {
     hotdogs_thrown: number
   }
   achievements?: Achievement[]
+  title?: {
+    current_title: string
+    title_level: number
+    total_points: number
+    points_to_next_level: number
+  } | null
 }
 
 interface ProfilePageProps {
@@ -299,14 +305,56 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           )}
         </div>
 
-        {/* Titles - Placeholder */}
+        {/* Title */}
         <div className="mt-6">
           <h4 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-4">
             Title
           </h4>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand italic">
-            Title progression system coming soon!
-          </p>
+          {stats.title ? (
+            <div className="p-4 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 border-2 border-tracksuit-purple-300/50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="text-xl font-bold font-chapeau text-tracksuit-purple-800">
+                  {stats.title.current_title}
+                </h5>
+                <span className="px-3 py-1 bg-tracksuit-purple-600 text-white rounded-full text-sm font-semibold font-chapeau">
+                  L{stats.title.title_level}
+                </span>
+              </div>
+              {stats.title.points_to_next_level > 0 ? (
+                <div className="mt-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs text-tracksuit-purple-600 font-quicksand">
+                      Progress to next level
+                    </span>
+                    <span className="text-xs text-tracksuit-purple-600 font-quicksand font-semibold">
+                      {stats.title.points_to_next_level.toLocaleString()} points needed
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="h-2 rounded-full bg-gradient-to-r from-tracksuit-purple-500 to-tracksuit-purple-600 transition-all"
+                      style={{
+                        width: `${Math.min(100, ((stats.title.total_points / (stats.title.total_points + stats.title.points_to_next_level)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-tracksuit-purple-500 font-quicksand mt-1">
+                    {stats.title.total_points.toLocaleString()} / {(stats.title.total_points + stats.title.points_to_next_level).toLocaleString()} points
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-tracksuit-green-600 font-quicksand font-semibold mt-2">
+                  🏆 Maximum level achieved!
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="p-4 bg-tracksuit-purple-50 border-2 border-tracksuit-purple-200/50 rounded-lg">
+              <p className="text-sm text-tracksuit-purple-600 font-quicksand">
+                Play games to earn your first title!
+              </p>
+            </div>
+          )}
         </div>
       </Card>
     </div>

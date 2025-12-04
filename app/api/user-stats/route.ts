@@ -97,6 +97,15 @@ export async function GET(request: NextRequest) {
     // Top score
     const topScore = scores?.[0]?.score || 0
 
+    // Get or update user title based on top score
+    const { data: titleData } = await supabase
+      .rpc('update_user_title_from_points', {
+        user_email_param: userEmail,
+        new_total_points: topScore,
+      })
+
+    const userTitle = titleData && titleData.length > 0 ? titleData[0] : null
+
     // Get rankings
     // Contest rank (personal best)
     const { data: allScores } = await supabase
@@ -170,7 +179,13 @@ export async function GET(request: NextRequest) {
         top_score: topScore,
         hotdogs_thrown: hotdogsThrown,
       },
-      achievements
+      achievements,
+      title: userTitle ? {
+        current_title: userTitle.current_title,
+        title_level: userTitle.title_level,
+        total_points: userTitle.total_points,
+        points_to_next_level: userTitle.points_to_next_level || 0,
+      } : null
     })
   } catch (error) {
     console.error("Error fetching user stats:", error)
