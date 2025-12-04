@@ -99,18 +99,22 @@ export async function getAvailableDLCItems(): Promise<DLCItem[]> {
  */
 export async function getDLCItemsWithStatus(userEmail: string): Promise<(DLCItem & { unlocked: boolean; unlocked_at?: string })[]> {
   try {
-    const [items, unlocks] = await Promise.all([
-      getAvailableDLCItems(),
-      getUserUnlockedDLCs(userEmail)
-    ])
+    // Get items (should work even without auth due to RLS policy)
+    const items = await getAvailableDLCItems()
+    
+    // Only check unlocks if we have a user email
+    const unlocks = userEmail ? await getUserUnlockedDLCs(userEmail) : []
 
     const unlockMap = new Map(unlocks.map(u => [u.dlc_code, u]))
 
-    return items.map(item => ({
+    const result = items.map(item => ({
       ...item,
       unlocked: unlockMap.has(item.code),
       unlocked_at: unlockMap.get(item.code)?.unlocked_at
     }))
+    
+    console.log(`📦 getDLCItemsWithStatus: ${items.length} items, ${unlocks.length} unlocks for ${userEmail || 'anonymous'}`)
+    return result
   } catch (error) {
     console.error('Error fetching DLC items with status:', error)
     return []
