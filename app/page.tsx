@@ -19,6 +19,7 @@ import { supabase } from "@/lib/supabase"
 import mixpanel from "@/lib/mixpanel"
 import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
 import { ACHIEVEMENT_CODES } from "@/lib/achievements"
+import { hasDLCUnlocked, DLC_CODES } from "@/lib/dlc"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat" | "profile" | "dlc-store"
@@ -143,6 +144,7 @@ export default function Home() {
   const slackIntervalRef = useRef<number | null>(null)
   const menuThemeStoppedRef = useRef<boolean>(false) // Track if menu theme has been stopped
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null) // Ref for countdown interval
+  const gameSessionIdRef = useRef<string | null>(null) // Game session ID (optional, for future session tracking)
 
   // Combo milestone definitions
   const comboMilestones = [
@@ -493,12 +495,19 @@ ${file}
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user?.email) {
+        console.log("🔍 Checking DLC unlocks for:", session.user.email)
         const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
           hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
           hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
           hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
           hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
         ])
+        console.log("✅ DLC Status:", {
+          accessories: hasLicensePlate,
+          boosts: hasBoosts,
+          audio: hasAudio,
+          bossBattle: hasBossBattle
+        })
         setHasLicensePlateDLC(hasLicensePlate)
         setHasBoostsDLC(hasBoosts)
         setHasAudioDLC(hasAudio)
@@ -518,9 +527,16 @@ ${file}
         } else {
           setBoostType(null)
         }
+      } else {
+        console.log("⚠️ No session or email found, skipping DLC check")
       }
     } catch (error) {
-      console.error("Error checking DLC:", error)
+      console.error("❌ Error checking DLC:", error)
+      // Set all DLC to false on error to prevent issues
+      setHasLicensePlateDLC(false)
+      setHasBoostsDLC(false)
+      setHasAudioDLC(false)
+      setHasBossBattleDLC(false)
     }
     
     // Track Game Started event
@@ -869,14 +885,6 @@ ${file}
     if (now - lastHotdogTime.current < 300) return // Cooldown
 
     lastHotdogTime.current = now
-
-    // Log hotdog thrown event
-    if (gameSessionIdRef.current && gameStartTimeRef.current > 0) {
-      const timestamp = Date.now() - gameStartTimeRef.current
-      logGameEvent('hotdog_thrown', {
-        timestamp_ms: timestamp,
-      })
-    }
 
     // Track Hot Dog Fired event
     try {
