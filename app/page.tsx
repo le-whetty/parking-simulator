@@ -19,7 +19,7 @@ import { supabase } from "@/lib/supabase"
 import mixpanel from "@/lib/mixpanel"
 import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
 import { ACHIEVEMENT_CODES } from "@/lib/achievements"
-import { hasDLCUnlocked, DLC_CODES } from "@/lib/dlc"
+import { hasDLCUnlocked, DLC_CODES, isDLCItemEnabled, getSelectedHorn, setSelectedHorn, DLC_ITEM_IDS } from "@/lib/dlc"
 
 // Game states
 type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat" | "profile" | "dlc-store"
@@ -503,16 +503,28 @@ ${file}
           hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
           hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
         ])
+        // Check individual item enable status
+        const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
+        const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
+        const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+        
         console.log("✅ DLC Status:", {
           accessories: hasLicensePlate,
           boosts: hasBoosts,
           audio: hasAudio,
-          bossBattle: hasBossBattle
+          bossBattle: hasBossBattle,
+          fmRadio: hasFMRadio,
+          carHorn: hasCarHorn,
+          licensePlate: hasLicensePlateItem
         })
-        setHasLicensePlateDLC(hasLicensePlate)
+        setHasLicensePlateDLC(hasLicensePlateItem)
         setHasBoostsDLC(hasBoosts)
-        setHasAudioDLC(hasAudio)
+        setHasAudioDLC(hasAudio) // Keep pack-level check for UI
         setHasBossBattleDLC(hasBossBattle)
+        
+        // Load horn selection from localStorage
+        const savedHorn = getSelectedHorn()
+        setSelectedHorn(savedHorn)
         
         // If boosts DLC is unlocked, determine which boost to apply based on vehicle
         if (hasBoosts && selectedVehicle) {
@@ -710,10 +722,14 @@ ${file}
           setCountdown(null)
           
           // Start theme music or radio (let countdown sound play out naturally)
-          if (hasAudioDLC) {
+          // Check if FM Radio is enabled (individual item check)
+          const fmRadioEnabled = hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudioDLC)
+          if (fmRadioEnabled) {
             // Play radio instead of theme
+            console.log("📻 Starting FM Radio (DLC enabled)")
             audioManager.playRadio(currentRadioSong)
           } else {
+            console.log("🎵 Starting theme music (FM Radio not enabled)")
             audioManager.play("theme")
           }
           
@@ -2258,8 +2274,9 @@ ${file}
         throwHotdog()
       }
 
-      // Process car horn (DLC) - press 'H' key
-      if (hasAudioDLC && (keysPressed.has("h") || keysPressed.has("H"))) {
+      // Process car horn (DLC) - press 'H' key (check individual item enabled)
+      const carHornEnabled = hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudioDLC)
+      if (carHornEnabled && (keysPressed.has("h") || keysPressed.has("H"))) {
         if (selectedHorn === 'random') {
           const randomHorn = Math.floor(Math.random() * 3) + 1 as 1 | 2 | 3
           audioManager.playHorn(randomHorn)
@@ -2571,7 +2588,10 @@ ${file}
           onViewDLCStore={() => setGameState("dlc-store")}
           hasAudioDLC={hasAudioDLC}
           selectedHorn={selectedHorn}
-          onHornChange={setSelectedHorn}
+          onHornChange={(horn) => {
+            setSelectedHorn(horn)
+            setSelectedHorn(horn) // Save to localStorage
+          }}
           hasBossBattleDLC={hasBossBattleDLC}
           gameMode={gameMode}
           onGameModeChange={setGameMode}
@@ -2771,8 +2791,8 @@ ${file}
           </div>
         )}
 
-        {/* Radio song change button (DLC) */}
-        {hasAudioDLC && gameState === "playing" && (
+        {/* Radio song change button (DLC) - check individual item enabled */}
+        {hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudioDLC) && gameState === "playing" && (
           <div className="absolute top-4 right-4 z-50">
             <Button
               onClick={() => {

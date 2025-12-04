@@ -17,16 +17,17 @@ export interface DLCUnlock {
   dlc_code: string
   unlocked_at: string
   unlocked_via: string
+  enabled?: boolean
 }
 
 /**
- * Check if a user has a specific DLC unlocked
+ * Check if a user has a specific DLC unlocked AND enabled
  */
 export async function hasDLCUnlocked(userEmail: string, dlcCode: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
       .from('dlc_unlocks')
-      .select('id')
+      .select('id, enabled')
       .eq('user_email', userEmail)
       .eq('dlc_code', dlcCode)
       .maybeSingle()
@@ -36,9 +37,47 @@ export async function hasDLCUnlocked(userEmail: string, dlcCode: string): Promis
       return false
     }
 
-    return !!data
+    // DLC must be unlocked AND enabled
+    return !!data && (data.enabled !== false) // Default to true if null
   } catch (error) {
     console.error('Error checking DLC unlock:', error)
+    return false
+  }
+}
+
+/**
+ * Enable or disable a DLC item for a user
+ */
+export async function setDLCEnabled(userEmail: string, dlcCode: string, enabled: boolean): Promise<boolean> {
+  try {
+    // First check if unlock exists
+    const { data: existing } = await supabase
+      .from('dlc_unlocks')
+      .select('id')
+      .eq('user_email', userEmail)
+      .eq('dlc_code', dlcCode)
+      .maybeSingle()
+
+    if (!existing) {
+      console.error('Cannot enable/disable DLC that is not unlocked')
+      return false
+    }
+
+    // Update enabled status
+    const { error } = await supabase
+      .from('dlc_unlocks')
+      .update({ enabled })
+      .eq('user_email', userEmail)
+      .eq('dlc_code', dlcCode)
+
+    if (error) {
+      console.error('Error updating DLC enabled status:', error)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.error('Error updating DLC enabled status:', error)
     return false
   }
 }
@@ -97,7 +136,7 @@ export async function getAvailableDLCItems(): Promise<DLCItem[]> {
 /**
  * Get DLC items with unlock status for a user
  */
-export async function getDLCItemsWithStatus(userEmail: string): Promise<(DLCItem & { unlocked: boolean; unlocked_at?: string })[]> {
+export async function getDLCItemsWithStatus(userEmail: string): Promise<(DLCItem & { unlocked: boolean; enabled: boolean; unlocked_at?: string })[]> {
   try {
     // Get items (should work even without auth due to RLS policy)
     const items = await getAvailableDLCItems()
@@ -107,11 +146,15 @@ export async function getDLCItemsWithStatus(userEmail: string): Promise<(DLCItem
 
     const unlockMap = new Map(unlocks.map(u => [u.dlc_code, u]))
 
-    const result = items.map(item => ({
-      ...item,
-      unlocked: unlockMap.has(item.code),
-      unlocked_at: unlockMap.get(item.code)?.unlocked_at
-    }))
+    const result = items.map(item => {
+      const unlock = unlockMap.get(item.code)
+      return {
+        ...item,
+        unlocked: !!unlock,
+        enabled: unlock?.enabled !== false, // Default to true if null
+        unlocked_at: unlock?.unlocked_at
+      }
+    })
     
     console.log(`📦 getDLCItemsWithStatus: ${items.length} items, ${unlocks.length} unlocks for ${userEmail || 'anonymous'}`)
     return result
@@ -129,4 +172,69 @@ export const DLC_CODES = {
   BOOSTS: 'DLC_BOOSTS',
   BOSS_BATTLE: 'DLC_BOSS_BATTLE',
 } as const
+
+// Individual DLC item IDs (for enable/disable preferences)
+export const DLC_ITEM_IDS = {
+  FM_RADIO: 'fm-radio',
+  CAR_HORN: 'car-horn',
+  LICENSE_PLATE: 'license-plate',
+  RED_BULL_FRIDGE: 'red-bull-fridge',
+  TRUCOAT: 'trucoat',
+  COSTCO_CARD: 'costco-card',
+  CARAVAN: 'caravan',
+  SWIFT: 'swift',
+  CONNOR_BOSS: 'connor-boss',
+} as const
+
+/**
+ * Check if an individual DLC item is enabled
+ * Checks both pack unlock status and item preference
+ */
+export function isDLCItemEnabled(packCode: string, itemId: string, packUnlocked: boolean): boolean {
+  if (!packUnlocked) return false
+  
+  // Check localStorage for item preference (defaults to enabled)
+  if (typeof window !== 'undefined') {
+    const key = `dlc_item_enabled_${packCode}_${itemId}`
+    const stored = localStorage.getItem(key)
+    if (stored !== null) {
+      return stored === 'true'
+    }
+  }
+  
+  // Default to enabled if pack is unlocked
+  return true
+}
+
+/**
+ * Set individual DLC item enabled status
+ */
+export function setDLCItemEnabled(packCode: string, itemId: string, enabled: boolean): void {
+  if (typeof window !== 'undefined') {
+    const key = `dlc_item_enabled_${packCode}_${itemId}`
+    localStorage.setItem(key, enabled.toString())
+  }
+}
+
+/**
+ * Get selected horn preference
+ */
+export function getSelectedHorn(): 1 | 2 | 3 | 'random' {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('selected_horn')
+    if (stored === '1' || stored === '2' || stored === '3' || stored === 'random') {
+      return stored as 1 | 2 | 3 | 'random'
+    }
+  }
+  return 1 // Default
+}
+
+/**
+ * Set selected horn preference
+ */
+export function setSelectedHorn(horn: 1 | 2 | 3 | 'random'): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('selected_horn', horn.toString())
+  }
+}
 

@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { supabase } from "@/lib/supabase"
-import { getDLCItemsWithStatus } from "@/lib/dlc"
+import { getDLCItemsWithStatus, setDLCItemEnabled, isDLCItemEnabled, getSelectedHorn, setSelectedHorn, DLC_CODES } from "@/lib/dlc"
 import type { DLCItem } from "@/lib/dlc"
 import { DLC_PACKS } from "@/lib/dlc-packs"
 
@@ -14,10 +15,11 @@ interface DLCStoreProps {
 
 export default function DLCStore({ onBack }: DLCStoreProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [dlcItems, setDlcItems] = useState<(DLCItem & { unlocked: boolean; unlocked_at?: string })[]>([])
+  const [dlcItems, setDlcItems] = useState<(DLCItem & { unlocked: boolean; enabled: boolean; unlocked_at?: string })[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedCode, setCopiedCode] = useState<string | null>(null)
   const [selectedPack, setSelectedPack] = useState<string | null>(null)
+  const [selectedHorn, setSelectedHornState] = useState<1 | 2 | 3 | 'random'>(1)
   
   // Check if we're in dev mode (skip auth)
   const isDevMode = process.env.NEXT_PUBLIC_SKIP_AUTH === "true" || process.env.NEXT_PUBLIC_SKIP_AUTH === "1"
@@ -57,6 +59,9 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
     }
 
     loadDLC()
+    
+    // Load horn selection from localStorage
+    setSelectedHornState(getSelectedHorn())
   }, [])
 
   const copyToClipboard = async (dlcCode: string) => {
@@ -131,28 +136,83 @@ Email: ${email || 'null'}
 
         {/* Pack Items Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mb-6">
-          {pack.items.map((item) => (
-            <Card
-              key={item.id}
-              className="p-6 border-2 border-tracksuit-purple-200/50"
-            >
-              {item.image_url && (
-                <div className="w-full h-32 mb-4 flex items-center justify-center bg-white rounded-lg border border-tracksuit-purple-200">
-                  <img
-                    src={item.image_url}
-                    alt={item.name}
-                    className="max-w-full max-h-full object-contain"
-                  />
+          {pack.items.map((item) => {
+            const itemEnabled = isDLCItemEnabled(pack.code, item.id, isUnlocked)
+            
+            return (
+              <Card
+                key={item.id}
+                className={`p-6 border-2 ${
+                  isUnlocked && itemEnabled
+                    ? 'border-tracksuit-green-300/50 bg-tracksuit-green-50/30'
+                    : 'border-tracksuit-purple-200/50'
+                }`}
+              >
+                {item.image_url && (
+                  <div className="w-full h-32 mb-4 flex items-center justify-center bg-white rounded-lg border border-tracksuit-purple-200">
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                )}
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800">
+                    {item.name}
+                  </h3>
+                  {isUnlocked && (
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-quicksand ${
+                        itemEnabled ? 'text-tracksuit-green-700' : 'text-tracksuit-purple-500'
+                      }`}>
+                        {itemEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                      <Switch
+                        checked={itemEnabled}
+                        onCheckedChange={(checked) => {
+                          setDLCItemEnabled(pack.code, item.id, checked)
+                          // Force re-render by updating state
+                          setDlcItems(prev => [...prev])
+                        }}
+                        disabled={!isUnlocked}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-              <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-2">
-                {item.name}
-              </h3>
-              <p className="text-sm text-tracksuit-purple-600 font-quicksand">
-                {item.description}
-              </p>
-            </Card>
-          ))}
+                <p className="text-sm text-tracksuit-purple-600 font-quicksand mb-4">
+                  {item.description}
+                </p>
+                
+                {/* Horn Selection (only for Car Horn item) */}
+                {isUnlocked && item.id === 'car-horn' && itemEnabled && (
+                  <div className="mt-4 p-4 bg-tracksuit-purple-50 rounded-lg border border-tracksuit-purple-200">
+                    <h4 className="text-sm font-bold font-chapeau text-tracksuit-purple-800 mb-2">
+                      Select Horn Sound
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {([1, 2, 3, 'random'] as const).map((horn) => (
+                        <Button
+                          key={horn}
+                          onClick={() => {
+                            setSelectedHorn(horn)
+                            setSelectedHornState(horn)
+                          }}
+                          className={`font-chapeau text-xs px-3 py-1 ${
+                            selectedHorn === horn
+                              ? 'bg-tracksuit-purple-600 text-white'
+                              : 'bg-white text-tracksuit-purple-800 hover:bg-tracksuit-purple-100'
+                          }`}
+                        >
+                          {horn === 'random' ? '🎲 Random' : `Horn ${horn}`}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )
+          })}
         </div>
 
         {/* Buy Pack Button */}
