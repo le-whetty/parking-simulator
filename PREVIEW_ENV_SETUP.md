@@ -13,18 +13,18 @@ This guide explains how to set up a preview environment for testing with authent
 We use a client-side workaround that:
 1. Detects preview deployments and saves the URL to localStorage
 2. Uses production URL for OAuth (which is configured in Google Console)
-3. After OAuth callback, redirects back to the preview URL with auth data
+3. After OAuth callback, uses client-side JavaScript to check localStorage and redirect back to preview
 
 ## How It Works
 
 ### Flow:
 
 1. **User visits preview deployment**: `https://my-app-git-feature-abc123.vercel.app/`
-2. **App detects preview**: Saves URL to `localStorage` as `preview_redirect_url`
-3. **User clicks "Sign in with Google"**: OAuth redirects to production URL (configured in Google Console)
-4. **Production callback**: Receives auth code, exchanges for session, then redirects with `auth_callback=true` flag
-5. **Client-side redirect**: Checks localStorage, sees preview URL, redirects back to preview with auth data
-6. **User stays on preview**: Authentication complete, user remains on preview deployment
+2. **App detects preview**: Saves URL to `localStorage` as `preview_redirect_url` before OAuth
+3. **User clicks "Sign in with Google"**: OAuth redirects to production callback URL (configured in Google Console)
+4. **Production callback**: Receives auth code, exchanges for session, then redirects to production root with `auth_callback=true` query param
+5. **Client-side redirect**: JavaScript checks localStorage, sees preview URL, redirects back to preview deployment
+6. **User stays on preview**: Authentication complete, user remains on preview deployment with session intact
 
 ## Configuration
 
@@ -69,16 +69,19 @@ The implementation includes:
 
 1. **Preview Detection** (`components/login-screen.tsx`):
    - Detects Vercel preview URLs (contains `vercel.app` but not production domain)
-   - Saves preview URL to localStorage before OAuth
+   - Saves preview URL to `localStorage` as `preview_redirect_url` before OAuth
+   - Clears localStorage if on production
 
 2. **Auth Callback** (`app/auth/callback/route.ts`):
-   - Exchanges OAuth code for session
-   - Redirects with `auth_callback=true` flag
+   - Exchanges OAuth code for session (server-side)
+   - Redirects to production root with `auth_callback=true` query param
+   - Note: Can't access localStorage server-side, so we use client-side redirect
 
 3. **Client Redirect** (`app/page.tsx`):
-   - Checks for `auth_callback` param
-   - Reads preview URL from localStorage
-   - Redirects back to preview if needed
+   - Checks for `auth_callback=true` query param on page load
+   - Reads `preview_redirect_url` from localStorage
+   - If preview URL exists and differs from current origin, redirects to preview
+   - Cleans up localStorage and query params after redirect
 
 ## Benefits
 
