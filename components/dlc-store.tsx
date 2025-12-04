@@ -71,7 +71,12 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
     
     // Load horn selection from localStorage
     setSelectedHornState(getSelectedHorn())
-  }, [])
+    
+    // Initialize audio manager for horn previews
+    if (!audioManager.initialized) {
+      audioManager.initialize()
+    }
+  }, [audioManager])
 
   const copyToClipboard = async (dlcCode: string) => {
     // Get email from session if not already set
