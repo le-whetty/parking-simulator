@@ -62,14 +62,19 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         console.log("🔍 ProfilePage: Session data:", { 
           hasSession: !!session, 
           hasUser: !!session?.user, 
-          email: session?.user?.email 
+          email: session?.user?.email,
+          fullSession: session
         })
         
-        if (session?.user?.email) {
-          setUserEmail(session.user.email)
+        // Check for email in multiple ways (session might have different structure)
+        const email = session?.user?.email || session?.user?.user_metadata?.email || null
+        console.log("🔍 ProfilePage: Extracted email:", email)
+        
+        if (email) {
+          setUserEmail(email)
           
           // Fetch user stats
-          const apiUrl = `/api/user-stats?user_email=${encodeURIComponent(session.user.email)}`
+          const apiUrl = `/api/user-stats?user_email=${encodeURIComponent(email)}`
           console.log("🔍 ProfilePage: Fetching from:", apiUrl)
           
           const response = await fetch(apiUrl)
@@ -84,7 +89,7 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
             console.error("❌ ProfilePage: Error loading profile:", response.status, errorData)
             // Set minimal stats on error
             setStats({
-              user_email: session.user.email,
+              user_email: email,
               username: null,
               avatar_url: null,
               display_name: null,

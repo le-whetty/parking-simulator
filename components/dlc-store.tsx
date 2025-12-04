@@ -51,8 +51,17 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
     let email = userEmail
     if (!email) {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        email = session?.user?.email || null
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log("🔍 DLC Store: Session check:", { 
+          hasSession: !!session, 
+          hasUser: !!session?.user, 
+          email: session?.user?.email,
+          sessionError,
+          fullSession: session
+        })
+        
+        // Try multiple ways to get email
+        email = session?.user?.email || session?.user?.user_metadata?.email || null
         console.log("🔍 DLC Store: Retrieved email from session:", email)
       } catch (error) {
         console.error("Error getting email:", error)
@@ -65,9 +74,7 @@ DLC Code: ${dlcCode}
 
 Email: ${email || 'null'}
 
-[INSERT WHAT YOU GIFTED AND WHY HERE]
-
-Please spend at least $10 on a teammate (can't be yourself), keep the receipt, and submit it to the Spark Spend fund with this message included in the "Why did you spend it?" question.`
+[INSERT WHAT YOU GIFTED AND WHY HERE]`
     
     await navigator.clipboard.writeText(message)
     setCopiedCode(dlcCode)
