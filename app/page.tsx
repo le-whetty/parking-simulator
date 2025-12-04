@@ -1350,6 +1350,7 @@ ${file}
         audioManager.stop("countdown")
       }
     }
+    }
 
     // Boss Battle: Update Connor's position (simple movement pattern)
     if (gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current) {
