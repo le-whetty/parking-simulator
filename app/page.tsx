@@ -2266,6 +2266,20 @@ ${file}
           audioManager.playHorn(selectedHorn)
         }
       }
+
+      // Process radio song change (DLC) - press 'R' key
+      if (hasAudioDLC && (keysPressed.has("r") || keysPressed.has("R"))) {
+        const nextSong = ((currentRadioSong % 4) + 1) as 1 | 2 | 3 | 4
+        setCurrentRadioSong(nextSong)
+        audioManager.stop("radio1")
+        audioManager.stop("radio2")
+        audioManager.stop("radio3")
+        audioManager.stop("radio4")
+        audioManager.playRadio(nextSong)
+        // Remove 'R' from keysPressed to prevent rapid switching
+        keysPressed.delete("r")
+        keysPressed.delete("R")
+      }
     }, 50) // Process keys every 50ms
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2275,7 +2289,7 @@ ${file}
       }
 
       // Prevent default for game controls to avoid browser scrolling
-      if (["w", "W", "a", "A", "s", "S", "d", "D", " ", "Space"].includes(e.key) || e.code === "Space") {
+      if (["w", "W", "a", "A", "s", "S", "d", "D", " ", "Space", "r", "R", "h", "H"].includes(e.key) || e.code === "Space") {
         e.preventDefault()
       }
 

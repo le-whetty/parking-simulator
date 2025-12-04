@@ -63,7 +63,7 @@ export const DLC_PACKS: Record<string, DLCPack> = {
       {
         id: 'fm-radio',
         name: 'FM Radio',
-        description: 'Replace the game theme music with your own radio station. Switch between 4 curated songs during gameplay.',
+        description: 'Replace the game theme music with your own radio station. Switch between 4 curated songs during gameplay. Click the "📻 Next Song" button in the top right or press R to change songs.',
         image_url: '/images/dlc-items/radio-dlc-item.png',
         type: 'audio',
       },
