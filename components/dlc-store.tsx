@@ -46,17 +46,32 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
     loadDLC()
   }, [])
 
-  const copyToClipboard = (dlcCode: string) => {
+  const copyToClipboard = async (dlcCode: string) => {
+    // Get email from session if not already set
+    let email = userEmail
+    if (!email) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        email = session?.user?.email || null
+        console.log("🔍 DLC Store: Retrieved email from session:", email)
+      } catch (error) {
+        console.error("Error getting email:", error)
+      }
+    }
+    
     const message = `Parking Simulator DLC Unlock
+
 DLC Code: ${dlcCode}
-Email: ${userEmail}
+
+Email: ${email || 'null'}
+
+[INSERT WHAT YOU GIFTED AND WHY HERE]
 
 Please spend at least $10 on a teammate (can't be yourself), keep the receipt, and submit it to the Spark Spend fund with this message included in the "Why did you spend it?" question.`
     
-    navigator.clipboard.writeText(message).then(() => {
-      setCopiedCode(dlcCode)
-      setTimeout(() => setCopiedCode(null), 3000)
-    })
+    await navigator.clipboard.writeText(message)
+    setCopiedCode(dlcCode)
+    setTimeout(() => setCopiedCode(null), 3000)
   }
 
   if (loading) {
