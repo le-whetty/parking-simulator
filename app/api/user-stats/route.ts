@@ -162,6 +162,7 @@ export async function GET(request: NextRequest) {
       unlocked_at: ua.unlocked_at,
     }))
 
+    // Always return data, even if minimal
     return NextResponse.json({
       user_email: userEmail,
       username: usernameData?.username || null,
@@ -173,26 +174,53 @@ export async function GET(request: NextRequest) {
         victories: victoryCount,
         victory_percent: victoryPercent,
         drivers_defeated: driversDefeated,
-        most_defeated_driver: mostDefeatedDriver,
-        contest_rank: contestRank,
-        all_time_rank: allTimeRank,
+        most_defeated_driver: mostDefeatedDriver || 'None',
+        contest_rank: contestRank || 999999,
+        all_time_rank: allTimeRank || 999999,
         top_score: topScore,
         hotdogs_thrown: hotdogsThrown,
       },
-      achievements,
+      achievements: achievements || [],
       title: userTitle ? {
         current_title: userTitle.current_title,
         title_level: userTitle.title_level,
         total_points: userTitle.total_points,
         points_to_next_level: userTitle.points_to_next_level || 0,
-      } : null
+      } : {
+        current_title: 'Parking Manager',
+        title_level: 1,
+        total_points: 0,
+        points_to_next_level: 0,
+      }
     })
   } catch (error) {
     console.error("Error fetching user stats:", error)
-    return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
-    )
+    // Return minimal data even on error so profile page can display
+    return NextResponse.json({
+      user_email: userEmail,
+      username: null,
+      avatar_url: null,
+      display_name: null,
+      date_joined: null,
+      stats: {
+        games_played: 0,
+        victories: 0,
+        victory_percent: 0,
+        drivers_defeated: 0,
+        most_defeated_driver: 'None',
+        contest_rank: 999999,
+        all_time_rank: 999999,
+        top_score: 0,
+        hotdogs_thrown: 0,
+      },
+      achievements: [],
+      title: {
+        current_title: 'Parking Manager',
+        title_level: 1,
+        total_points: 0,
+        points_to_next_level: 0,
+      }
+    })
   }
 }
 

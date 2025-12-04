@@ -71,6 +71,9 @@ export async function getUserUnlockedDLCs(userEmail: string): Promise<DLCUnlock[
  */
 export async function getAvailableDLCItems(): Promise<DLCItem[]> {
   try {
+    // Ensure we have a session for RLS
+    const { data: { session } } = await supabase.auth.getSession()
+    
     const { data, error } = await supabase
       .from('dlc_items')
       .select('*')
@@ -79,9 +82,11 @@ export async function getAvailableDLCItems(): Promise<DLCItem[]> {
 
     if (error) {
       console.error('Error fetching DLC items:', error)
+      console.error('Error details:', JSON.stringify(error, null, 2))
       return []
     }
 
+    console.log(`✅ Loaded ${data?.length || 0} DLC items`)
     return data || []
   } catch (error) {
     console.error('Error fetching DLC items:', error)

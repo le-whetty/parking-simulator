@@ -24,6 +24,13 @@ export default function DLCStore({ onBack }: DLCStoreProps) {
         if (session?.user?.email) {
           setUserEmail(session.user.email)
           const items = await getDLCItemsWithStatus(session.user.email)
+          console.log(`📦 DLC Store: Loaded ${items.length} items`, items)
+          setDlcItems(items)
+        } else {
+          console.warn("⚠️ DLC Store: No session found")
+          // Still try to load items (they should be publicly readable)
+          const items = await getDLCItemsWithStatus('')
+          console.log(`📦 DLC Store: Loaded ${items.length} items without session`, items)
           setDlcItems(items)
         }
       } catch (error) {
