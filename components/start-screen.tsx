@@ -119,7 +119,11 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
 
       {/* Start Game buttons */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
-        {!isDLCLoading && hasBossBattleDLC && onGameModeChange ? (
+        {isDLCLoading ? (
+          <div className="text-tracksuit-purple-600 font-quicksand text-sm opacity-75">
+            Loading game options...
+          </div>
+        ) : hasBossBattleDLC && onGameModeChange ? (
           <>
             <Button 
               size="lg" 

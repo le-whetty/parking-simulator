@@ -84,7 +84,7 @@ export default function Home() {
   const radioShuffleQueueRef = useRef<number[]>([]) // Queue of shuffled songs
   const radioPlayedSongsRef = useRef<Set<number>>(new Set()) // Track which songs have been played in current shuffle
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
-  const [isDLCLoading, setIsDLCLoading] = useState(false) // Loading state for DLC check
+  const [isDLCLoading, setIsDLCLoading] = useState(true) // Loading state for DLC check - start as true to show loading immediately
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
   const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
   const connorHealthRef = useRef(1000) // Ref version for game loop
