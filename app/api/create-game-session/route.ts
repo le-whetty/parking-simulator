@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { user_email, user_id } = body
+    const { user_email, user_id, game_mode } = body
 
     if (!user_email) {
       return NextResponse.json(
@@ -32,13 +32,14 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Insert session
+    // Insert session with game_mode
     const { data, error } = await supabase
       .from('game_sessions')
       .insert({
         user_email,
         user_id: user_id || null,
         started_at: new Date().toISOString(),
+        game_mode: game_mode || "I'm Parkin' Here!",
       })
       .select()
       .single()

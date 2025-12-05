@@ -14,11 +14,12 @@ interface StartScreenProps {
   onViewProfile?: () => void
   onViewDLCStore?: () => void
   hasBossBattleDLC?: boolean
+  isDLCLoading?: boolean
   gameMode?: 'normal' | 'boss-battle'
   onGameModeChange?: (mode: 'normal' | 'boss-battle') => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasBossBattleDLC, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasBossBattleDLC, isDLCLoading = false, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -106,9 +107,19 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
       </div>
 
 
+      {/* DLC Loading Indicator */}
+      {isDLCLoading && (
+        <div className="w-full mb-4 text-center">
+          <div className="inline-flex items-center gap-2 text-tracksuit-purple-600 font-quicksand">
+            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-tracksuit-purple-600"></div>
+            <span className="text-sm">Checking DLC...</span>
+          </div>
+        </div>
+      )}
+
       {/* Start Game buttons */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
-        {hasBossBattleDLC && onGameModeChange ? (
+        {!isDLCLoading && hasBossBattleDLC && onGameModeChange ? (
           <>
             <Button 
               size="lg" 

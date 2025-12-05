@@ -393,6 +393,45 @@ export function useAudioManager() {
     play(hornType)
   }
 
+  // Wait for a specific sound to be ready to play
+  const waitForSoundReady = async (type: SoundType, timeoutMs: number = 5000): Promise<boolean> => {
+    const sound = soundsRef.current.get(type)
+    if (!sound) {
+      console.log(`Sound ${type} not found in map`)
+      return false
+    }
+
+    // If already ready, return immediately
+    if (sound.readyState >= 3) { // HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA
+      return true
+    }
+
+    // Wait for the sound to be ready
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.warn(`Timeout waiting for ${type} to be ready`)
+        resolve(false)
+      }, timeoutMs)
+
+      const checkReady = () => {
+        if (sound.readyState >= 3) {
+          clearTimeout(timeout)
+          sound.removeEventListener('canplaythrough', checkReady)
+          resolve(true)
+        }
+      }
+
+      sound.addEventListener('canplaythrough', checkReady)
+      
+      // Check immediately in case it's already ready
+      if (sound.readyState >= 3) {
+        clearTimeout(timeout)
+        sound.removeEventListener('canplaythrough', checkReady)
+        resolve(true)
+      }
+    })
+  }
+
   return {
     initialized,
     enabled,
@@ -403,5 +442,6 @@ export function useAudioManager() {
     playRadio,
     switchRadioSong,
     playHorn,
+    waitForSoundReady,
   }
 }

@@ -84,6 +84,7 @@ export default function Home() {
   const radioShuffleQueueRef = useRef<number[]>([]) // Queue of shuffled songs
   const radioPlayedSongsRef = useRef<Set<number>>(new Set()) // Track which songs have been played in current shuffle
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
+  const [isDLCLoading, setIsDLCLoading] = useState(true) // Loading state for DLC check
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
   const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
   const connorHealthRef = useRef(1000) // Ref version for game loop
@@ -533,6 +534,7 @@ ${file}
     // DLC check and session creation will happen in background
     
     // Check for DLC unlocks (non-blocking - run in background)
+    setIsDLCLoading(true)
     ;(async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -604,6 +606,7 @@ ${file}
           }
         } else {
           console.log("⚠️ No session or email found, skipping DLC check")
+          setIsDLCLoading(false)
         }
       } catch (error) {
         console.error("❌ Error checking DLC:", error)
@@ -612,6 +615,9 @@ ${file}
         setHasBoostsDLC(false)
         setHasAudioDLC(false)
         setHasBossBattleDLC(false)
+        setIsDLCLoading(false)
+      } finally {
+        setIsDLCLoading(false)
       }
     })()
     
@@ -635,6 +641,7 @@ ${file}
               body: JSON.stringify({
                 user_email: session.user.email,
                 user_id: session.user.id,
+                game_mode: gameMode === 'boss-battle' ? "Boss Battle" : "I'm Parkin' Here!",
               }),
             })
             if (sessionResponse.ok) {
@@ -852,13 +859,24 @@ ${file}
       })
     }
     
-    // Set countdown to 3 and play audio immediately
-    setCountdown(3)
-    audioManager.play("3-2-1")
-    
-    // Start countdown interval immediately - first tick happens after 1 second
-    // This ensures the countdown shows 3, then after 1s shows 2, then 1, then starts game
-    countdownIntervalRef.current = setInterval(startCountdown, 1000)
+    // Wait for countdown audio to be ready before starting countdown
+    audioManager.waitForSoundReady("3-2-1", 5000).then((ready) => {
+      if (ready) {
+        // Set countdown to 3 and play audio
+        setCountdown(3)
+        audioManager.play("3-2-1")
+        
+        // Start countdown interval immediately - first tick happens after 1 second
+        // This ensures the countdown shows 3, then after 1s shows 2, then 1, then starts game
+        countdownIntervalRef.current = setInterval(startCountdown, 1000)
+      } else {
+        // Fallback: start countdown even if audio isn't ready
+        console.warn("Countdown audio not ready, starting countdown anyway")
+        setCountdown(3)
+        audioManager.play("3-2-1")
+        countdownIntervalRef.current = setInterval(startCountdown, 1000)
+      }
+    })
     
     // Log container dimensions
     if (gameContainerRef.current) {
@@ -1105,51 +1123,62 @@ ${file}
 
   // Find the enemyAttack function and update it to use the bottle and crutches images
 
-  // Connor boss attack - fires Tracksuit Values cards
+  // Connor boss attack - fires Tracksuit Values cards from multiple angles
   const connorAttack = (deltaTimeMs: number) => {
     if (connorDefeatedRef.current || hasWon || !gameReadyRef.current) return
     
-    // Connor attacks faster: 1.2 attacks per second
-    const attackRatePerSecond = 1.2
+    // Connor attacks faster: 2.5 attacks per second (increased from 1.2)
+    const attackRatePerSecond = 2.5
     const attackProbability = attackRatePerSecond * (deltaTimeMs / 1000)
     if (Math.random() > attackProbability) return
 
-    // Create projectile element
-    const projectile = document.createElement("div")
-    projectile.className = "absolute z-20"
+    // Fire 1-3 projectiles at once (multiple angles)
+    const numProjectiles = Math.floor(Math.random() * 3) + 1 // 1, 2, or 3 projectiles
+    
+    for (let i = 0; i < numProjectiles; i++) {
+      // Create projectile element
+      const projectile = document.createElement("div")
+      projectile.className = "absolute z-20"
 
-    // Create image element for Tracksuit Values card (random card 1-6)
-    const projectileImg = document.createElement("img")
-    const cardNumber = Math.floor(Math.random() * 6) + 1
-    projectileImg.src = `/images/tracksuit-value-cards/tracksuit-value-card-${cardNumber}.png`
-    projectileImg.className = "w-16 h-auto"
-    projectileImg.alt = `Tracksuit Value Card ${cardNumber}`
+      // Create image element for Tracksuit Values card (random card 1-6)
+      const projectileImg = document.createElement("img")
+      const cardNumber = Math.floor(Math.random() * 6) + 1
+      projectileImg.src = `/images/tracksuit-value-cards/tracksuit-value-card-${cardNumber}.png`
+      projectileImg.className = "w-16 h-auto"
+      projectileImg.alt = `Tracksuit Value Card ${cardNumber}`
 
-    // Append image to the projectile div
-    projectile.appendChild(projectileImg)
+      // Append image to the projectile div
+      projectile.appendChild(projectileImg)
 
-    // Position projectile at Connor's Polestar (center of vehicle, 4x bigger)
-    const connorPos = connorPositionRef.current
-    projectile.style.left = `${connorPos.x + 100}px` // Polestar is 4x bigger, so center offset is larger
-    projectile.style.top = `${connorPos.y + 100}px`
+      // Position projectile at Connor's Polestar (center of vehicle, 3x bigger)
+      const connorPos = connorPositionRef.current
+      projectile.style.left = `${connorPos.x + 75}px` // Polestar is 3x bigger, so center offset is 75px
+      projectile.style.top = `${connorPos.y + 75}px`
 
-    // Calculate direction vector towards Luke
-    const lukePos = lukePositionRef.current
-    const dx = lukePos.x - connorPos.x
-    const dy = lukePos.y - connorPos.y
-    const distance = Math.sqrt(dx * dx + dy * dy)
+      // Calculate direction vector towards Luke with angle variation
+      const lukePos = lukePositionRef.current
+      const dx = lukePos.x - connorPos.x
+      const dy = lukePos.y - connorPos.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
 
-    // Normalize and store direction
-    const dirX = dx / distance
-    const dirY = dy / distance
-    projectile.dataset.dirX = dirX.toString()
-    projectile.dataset.dirY = dirY.toString()
+      // Add angle variation for multiple projectiles (spread pattern)
+      const baseAngle = Math.atan2(dy, dx)
+      const angleVariation = (i - (numProjectiles - 1) / 2) * 0.3 // Spread angle: -0.3, 0, 0.3 radians
+      const finalAngle = baseAngle + angleVariation
 
-    // Add to game container
-    gameContainerRef.current?.appendChild(projectile)
+      // Normalize and store direction with angle variation
+      const dirX = Math.cos(finalAngle)
+      const dirY = Math.sin(finalAngle)
+      projectile.dataset.dirX = dirX.toString()
+      projectile.dataset.dirY = dirY.toString()
+      projectile.dataset.isConnorProjectile = "true" // Mark as Connor's projectile for increased damage
 
-    // Add to enemy projectiles ref
-    enemyProjectilesRef.current.push(projectile)
+      // Add to game container
+      gameContainerRef.current?.appendChild(projectile)
+
+      // Add to enemy projectiles ref
+      enemyProjectilesRef.current.push(projectile)
+    }
   }
 
   // Enemy attack - frame-rate independent
@@ -1798,8 +1827,8 @@ ${file}
               handleComboMilestone(comboCountRef.current)
             }
             
-            // Check if Connor is defeated
-            if (newHealth <= 0) {
+            // Check if Connor is defeated - trigger victory immediately
+            if (newHealth <= 0 && !connorDefeatedRef.current && !victoryRef.current) {
               connorDefeatedRef.current = true
               setExplosions(prev => [...prev, { 
                 id: 'connor', 
@@ -1807,6 +1836,31 @@ ${file}
                 y: connorPositionRef.current.y + 200 
               }])
               audioManager.play("explosion")
+              
+              // Calculate time bonus (1 point per second remaining)
+              const currentTime = Date.now()
+              const elapsedTime = currentTime - gameStartTimeRef.current
+              const timeLeftMs = Math.max(0, gameDurationRef.current - elapsedTime)
+              const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
+              const timeBonus = timeLeftSeconds
+              
+              // Calculate score (base score from hits, no parking bonus needed)
+              // Use setScore callback to get current score and add time bonus
+              setScore((currentScore) => {
+                const finalScore = currentScore + timeBonus
+                return finalScore
+              })
+              victoryRef.current = true
+              setHasWon(true)
+              
+              // Stop game sounds
+              audioManager.stop("theme")
+              audioManager.stopAll()
+              
+              // Play victory sounds
+              audioManager.play("fireworks")
+              
+              endGame(true)
             }
             
             return // Exit early, hotdog hit Connor
@@ -2078,7 +2132,9 @@ ${file}
       // Move projectile towards Luke - frame-rate independent
       // Speed was 3 px/frame at 60fps (16.67ms per frame)
       // Convert to px/ms: 3 px / 16.67ms = 0.18 px/ms
-      const speedPxPerMs = 0.18
+      // Connor's projectiles are faster: 0.35 px/ms (almost 2x speed)
+      const isConnorProjectile = projectile.dataset.isConnorProjectile === "true"
+      const speedPxPerMs = isConnorProjectile ? 0.35 : 0.18
       const movement = speedPxPerMs * deltaTime
       // Log first projectile movement to verify fix is active
       if (index === 0 && Math.random() < 0.01) { // Log 1% of frames for first projectile
@@ -2117,7 +2173,9 @@ ${file}
           
           setLukeHealth((prev) => {
             // Apply armor multiplier from selected vehicle
-            const baseDamage = 4
+            // Connor's projectiles do more damage: 8 instead of 4
+            const isConnorProjectile = projectile.dataset.isConnorProjectile === "true"
+            const baseDamage = isConnorProjectile ? 8 : 4
             const vehicle = selectedVehicleRef.current
             // Apply boost if DLC enabled
             let effectiveArmor = vehicle ? vehicle.armor : 5
@@ -2604,6 +2662,7 @@ ${file}
   useEffect(() => {
     if (gameState === "start") {
       async function loadDLCStatus() {
+        setIsDLCLoading(true)
         try {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user?.email) {
@@ -2630,6 +2689,7 @@ ${file}
             setHasBoostsDLC(hasBoosts)
             setHasAudioDLC(hasAudio)
             setHasBossBattleDLC(hasBossBattleItem)
+            setIsDLCLoading(false)
             
             console.log("✅ DLC Status loaded for start screen:", {
               accessories: hasLicensePlateItem,
@@ -2637,9 +2697,12 @@ ${file}
               audio: hasAudio,
               bossBattle: hasBossBattleItem,
             })
+          } else {
+            setIsDLCLoading(false)
           }
         } catch (error) {
           console.error("❌ Error loading DLC status:", error)
+          setIsDLCLoading(false)
         }
       }
       loadDLCStatus()
@@ -2967,6 +3030,7 @@ ${file}
             score={score} 
             isSimulator={isSimulatorMode}
             vehicle={selectedVehicle?.id || null}
+            gameMode={gameMode}
           />
         </div>
       </div>
@@ -3203,8 +3267,8 @@ ${file}
             style={{
               left: `${connorPosition.x}px`,
               top: `${connorPosition.y}px`,
-              width: "560px", // 4x bigger than Luke's car (140px * 4)
-              height: "320px", // 4x bigger than Luke's car (80px * 4)
+              width: "420px", // 3x bigger than Luke's car (140px * 3)
+              height: "240px", // 3x bigger than Luke's car (80px * 3)
             }}
           >
             <img

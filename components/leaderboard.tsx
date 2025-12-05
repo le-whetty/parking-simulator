@@ -9,9 +9,10 @@ interface LeaderboardProps {
   userEmail?: string
   userScore?: number
   userRank?: number
+  gameMode?: string // Game mode to filter leaderboard
 }
 
-export default function Leaderboard({ userEmail, userScore, userRank }: LeaderboardProps) {
+export default function Leaderboard({ userEmail, userScore, userRank, gameMode = "I'm Parkin' Here!" }: LeaderboardProps) {
   const [contestLeaderboard, setContestLeaderboard] = useState<LeaderboardEntry[]>([])
   const [allTimeLeaderboard, setAllTimeLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,8 +24,8 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        // Fetch contest leaderboard (default)
-        const contestResponse = await fetch("/api/leaderboard?type=contest")
+        // Fetch contest leaderboard (default) with game mode filter
+        const contestResponse = await fetch(`/api/leaderboard?type=contest&game_mode=${encodeURIComponent(gameMode)}`)
         if (contestResponse.ok) {
           const contestData = await contestResponse.json()
           console.log("Contest leaderboard data received:", contestData)
@@ -42,8 +43,8 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
           console.error("Error fetching contest leaderboard:", contestResponse.status, errorData)
         }
 
-        // Fetch all-time leaderboard
-        const allTimeResponse = await fetch("/api/leaderboard?type=all-time")
+        // Fetch all-time leaderboard with game mode filter
+        const allTimeResponse = await fetch(`/api/leaderboard?type=all-time&game_mode=${encodeURIComponent(gameMode)}`)
         if (allTimeResponse.ok) {
           const allTimeData = await allTimeResponse.json()
           console.log("All-time leaderboard data received:", allTimeData)

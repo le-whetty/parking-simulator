@@ -28,9 +28,10 @@ interface VictoryScreenProps {
   score?: number // Add optional score prop
   isSimulator?: boolean // Flag to indicate if this is a simulator (shows disclaimer)
   vehicle?: string | null // Vehicle type used for this game
+  gameMode?: 'normal' | 'boss-battle' // Game mode to determine which leaderboard and text to show
 }
 
-export default function VictoryScreen({ onRestart, score = 0, isSimulator = false, vehicle = null }: VictoryScreenProps) {
+export default function VictoryScreen({ onRestart, score = 0, isSimulator = false, vehicle = null, gameMode = 'normal' }: VictoryScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioManager = useAudioManager()
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -104,11 +105,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             const response = await fetch("/api/save-score", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+                body: JSON.stringify({
                 userEmail: session.user.email,
                 score: score,
                 accessToken: accessToken,
                 vehicle: vehicle, // Vehicle type from props
+                gameMode: gameMode === 'boss-battle' ? "Boss Battle" : "I'm Parkin' Here!", // Game mode
               }),
             })
             
@@ -542,14 +544,27 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
           </div>
 
           <div className="space-y-4">
-            <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
-
-            <p className="text-tracksuit-purple-700 font-quicksand">
-              While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination.
-            </p>
-            <p className="text-tracksuit-purple-700 font-quicksand">
-              The spot is his. It has always been his 🌭
-            </p>
+            {gameMode === 'boss-battle' ? (
+              <>
+                <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has defeated Connor!</p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  The CEO has been vanquished. Luke's determination knows no bounds.
+                </p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  Victory is his. It has always been his 🌭
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination.
+                </p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  The spot is his. It has always been his 🌭
+                </p>
+              </>
+            )}
           </div>
 
           {/* Two-column layout above buttons */}
@@ -582,7 +597,11 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
-                Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}
+                {gameMode === 'boss-battle' ? (
+                  <>Top 3 scores by Friday, December 12th at 1pm win the coveted{" "}</>
+                ) : (
+                  <>Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}</>
+                )}
                 <Dialog open={showMerchCarousel} onOpenChange={setShowMerchCarousel}>
                   <DialogTrigger asChild>
                     <button
@@ -682,7 +701,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             >
               ×
             </button>
-            <Leaderboard userEmail={userEmail || undefined} userScore={score} userRank={userRank || undefined} />
+            <Leaderboard 
+              userEmail={userEmail || undefined} 
+              userScore={score} 
+              userRank={userRank || undefined}
+              gameMode={gameMode === 'boss-battle' ? "Boss Battle" : "I'm Parkin' Here!"}
+            />
           </div>
         </div>
       )}
