@@ -39,11 +39,25 @@ export async function GET(request: NextRequest) {
       .eq('user_email', userEmail)
       .maybeSingle()
 
-    // Get game sessions count
+    // Get game sessions count (metric 1: games played)
     const { count: gamesPlayed } = await supabase
       .from('game_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_email', userEmail)
+
+    // Get times late for work (metric 2: score_saved = false)
+    const { count: timesLate } = await supabase
+      .from('game_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_email', userEmail)
+      .eq('score_saved', false)
+
+    // Get cars parked (metric 3: score_saved = true)
+    const { count: carsParked } = await supabase
+      .from('game_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_email', userEmail)
+      .eq('score_saved', true)
 
     // Get scores for stats
     const { data: scores } = await supabase
@@ -78,21 +92,32 @@ export async function GET(request: NextRequest) {
     const victoryCount = victories.length
     const victoryPercent = gamesPlayed ? Math.round((victoryCount / gamesPlayed) * 100) : 0
 
-    // Count drivers defeated (hit events)
+    // Count combos (metric 4: event_type = 'combo')
+    const comboEvents = allEvents.filter(e => e.event_type === 'combo')
+    const combos = comboEvents.length
+
+    // Count direct dog hits (metric 6: event_type = 'hit')
     const hitEvents = allEvents.filter(e => e.event_type === 'hit')
-    const driversDefeated = hitEvents.length
+    const directDogHits = hitEvents.length
 
-    // Count hotdogs thrown (from hotdog_thrown events)
-    const hotdogThrownEvents = allEvents.filter(e => e.event_type === 'hotdog_thrown')
-    const hotdogsThrown = hotdogThrownEvents.length
+    // Count hotdogs fired (for accuracy calculation)
+    // Only count events after a certain date when we started tracking this
+    const hotdogFiredEvents = allEvents.filter(e => e.event_type === 'hotdog_fired')
+    const hotdogsFired = hotdogFiredEvents.length
 
-    // Most defeated driver
+    // Calculate accuracy % (metric: direct hits / hotdogs fired)
+    // Only calculate if we have hotdog_fired events (after tracking started)
+    const accuracyPercent = hotdogsFired > 0 
+      ? Math.round((directDogHits / hotdogsFired) * 100) 
+      : null
+
+    // Most damaged driver (metric 7: event_type = 'hit', grouped by driver_name)
     const driverHits: Record<string, number> = {}
     hitEvents.forEach(event => {
-      const driverName = event.event_data?.driverName || 'Unknown'
+      const driverName = event.event_data?.driver_name || event.event_data?.driverName || 'Unknown'
       driverHits[driverName] = (driverHits[driverName] || 0) + 1
     })
-    const mostDefeatedDriver = Object.entries(driverHits)
+    const mostDamagedDriver = Object.entries(driverHits)
       .sort(([, a], [, b]) => b - a)[0]?.[0] || 'None'
 
     // Top score
@@ -174,12 +199,15 @@ export async function GET(request: NextRequest) {
         games_played: gamesPlayed || 0,
         victories: victoryCount,
         victory_percent: victoryPercent,
-        drivers_defeated: driversDefeated,
-        most_defeated_driver: mostDefeatedDriver || 'None',
+        times_late_for_work: timesLate || 0,
+        cars_parked: carsParked || 0,
+        combos: combos,
+        direct_dog_hits: directDogHits,
+        accuracy_percent: accuracyPercent,
+        most_damaged_driver: mostDamagedDriver || 'None',
         contest_rank: contestRank || 999999,
         all_time_rank: allTimeRank || 999999,
         top_score: topScore,
-        hotdogs_thrown: hotdogsThrown,
       },
       achievements: achievements || [],
       title: userTitle ? {
@@ -207,12 +235,15 @@ export async function GET(request: NextRequest) {
         games_played: 0,
         victories: 0,
         victory_percent: 0,
-        drivers_defeated: 0,
-        most_defeated_driver: 'None',
+        times_late_for_work: 0,
+        cars_parked: 0,
+        combos: 0,
+        direct_dog_hits: 0,
+        accuracy_percent: null,
+        most_damaged_driver: 'None',
         contest_rank: 999999,
         all_time_rank: 999999,
         top_score: 0,
-        hotdogs_thrown: 0,
       },
       achievements: [],
       title: {

@@ -24,12 +24,15 @@ interface UserStats {
     games_played: number
     victories: number
     victory_percent: number
-    drivers_defeated: number
-    most_defeated_driver: string
+    times_late_for_work: number
+    cars_parked: number
+    combos: number
+    direct_dog_hits: number
+    accuracy_percent: number | null
+    most_damaged_driver: string
     contest_rank: number
     all_time_rank: number
     top_score: number
-    hotdogs_thrown: number
   }
   achievements?: Achievement[]
   title?: {
@@ -91,12 +94,15 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               games_played: 0,
               victories: 0,
               victory_percent: 0,
-              drivers_defeated: 0,
-              most_defeated_driver: 'None',
+              times_late_for_work: 0,
+              cars_parked: 0,
+              combos: 0,
+              direct_dog_hits: 0,
+              accuracy_percent: null,
+              most_damaged_driver: 'None',
               contest_rank: 999999,
               all_time_rank: 999999,
               top_score: 0,
-              hotdogs_thrown: 0,
             },
             achievements: [],
             title: {
@@ -285,16 +291,23 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
           <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">dawgs 🌭</p>
         </Card>
 
-        {/* Drivers Defeated */}
+        {/* Times Late for Work */}
         <Card className="p-6">
           <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Drivers Defeated
+            Times Late for Work
           </h3>
           <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            {stats.stats.drivers_defeated}
+            {stats.stats.times_late_for_work}
           </p>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
-            Most defeated: {stats.stats.most_defeated_driver}
+        </Card>
+
+        {/* Cars Parked */}
+        <Card className="p-6">
+          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+            Cars Parked
+          </h3>
+          <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
+            {stats.stats.cars_parked}
           </p>
         </Card>
 
@@ -325,34 +338,58 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
         </Card>
       </div>
 
-      {/* Hotdogs Thrown */}
-      <Card className="w-full mb-6 p-6">
-        <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-          Hotdogs Thrown
-        </h3>
-        <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-          {stats.stats.hotdogs_thrown.toLocaleString()}
-        </p>
-      </Card>
+      {/* Additional Stats Grid */}
+      <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
+        {/* Combos */}
+        <Card className="p-6">
+          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+            Combos
+          </h3>
+          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+            {stats.stats.combos}
+          </p>
+        </Card>
+
+        {/* Direct Dog Hits */}
+        <Card className="p-6">
+          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+            Direct Dog Hits
+          </h3>
+          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+            {stats.stats.direct_dog_hits}
+          </p>
+        </Card>
+
+        {/* Accuracy */}
+        {stats.stats.accuracy_percent !== null && (
+          <Card className="p-6">
+            <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+              Accuracy
+            </h3>
+            <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
+              {stats.stats.accuracy_percent}%
+            </p>
+          </Card>
+        )}
+
+        {/* Most Damaged Driver */}
+        <Card className="p-6">
+          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+            Most Damaged Driver
+          </h3>
+          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+            {stats.stats.most_damaged_driver}
+          </p>
+        </Card>
+      </div>
 
       {/* Progression Section */}
       <Card className="w-full p-6 mb-6">
         <h3 className="text-xl font-bold font-chapeau text-tracksuit-purple-800 mb-4">
           Progression
         </h3>
-        <div className="flex items-center gap-4 mb-6">
-          <img 
-            src="/images/parking-permit.png" 
-            alt="Parking Permit" 
-            className="w-16 h-16 object-contain"
-          />
-          <div>
-            <p className="font-semibold font-chapeau text-tracksuit-purple-700">Parking Permit</p>
-            <p className="text-sm text-tracksuit-purple-500 font-quicksand">Your progression badge</p>
-          </div>
-        </div>
 
-        {/* Achievements */}
+        {/* Achievements - shown as parking permits */}
         <div className="mt-6">
           <h4 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-4">
             Achievements ({stats.achievements?.length || 0})
@@ -362,32 +399,26 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
               {stats.achievements.map((achievement) => (
                 <div
                   key={achievement.code}
-                  className="p-4 bg-gradient-to-r from-tracksuit-green-50 via-tracksuit-green-100/50 to-tracksuit-green-50 border-2 border-tracksuit-green-300/50 rounded-lg"
+                  className="flex flex-col items-center p-4 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 border-2 border-tracksuit-purple-300/50 rounded-lg"
                 >
-                  <div className="flex items-start gap-3">
-                    {achievement.image_url ? (
-                      <img
-                        src={achievement.image_url}
-                        alt={achievement.name}
-                        className="w-12 h-12 object-contain flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-tracksuit-green-500 rounded-full flex items-center justify-center text-white text-xl font-bold flex-shrink-0">
-                        ✓
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-bold font-chapeau text-tracksuit-purple-800 mb-1">
-                        {achievement.name}
-                      </h5>
-                      <p className="text-xs text-tracksuit-purple-600 font-quicksand mb-2">
-                        {achievement.description}
-                      </p>
-                      <p className="text-xs text-tracksuit-purple-500 font-quicksand">
-                        Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
+                  {/* Parking Permit Image */}
+                  <img 
+                    src="/images/parking-permit.png" 
+                    alt="Parking Permit" 
+                    className="w-24 h-24 object-contain mb-3"
+                  />
+                  {/* Achievement Title */}
+                  <h5 className="font-bold font-chapeau text-tracksuit-purple-800 mb-1 text-center">
+                    {achievement.name}
+                  </h5>
+                  {/* Achievement Description */}
+                  <p className="text-xs text-tracksuit-purple-600 font-quicksand text-center mb-2">
+                    {achievement.description}
+                  </p>
+                  {/* Unlock Date */}
+                  <p className="text-xs text-tracksuit-purple-500 font-quicksand">
+                    Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
+                  </p>
                 </div>
               ))}
             </div>

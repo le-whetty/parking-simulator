@@ -81,6 +81,8 @@ export default function Home() {
   const [selectedHorn, setSelectedHorn] = useState<1 | 2 | 3 | 'random'>(1) // Selected car horn (1-3 or random)
   const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-8) - for display
   const currentRadioSongRef = useRef(1) // Ref version for reliable cycling
+  const radioShuffleQueueRef = useRef<number[]>([]) // Queue of shuffled songs
+  const radioPlayedSongsRef = useRef<Set<number>>(new Set()) // Track which songs have been played in current shuffle
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
   const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
@@ -146,7 +148,7 @@ export default function Home() {
   const slackIntervalRef = useRef<number | null>(null)
   const menuThemeStoppedRef = useRef<boolean>(false) // Track if menu theme has been stopped
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null) // Ref for countdown interval
-  const gameSessionIdRef = useRef<string | null>(null) // Game session ID (optional, for future session tracking)
+  const gameSessionIdRef = useRef<string | null>(null) // Game session ID for event tracking
 
   // Combo milestone definitions
   const comboMilestones = [
@@ -489,14 +491,33 @@ ${file}
     return normalizeDirection(dx, dy)
   }
 
-  // Function to switch to the next radio song
+  // Function to shuffle radio songs array
+  const shuffleRadioSongs = (): number[] => {
+    const songs = [1, 2, 3, 4, 5, 6, 7, 8]
+    const shuffled = [...songs]
+    // Fisher-Yates shuffle
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+
+  // Function to switch to the next radio song (shuffle mode)
   const switchToNextRadioSong = () => {
-    // Use ref to get current song and calculate next (ensures reliable cycling through 8 songs)
-    const current = currentRadioSongRef.current
-    const nextSong = ((current % 8) + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+    // If queue is empty or all songs have been played, create a new shuffle
+    if (radioShuffleQueueRef.current.length === 0 || radioPlayedSongsRef.current.size >= 8) {
+      radioShuffleQueueRef.current = shuffleRadioSongs()
+      radioPlayedSongsRef.current.clear()
+      console.log(`📻 New shuffle created:`, radioShuffleQueueRef.current)
+    }
+    
+    // Get next song from queue
+    const nextSong = radioShuffleQueueRef.current.shift()! as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+    radioPlayedSongsRef.current.add(nextSong)
     currentRadioSongRef.current = nextSong
     setCurrentRadioSong(nextSong) // Update state for display
-    console.log(`📻 Switching radio: ${current} → ${nextSong}`)
+    console.log(`📻 Switching radio to shuffled song: ${nextSong} (${radioPlayedSongsRef.current.size}/8 played)`)
     audioManager.switchRadioSong(nextSong)
   }
 
@@ -589,16 +610,35 @@ ${file}
       setHasBossBattleDLC(false)
     }
     
-    // Track Game Started event
+    // Create game session and track Game Started event
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         mixpanel.identify(session.user.id)
-            mixpanel.track('Game Started', {
+        mixpanel.track('Game Started', {
+          user_id: session.user.id,
+          vehicle_type: selectedVehicle?.id || null,
+          vehicle_name: selectedVehicle?.name || null,
+        })
+        
+        // Create game session
+        try {
+          const sessionResponse = await fetch('/api/create-game-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_email: session.user.email,
               user_id: session.user.id,
-              vehicle_type: selectedVehicle?.id || null,
-              vehicle_name: selectedVehicle?.name || null,
-            })
+            }),
+          })
+          if (sessionResponse.ok) {
+            const { session_id } = await sessionResponse.json()
+            gameSessionIdRef.current = session_id
+            console.log('✅ Game session created:', session_id)
+          }
+        } catch (error) {
+          console.error('Error creating game session:', error)
+        }
       }
     } catch (error) {
       console.error("Error tracking game started:", error)
@@ -735,9 +775,13 @@ ${file}
     // Reset the score
     setScore(0)
 
-    // Reset radio song to 1
-    currentRadioSongRef.current = 1
-    setCurrentRadioSong(1)
+    // Reset radio shuffle system and initialize first song
+    radioShuffleQueueRef.current = shuffleRadioSongs()
+    radioPlayedSongsRef.current.clear()
+    const firstSong = radioShuffleQueueRef.current.shift()! as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+    radioPlayedSongsRef.current.add(firstSong)
+    currentRadioSongRef.current = firstSong
+    setCurrentRadioSong(firstSong)
 
     // Reset game ready state
     gameReadyRef.current = false
@@ -966,7 +1010,7 @@ ${file}
 
     lastHotdogTime.current = now
 
-    // Track Hot Dog Fired event
+    // Track Hot Dog Fired event (Mixpanel)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
@@ -977,6 +1021,24 @@ ${file}
       }
     } catch (error) {
       console.error("Error tracking hot dog fired:", error)
+    }
+
+    // Log hotdog fired event to game_events table
+    if (gameSessionIdRef.current) {
+      try {
+        await fetch('/api/log-game-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: gameSessionIdRef.current,
+            event_type: 'hotdog_fired',
+            event_data: {},
+            timestamp_ms: now,
+          }),
+        })
+      } catch (error) {
+        console.error("Error logging hotdog fired event:", error)
+      }
     }
 
     // Play throw sound effect
@@ -1895,6 +1957,25 @@ ${file}
             
             console.log(`🔥 COMBO: Hit #${currentCombo} on ${driver.name} (time since last: ${timeSinceLastHit}ms, Luke at ${lukeX}, ${lukeY})`)
             
+            // Log hit event (fire and forget)
+            if (gameSessionIdRef.current) {
+              fetch('/api/log-game-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  session_id: gameSessionIdRef.current,
+                  event_type: 'hit',
+                  event_data: {
+                    driver_name: driver.name,
+                    combo_count: currentCombo,
+                  },
+                  timestamp_ms: now,
+                }),
+              }).catch((error) => {
+                console.error("Error logging hit event:", error)
+              })
+            }
+            
             // Clear existing combo timeout
             if (comboTimeoutRef.current) {
               clearTimeout(comboTimeoutRef.current)
@@ -1921,6 +2002,26 @@ ${file}
               scoreEffect(milestone.points, driver.position.x, driver.position.y)
               // Show combo badge at Luke's position
               handleComboMilestone(milestone.hits, milestone.points, milestone.image, lukeX, lukeY)
+              
+              // Log combo event (fire and forget)
+              if (gameSessionIdRef.current) {
+                fetch('/api/log-game-event', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    session_id: gameSessionIdRef.current,
+                    event_type: 'combo',
+                    event_data: {
+                      hits: milestone.hits,
+                      points: milestone.points,
+                      driver_name: driver.name,
+                    },
+                    timestamp_ms: Date.now(),
+                  }),
+                }).catch((error) => {
+                  console.error("Error logging combo event:", error)
+                })
+              }
             } else if (milestone && reachedMilestonesRef.current.has(milestone.hits)) {
               console.log(`⚠️ COMBO MILESTONE ALREADY REACHED: ${milestone.hits} hits (skipping duplicate)`)
             }
@@ -2226,6 +2327,21 @@ ${file}
               time_spent_minutes: parseFloat(timeSpentMinutes),
               final_health: lukeHealth,
               vehicle_type: selectedVehicle?.id || null,
+            })
+          }
+          
+          // Update game session
+          if (gameSessionIdRef.current) {
+            fetch('/api/update-game-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                session_id: gameSessionIdRef.current,
+                final_score: victory ? score : null,
+                score_saved: victory,
+              }),
+            }).catch((error) => {
+              console.error("Error updating game session:", error)
             })
           }
         }
