@@ -520,12 +520,14 @@ ${file}
         if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
         if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
         if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
+        if (hasBossBattle) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOSS_BATTLE)
         
         // Check individual item enable status (AFTER sync)
         console.log(`🔍 Checking FM Radio after sync...`)
         const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
         const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
         const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+        const hasBossBattleItem = hasBossBattle && isDLCItemEnabled(DLC_CODES.BOSS_BATTLE, DLC_ITEM_IDS.CONNOR_BOSS, hasBossBattle)
         console.log(`📻 FM Radio check result: hasAudio=${hasAudio}, hasFMRadio=${hasFMRadio}`)
         
         console.log("✅ DLC Status:", {
@@ -533,6 +535,7 @@ ${file}
           boosts: hasBoosts,
           audio: hasAudio,
           bossBattle: hasBossBattle,
+          bossBattleItem: hasBossBattleItem,
           fmRadio: hasFMRadio,
           carHorn: hasCarHorn,
           licensePlate: hasLicensePlateItem
@@ -540,7 +543,7 @@ ${file}
         setHasLicensePlateDLC(hasLicensePlateItem)
         setHasBoostsDLC(hasBoosts)
         setHasAudioDLC(hasAudio) // Keep pack-level check for UI
-        setHasBossBattleDLC(hasBossBattle)
+        setHasBossBattleDLC(hasBossBattleItem)
         
         // Load horn selection from localStorage
         const savedHorn = getSelectedHorn()

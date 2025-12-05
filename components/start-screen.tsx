@@ -108,6 +108,35 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
         </div>
       </div>
 
+      {/* Game Mode Selection (Boss Battle DLC) */}
+      {hasBossBattleDLC && onGameModeChange && (
+        <div className="w-full mb-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
+          <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">Select Game Mode 🎮</h3>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <Button
+              onClick={() => onGameModeChange('normal')}
+              className={`font-chapeau text-sm px-4 py-2 ${
+                gameMode === 'normal'
+                  ? 'bg-tracksuit-purple-600 text-white'
+                  : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
+              }`}
+            >
+              I'm Parkin' Here!
+            </Button>
+            <Button
+              onClick={() => onGameModeChange('boss-battle')}
+              className={`font-chapeau text-sm px-4 py-2 ${
+                gameMode === 'boss-battle'
+                  ? 'bg-tracksuit-purple-600 text-white'
+                  : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
+              }`}
+            >
+              Boss Battle
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Horn Selection (DLC) */}
       {hasAudioDLC && onHornChange && (
         <div className="w-full mb-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
