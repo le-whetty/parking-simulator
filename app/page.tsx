@@ -2753,6 +2753,9 @@ ${file}
     }
   }, [gameState])
 
+  // Track if menu theme has been started for this screen session
+  const menuThemeStartedRef = useRef<boolean>(false)
+
   // Play menu theme music when on start screen or vehicle selection (after user interaction from intro screen)
   useEffect(() => {
     if (gameState === "start" || gameState === "vehicle-selection") {
@@ -2765,20 +2768,23 @@ ${file}
       }
       
       // Start menu theme immediately (user has already interacted by clicking intro button)
-      if (gameState === "start") {
+      // Only play once per screen session to avoid restarting
+      if (gameState === "start" && !menuThemeStartedRef.current) {
         console.log("Starting menu theme music...")
         audioManager.play("menuTheme")
+        menuThemeStartedRef.current = true
       }
-      // Keep playing if transitioning to vehicle-selection
+      // Keep playing if transitioning to vehicle-selection (don't restart)
     } else if (gameState === "playing") {
       // Stop menu theme when starting the game (countdown begins)
       if (!menuThemeStoppedRef.current) {
         console.log("Stopping menu theme music...")
         audioManager.stop("menuTheme")
         menuThemeStoppedRef.current = true
+        menuThemeStartedRef.current = false // Reset so it can start again when returning to start screen
       }
     }
-  }, [gameState, audioManager]) // Include audioManager to ensure it's available
+  }, [gameState]) // Only depend on gameState, not audioManager
 
   // Check for username after authentication
   useEffect(() => {
