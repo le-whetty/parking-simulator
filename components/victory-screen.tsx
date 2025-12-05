@@ -598,7 +598,7 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
                 {gameMode === 'boss-battle' ? (
-                  <>Top 3 scores by Friday, December 12th at 1pm win the coveted{" "}</>
+                  <>Top 3 scores by Friday 12th December at 1pm win the coveted{" "}</>
                 ) : (
                   <>Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}</>
                 )}
@@ -607,7 +607,7 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
                     <button
                       className="text-tracksuit-purple-600 hover:text-tracksuit-purple-800 underline font-semibold cursor-pointer"
                     >
-                      "I'm parkin' here"
+                      {gameMode === 'boss-battle' ? '"Boss Battle"' : '"I\'m parkin\' here"'}
                     </button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
