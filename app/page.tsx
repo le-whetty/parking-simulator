@@ -1823,14 +1823,34 @@ ${file}
             // Still track total hits for stats
             totalHitsRef.current += 1
             
-            // Check if Connor is defeated - trigger victory immediately
+            // Check if Connor is defeated - trigger explosion and victory
             if (newHealth <= 0 && !connorDefeatedRef.current && !victoryRef.current) {
               connorDefeatedRef.current = true
+              
+              // Get Connor's DOM position for explosion (same as driver defeat logic)
+              const connorElement = document.getElementById('connor-boss')
+              let explosionX = connorPositionRef.current.x + 210 // Center of Connor (420px / 2)
+              let explosionY = connorPositionRef.current.y + 120 // Center of Connor (240px / 2)
+              
+              if (connorElement) {
+                const connorRect = connorElement.getBoundingClientRect()
+                const gameArea = document.getElementById('game-area')
+                if (gameArea) {
+                  const gameRect = gameArea.getBoundingClientRect()
+                  explosionX = connorRect.left - gameRect.left + (connorRect.width / 2)
+                  explosionY = connorRect.top - gameRect.top + (connorRect.height / 2)
+                  console.log(`📍 Captured Connor DOM position for explosion: (${explosionX}, ${explosionY}) from rect (${connorRect.left}, ${connorRect.top})`)
+                }
+              }
+              
+              // Add explosion animation
               setExplosions(prev => [...prev, { 
                 id: 'connor', 
-                x: connorPositionRef.current.x + 200, 
-                y: connorPositionRef.current.y + 200 
+                x: explosionX, 
+                y: explosionY 
               }])
+              
+              // Play explosion sound effect
               audioManager.play("explosion")
               
               // Calculate time bonus (1 point per second remaining)
