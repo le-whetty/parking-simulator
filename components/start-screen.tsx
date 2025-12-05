@@ -109,10 +109,10 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
 
       {/* DLC Loading Indicator */}
       {isDLCLoading && (
-        <div className="w-full mb-4 text-center">
-          <div className="inline-flex items-center gap-2 text-tracksuit-purple-600 font-quicksand">
-            <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-tracksuit-purple-600"></div>
-            <span className="text-sm">Checking DLC...</span>
+        <div className="w-full mb-6 text-center">
+          <div className="inline-flex items-center gap-3 px-4 py-3 bg-tracksuit-purple-50 rounded-lg border border-tracksuit-purple-200 shadow-sm">
+            <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-tracksuit-purple-600"></div>
+            <span className="text-base font-semibold text-tracksuit-purple-700 font-chapeau">Checking DLC...</span>
           </div>
         </div>
       )}

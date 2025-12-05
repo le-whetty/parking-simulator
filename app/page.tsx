@@ -84,7 +84,7 @@ export default function Home() {
   const radioShuffleQueueRef = useRef<number[]>([]) // Queue of shuffled songs
   const radioPlayedSongsRef = useRef<Set<number>>(new Set()) // Track which songs have been played in current shuffle
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
-  const [isDLCLoading, setIsDLCLoading] = useState(true) // Loading state for DLC check
+  const [isDLCLoading, setIsDLCLoading] = useState(false) // Loading state for DLC check
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
   const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
   const connorHealthRef = useRef(1000) // Ref version for game loop
@@ -728,12 +728,7 @@ ${file}
       setDrivers([])
       driversRef.current = []
       
-      // Play Connor voiceover
-      try {
-        audioManager.play('connorVoiceover')
-      } catch (error) {
-        console.error('Error playing Connor voiceover:', error)
-      }
+      // Connor voiceover will play after countdown finishes (see countdown completion logic)
     } else {
       // Normal Mode: Reset drivers with random directions and positions
       const resetDrivers = drivers.map((driver) => ({
@@ -821,6 +816,13 @@ ${file}
             // Boss battle mode: always play boss battle music, regardless of radio DLC
             console.log("🎵 [COUNTDOWN] Starting boss battle music")
             audioManager.play("bossBattle")
+            
+            // Play Connor voiceover after countdown finishes
+            try {
+              audioManager.play('connorVoiceover')
+            } catch (error) {
+              console.error('Error playing Connor voiceover:', error)
+            }
           } else {
             // Normal mode: Check if FM Radio is enabled (localStorage should already be synced from startGame)
             // Direct localStorage check - if item is enabled in localStorage, pack must be unlocked
@@ -1133,13 +1135,13 @@ ${file}
   const connorAttack = (deltaTimeMs: number) => {
     if (connorDefeatedRef.current || hasWon || !gameReadyRef.current) return
     
-    // Connor attacks faster: 2.5 attacks per second (increased from 1.2)
-    const attackRatePerSecond = 2.5
+    // Connor attacks: 1.5 attacks per second (reduced from 2.5)
+    const attackRatePerSecond = 1.5
     const attackProbability = attackRatePerSecond * (deltaTimeMs / 1000)
     if (Math.random() > attackProbability) return
 
-    // Fire 1-3 projectiles at once (multiple angles)
-    const numProjectiles = Math.floor(Math.random() * 3) + 1 // 1, 2, or 3 projectiles
+    // Fire 1-2 projectiles at once (reduced from 1-3)
+    const numProjectiles = Math.floor(Math.random() * 2) + 1 // 1 or 2 projectiles
     
     for (let i = 0; i < numProjectiles; i++) {
       // Create projectile element
@@ -1809,32 +1811,9 @@ ${file}
             // Update score
             setScore((prev) => prev + 10)
             
-            // Combo system (same as normal mode)
-            const lukeX = lukePositionRef.current.x
-            const lukeY = lukePositionRef.current.y
-            const isOnScreen = 
-              lukeX >= gameBounds.minX &&
-              lukeX <= gameBounds.maxX &&
-              lukeY >= gameBounds.minY &&
-              lukeY <= gameBounds.maxY
-            
-            if (isOnScreen) {
-              const now = Date.now()
-              const timeSinceLastHit = now - lastHitTimeRef.current
-              
-              if (timeSinceLastHit > 2000) {
-                comboCountRef.current = 0
-                reachedMilestonesRef.current = new Set()
-              }
-              
-              comboCountRef.current += 1
-              lastHitTimeRef.current = now
-              totalHitsRef.current += 1
-              maxComboRef.current = Math.max(maxComboRef.current, comboCountRef.current)
-              
-              // Check combo milestones
-              handleComboMilestone(comboCountRef.current)
-            }
+            // Combo system disabled in boss battle mode
+            // Still track total hits for stats
+            totalHitsRef.current += 1
             
             // Check if Connor is defeated - trigger victory immediately
             if (newHealth <= 0 && !connorDefeatedRef.current && !victoryRef.current) {
@@ -2183,9 +2162,9 @@ ${file}
           
           setLukeHealth((prev) => {
             // Apply armor multiplier from selected vehicle
-            // Connor's projectiles do more damage: 8 instead of 4
+            // Connor's projectiles do more damage: 6 instead of 4 (reduced from 8)
             const isConnorProjectile = projectile.dataset.isConnorProjectile === "true"
-            const baseDamage = isConnorProjectile ? 8 : 4
+            const baseDamage = isConnorProjectile ? 6 : 4
             const vehicle = selectedVehicleRef.current
             // Apply boost if DLC enabled
             let effectiveArmor = vehicle ? vehicle.armor : 5
