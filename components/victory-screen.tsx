@@ -365,7 +365,10 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
       // Wait for fireworks sound to be ready
       if (audioManager.waitForSoundReady) {
         try {
-          await audioManager.waitForSoundReady("fireworks")
+          const isReady = await audioManager.waitForSoundReady("fireworks")
+          if (!isReady) {
+            console.warn("Fireworks sound not ready after timeout, playing anyway")
+          }
         } catch (error) {
           console.error("Error waiting for fireworks sound:", error)
         }
