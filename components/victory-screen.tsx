@@ -352,9 +352,31 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   }, [murcaSongs])
 
   // Trigger fireworks when victory screen loads (only once)
+  // Ensure audio manager is initialized and fireworks sound is ready
   useEffect(() => {
-    triggerFireworks()
-  }, [triggerFireworks])
+    async function initAndPlayFireworks() {
+      // Initialize audio manager if not already done
+      if (!audioManager.initialized) {
+        audioManager.initialize()
+        // Wait for initialization to complete
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+      
+      // Wait for fireworks sound to be ready
+      if (audioManager.waitForSoundReady) {
+        try {
+          await audioManager.waitForSoundReady("fireworks")
+        } catch (error) {
+          console.error("Error waiting for fireworks sound:", error)
+        }
+      }
+      
+      // Now trigger fireworks
+      triggerFireworks()
+    }
+    
+    initAndPlayFireworks()
+  }, [triggerFireworks, audioManager])
 
   useEffect(() => {
     // Stop theme music when component mounts (only once)
