@@ -138,7 +138,7 @@ export default function Leaderboard({ userEmail, userScore, userRank, gameMode =
             value="contest" 
             className="font-chapeau data-[state=active]:bg-tracksuit-purple-600 data-[state=active]:text-white"
           >
-            🏆 I'm Parkin' Here! Contest
+            🏆 {gameMode === "Boss Battle" ? "Boss Battle Contest" : "I'm Parkin' Here! Contest"}
           </TabsTrigger>
           <TabsTrigger 
             value="all-time"
