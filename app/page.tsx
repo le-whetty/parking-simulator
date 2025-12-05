@@ -1766,18 +1766,26 @@ ${file}
         }
 
       // Check for collisions with drivers
-      // Boss Battle: Check collision with Connor
+      // Boss Battle: Check collision with Connor (using reduced hitbox)
       if (gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current) {
         const connorElement = document.getElementById('connor-boss')
         if (connorElement) {
           const hotdogRect = hotdog.getBoundingClientRect()
           const connorRect = connorElement.getBoundingClientRect()
           
+          // Reduce Connor's hitbox to 70% of his size, centered
+          const hitboxWidth = connorRect.width * 0.7
+          const hitboxHeight = connorRect.height * 0.7
+          const hitboxLeft = connorRect.left + (connorRect.width - hitboxWidth) / 2
+          const hitboxRight = hitboxLeft + hitboxWidth
+          const hitboxTop = connorRect.top + (connorRect.height - hitboxHeight) / 2
+          const hitboxBottom = hitboxTop + hitboxHeight
+          
           if (
-            hotdogRect.left < connorRect.right &&
-            hotdogRect.right > connorRect.left &&
-            hotdogRect.top < connorRect.bottom &&
-            hotdogRect.bottom > connorRect.top
+            hotdogRect.left < hitboxRight &&
+            hotdogRect.right > hitboxLeft &&
+            hotdogRect.top < hitboxBottom &&
+            hotdogRect.bottom > hitboxTop
           ) {
             // Hit Connor
             const baseDamage = 20
