@@ -2357,8 +2357,9 @@ ${file}
         return finalScore
       })
 
-      // Stop theme music
+      // Stop theme music and boss battle music
       audioManager.stop("theme")
+      audioManager.stop("bossBattle")
       
       // Don't play anthem here - victory-screen will handle it
       // audioManager.play("anthem") // Removed - victory-screen will handle this
