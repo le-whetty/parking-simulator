@@ -2651,8 +2651,8 @@ ${file}
   // Load DLC status when start screen is shown
   useEffect(() => {
     if (gameState === "start") {
+      setIsDLCLoading(true) // Set loading state immediately when transitioning to start screen
       async function loadDLCStatus() {
-        setIsDLCLoading(true)
         try {
           const { data: { session } } = await supabase.auth.getSession()
           if (session?.user?.email) {
