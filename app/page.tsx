@@ -79,7 +79,7 @@ export default function Home() {
   const [boostType, setBoostType] = useState<'speed' | 'armor' | 'attack' | null>(null) // Which boost is active
   const [hasAudioDLC, setHasAudioDLC] = useState(false) // Audio DLC status (radio + horn)
   const [selectedHorn, setSelectedHorn] = useState<1 | 2 | 3 | 'random'>(1) // Selected car horn (1-3 or random)
-  const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-4) - for display
+  const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-8) - for display
   const currentRadioSongRef = useRef(1) // Ref version for reliable cycling
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
@@ -491,9 +491,9 @@ ${file}
 
   // Function to switch to the next radio song
   const switchToNextRadioSong = () => {
-    // Use ref to get current song and calculate next (ensures reliable cycling)
+    // Use ref to get current song and calculate next (ensures reliable cycling through 8 songs)
     const current = currentRadioSongRef.current
-    const nextSong = ((current % 4) + 1) as 1 | 2 | 3 | 4
+    const nextSong = ((current % 8) + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
     currentRadioSongRef.current = nextSong
     setCurrentRadioSong(nextSong) // Update state for display
     console.log(`📻 Switching radio: ${current} → ${nextSong}`)

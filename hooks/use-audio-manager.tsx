@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "radioStatic" | "connorVoiceover"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "radio5" | "radio6" | "radio7" | "radio8" | "radioStatic" | "connorVoiceover"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -79,6 +79,10 @@ export function useAudioManager() {
         ["radio2", "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3"],
         ["radio3", "/music/radio/songs/elijah-lee-who-are-you.mp3"],
         ["radio4", "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3"],
+        ["radio5", "/music/radio/songs/dont-look-back-kotomi-and-ryan-elder.mp3"],
+        ["radio6", "/music/radio/songs/forsaken-alix-perez.mp3"],
+        ["radio7", "/music/radio/songs/julius-rodriguez-all-i-do.mp3"],
+        ["radio8", "/music/radio/songs/tourist-run.mp3"],
         ["radioStatic", "/music/radio/radio-static.mp3"],
         // Boss battle voiceover (DLC)
         ["connorVoiceover", "/music/connor-airbnb.mp3"],
@@ -339,6 +343,10 @@ export function useAudioManager() {
     stop("radio2")
     stop("radio3")
     stop("radio4")
+    stop("radio5")
+    stop("radio6")
+    stop("radio7")
+    stop("radio8")
     stop("theme")
     
     // Play static, then when it ends, play the new song
