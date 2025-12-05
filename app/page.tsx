@@ -2837,12 +2837,6 @@ ${file}
           onVictorySimulator={handleVictorySimulator}
           onViewProfile={() => setGameState("profile")}
           onViewDLCStore={() => setGameState("dlc-store")}
-          hasAudioDLC={hasAudioDLC}
-          selectedHorn={selectedHorn}
-          onHornChange={(horn) => {
-            setSelectedHorn(horn)
-            saveSelectedHorn(horn) // Save to localStorage
-          }}
           hasBossBattleDLC={hasBossBattleDLC}
           gameMode={gameMode}
           onGameModeChange={setGameMode}

@@ -267,132 +267,157 @@ export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictor
         </div>
       </Card>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - Organized into logical groups */}
       <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
-        {/* Games Played */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Games Played
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            {stats.stats.games_played}
-          </p>
-        </Card>
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Performance Stats Group */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-2">Performance</h3>
+            
+            {/* Top Score */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                🏆 Top Score
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
+                {stats.stats.top_score.toLocaleString()}
+              </p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">dawgs</span> 🌭
+              </p>
+            </Card>
 
-        {/* Victory % */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Victory Rate
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
-            {stats.stats.victory_percent}%
-          </p>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
-            {stats.stats.victories} victories
-          </p>
-        </Card>
+            {/* Victory Rate */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                ✅ Victory Rate
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
+                {stats.stats.victory_percent}%
+              </p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
+                {stats.stats.victories} victories
+              </p>
+            </Card>
 
-        {/* Top Score */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Top Score
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
-            {stats.stats.top_score.toLocaleString()}
-          </p>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">dawgs 🌭</p>
-        </Card>
+            {/* Accuracy */}
+            {stats.stats.accuracy_percent !== null && (
+              <Card className="p-6">
+                <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                  🎯 Accuracy
+                </h3>
+                <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
+                  {stats.stats.accuracy_percent}%
+                </p>
+              </Card>
+            )}
+          </div>
 
-        {/* Times Late for Work */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Times Late for Work
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            {stats.stats.times_late_for_work}
-          </p>
-        </Card>
+          {/* Ranking Stats Group */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-2">Rankings</h3>
+            
+            {/* Contest Rank */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                🏅 Contest Rank
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                #{stats.stats.contest_rank}
+              </p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
+                I'm Parkin' Here!
+              </p>
+            </Card>
 
-        {/* Cars Parked */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Cars Parked
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
-            {stats.stats.cars_parked}
-          </p>
-        </Card>
+            {/* All-Time Rank */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                📊 All-Time Rank
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                #{stats.stats.all_time_rank}
+              </p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
+                All-Time High Scores
+              </p>
+            </Card>
+          </div>
+        </div>
 
-        {/* Contest Rank */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Contest Rank
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            #{stats.stats.contest_rank}
-          </p>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
-            I'm Parkin' Here!
-          </p>
-        </Card>
+        {/* Right Column */}
+        <div className="space-y-6">
+          {/* Activity Stats Group */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-2">Activity</h3>
+            
+            {/* Games Played */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                🎮 Games Played
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                {stats.stats.games_played}
+              </p>
+            </Card>
 
-        {/* All-Time Rank */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            All-Time Rank
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            #{stats.stats.all_time_rank}
-          </p>
-          <p className="text-sm text-tracksuit-purple-500 font-quicksand mt-1">
-            All-Time High Scores
-          </p>
-        </Card>
-      </div>
+            {/* Cars Parked */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                🚗 Cars Parked
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
+                {stats.stats.cars_parked}
+              </p>
+            </Card>
 
-      {/* Additional Stats Grid */}
-      <div className="grid md:grid-cols-2 gap-6 w-full mb-6">
-        {/* Combos */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Combos
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            {stats.stats.combos}
-          </p>
-        </Card>
+            {/* Times Late for Work */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                ⏰ Times Late for Work
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                {stats.stats.times_late_for_work}
+              </p>
+            </Card>
+          </div>
 
-        {/* Direct Dog Hits */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Direct Dog Hits
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            {stats.stats.direct_dog_hits}
-          </p>
-        </Card>
+          {/* Combat Stats Group */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold font-chapeau text-tracksuit-purple-800 mb-2">Combat</h3>
+            
+            {/* Combos */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                🔥 Combos
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                {stats.stats.combos}
+              </p>
+            </Card>
 
-        {/* Accuracy */}
-        {stats.stats.accuracy_percent !== null && (
-          <Card className="p-6">
-            <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-              Accuracy
-            </h3>
-            <p className="text-4xl font-bold font-chapeau text-tracksuit-green-600">
-              {stats.stats.accuracy_percent}%
-            </p>
-          </Card>
-        )}
+            {/* Direct Dog Hits */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                🌭 Direct Dog Hits
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                {stats.stats.direct_dog_hits}
+              </p>
+            </Card>
 
-        {/* Most Damaged Driver */}
-        <Card className="p-6">
-          <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
-            Most Damaged Driver
-          </h3>
-          <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
-            {stats.stats.most_damaged_driver}
-          </p>
-        </Card>
+            {/* Most Damaged Driver */}
+            <Card className="p-6">
+              <h3 className="text-sm uppercase tracking-wider text-tracksuit-purple-600 mb-2 font-semibold font-chapeau">
+                👊 Most Damaged Driver
+              </h3>
+              <p className="text-4xl font-bold font-chapeau text-tracksuit-purple-800">
+                {stats.stats.most_damaged_driver}
+              </p>
+            </Card>
+          </div>
+        </div>
       </div>
 
       {/* Progression Section */}

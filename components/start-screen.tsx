@@ -13,15 +13,12 @@ interface StartScreenProps {
   onVictorySimulator?: () => void
   onViewProfile?: () => void
   onViewDLCStore?: () => void
-  hasAudioDLC?: boolean
-  selectedHorn?: 1 | 2 | 3 | 'random'
-  onHornChange?: (horn: 1 | 2 | 3 | 'random') => void
   hasBossBattleDLC?: boolean
   gameMode?: 'normal' | 'boss-battle'
   onGameModeChange?: (mode: 'normal' | 'boss-battle') => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasAudioDLC, selectedHorn = 1, onHornChange, hasBossBattleDLC, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasBossBattleDLC, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -108,70 +105,6 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
         </div>
       </div>
 
-      {/* Horn Selection (DLC) */}
-      {hasAudioDLC && onHornChange && (
-        <div className="w-full mb-4 bg-white/80 backdrop-blur-sm p-4 rounded-xl border-2 border-tracksuit-purple-200/50 shadow-lg">
-          <h3 className="font-bold mb-3 text-tracksuit-purple-800 font-chapeau text-center">Select Car Horn 🚗</h3>
-          <div className="flex flex-wrap gap-2 justify-center">
-            <Button
-              onClick={() => {
-                audioManager.playHorn(1)
-                onHornChange(1)
-              }}
-              className={`font-chapeau text-sm px-4 py-2 ${
-                selectedHorn === 1
-                  ? 'bg-tracksuit-purple-600 text-white'
-                  : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
-              }`}
-            >
-              Toot Toot
-            </Button>
-            <Button
-              onClick={() => {
-                audioManager.playHorn(2)
-                onHornChange(2)
-              }}
-              className={`font-chapeau text-sm px-4 py-2 ${
-                selectedHorn === 2
-                  ? 'bg-tracksuit-purple-600 text-white'
-                  : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
-              }`}
-            >
-              Old Timey
-            </Button>
-            <Button
-              onClick={() => {
-                audioManager.playHorn(3)
-                onHornChange(3)
-              }}
-              className={`font-chapeau text-sm px-4 py-2 ${
-                selectedHorn === 3
-                  ? 'bg-tracksuit-purple-600 text-white'
-                  : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
-              }`}
-            >
-              La Cucaracha
-            </Button>
-            <Button
-              onClick={() => {
-                const randomHorn = Math.floor(Math.random() * 3) + 1 as 1 | 2 | 3
-                audioManager.playHorn(randomHorn)
-                onHornChange('random')
-              }}
-              className={`font-chapeau text-sm px-4 py-2 ${
-                selectedHorn === 'random'
-                  ? 'bg-tracksuit-purple-600 text-white'
-                  : 'bg-tracksuit-purple-200 text-tracksuit-purple-800 hover:bg-tracksuit-purple-300'
-              }`}
-            >
-              🎲 Random
-            </Button>
-          </div>
-          <p className="text-xs text-tracksuit-purple-600 text-center mt-2 font-quicksand">
-            Press H during gameplay to honk your horn
-          </p>
-        </div>
-      )}
 
       {/* Start Game buttons */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
