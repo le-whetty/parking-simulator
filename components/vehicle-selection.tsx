@@ -22,6 +22,8 @@ const vehicleMediaMap: Record<VehicleType, { sound: string; image: string }> = {
   corolla: { sound: '/music/fargo.mp3', image: '/images/fargo.png' },
   sedona: { sound: '/music/matilda.mp3', image: '/images/matilda.png' },
   impala: { sound: '/music/deniro.mp3', image: '/images/deniro.png' },
+  caravan: { sound: '/music/youre-an-owner.mp3', image: '/images/youre-an-owner.png' },
+  swift: { sound: '/music/buy-it-today.mp3', image: '/images/buy-it-today.png' },
 }
 
 export default function VehicleSelection({ 
