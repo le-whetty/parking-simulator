@@ -731,22 +731,30 @@ ${file}
           
           // Start theme music or radio (let countdown sound play out naturally)
           // Check if FM Radio is enabled (localStorage should already be synced from startGame)
-          // Direct localStorage check - this should be accurate since sync happened earlier
+          // Direct localStorage check - if item is enabled in localStorage, pack must be unlocked
           const radioKey = `dlc_item_enabled_${DLC_CODES.AUDIO}_${DLC_ITEM_IDS.FM_RADIO}`
           const directCheck = typeof window !== 'undefined' ? localStorage.getItem(radioKey) : null
-          console.log(`🔍 Direct localStorage check: key="${radioKey}", value="${directCheck}", all DLC keys:`, Object.keys(localStorage).filter(k => k.includes('dlc_item_enabled')))
+          console.log(`🔍 [COUNTDOWN] Direct localStorage check: key="${radioKey}", value="${directCheck}", hasAudioDLC state=${hasAudioDLC}`)
           
-          // Check pack status from state (should be set from startGame)
-          // If pack is unlocked, check item status from localStorage
-          const fmRadioEnabled = hasAudioDLC && (directCheck === null || directCheck === 'true')
-          console.log(`🎵 Final FM Radio check: hasAudioDLC=${hasAudioDLC}, directCheck="${directCheck}", fmRadioEnabled=${fmRadioEnabled}`)
+          // If localStorage has the key set to 'true', the item is enabled (pack must be unlocked for sync to run)
+          // If localStorage has the key set to 'false', the item is disabled
+          // If localStorage doesn't have the key, use hasAudioDLC state as fallback
+          const fmRadioEnabled = directCheck === 'true' || (directCheck === null && hasAudioDLC)
+          console.log(`🎵 [COUNTDOWN] Final FM Radio check: hasAudioDLC=${hasAudioDLC}, directCheck="${directCheck}", fmRadioEnabled=${fmRadioEnabled}`)
           
           if (fmRadioEnabled) {
             // Play radio instead of theme
-            console.log("📻 Starting FM Radio (DLC enabled)")
-            audioManager.playRadio(currentRadioSong)
+            console.log("📻 [COUNTDOWN] Starting FM Radio (DLC enabled), song index:", currentRadioSong)
+            try {
+              audioManager.playRadio(currentRadioSong)
+              console.log("✅ [COUNTDOWN] playRadio called successfully")
+            } catch (error) {
+              console.error("❌ [COUNTDOWN] Error calling playRadio:", error)
+              // Fallback to theme
+              audioManager.play("theme")
+            }
           } else {
-            console.log("🎵 Starting theme music (FM Radio not enabled)")
+            console.log("🎵 [COUNTDOWN] Starting theme music (FM Radio not enabled)")
             audioManager.play("theme")
           }
           
