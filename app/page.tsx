@@ -2891,6 +2891,7 @@ ${file}
           onViewProfile={() => setGameState("profile")}
           onViewDLCStore={() => setGameState("dlc-store")}
           hasBossBattleDLC={hasBossBattleDLC}
+          isDLCLoading={isDLCLoading}
           gameMode={gameMode}
           onGameModeChange={setGameMode}
         />
