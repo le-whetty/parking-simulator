@@ -9,12 +9,17 @@ import { getDLCItemsWithStatus, setDLCItemEnabled, isDLCItemEnabled, getSelected
 import type { DLCItem } from "@/lib/dlc"
 import { DLC_PACKS } from "@/lib/dlc-packs"
 import { useAudioManager } from "@/hooks/use-audio-manager"
+import Menu from "./menu"
 
 interface DLCStoreProps {
   onBack: () => void
+  onLogout?: () => void
+  onEditUsername?: () => void
+  onVictorySimulator?: () => void
+  onViewProfile?: () => void
 }
 
-export default function DLCStore({ onBack }: DLCStoreProps) {
+export default function DLCStore({ onBack, onLogout, onEditUsername, onVictorySimulator, onViewProfile }: DLCStoreProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [dlcItems, setDlcItems] = useState<(DLCItem & { unlocked: boolean; enabled: boolean; unlocked_at?: string })[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,6 +125,13 @@ Email: ${email || 'null'}
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <Menu 
+          onLogout={onLogout} 
+          onEditUsername={onEditUsername} 
+          onVictorySimulator={onVictorySimulator}
+          onViewProfile={onViewProfile}
+          onViewDLCStore={() => {}} // Already on DLC store page
+        />
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
           <p className="font-quicksand text-tracksuit-purple-600">Loading DLC store...</p>
@@ -136,6 +148,13 @@ Email: ${email || 'null'}
 
     return (
       <div className="flex flex-col items-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
+        <Menu 
+          onLogout={onLogout} 
+          onEditUsername={onEditUsername} 
+          onVictorySimulator={onVictorySimulator}
+          onViewProfile={onViewProfile}
+          onViewDLCStore={() => {}} // Already on DLC store page
+        />
         {/* Header */}
         <div className="w-full mb-8">
           <Button onClick={() => setSelectedPack(null)} variant="outline" className="mb-4 font-chapeau">
@@ -295,6 +314,13 @@ Email: ${email || 'null'}
   // Main pack list view
   return (
     <div className="flex flex-col items-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
+      <Menu 
+        onLogout={onLogout} 
+        onEditUsername={onEditUsername} 
+        onVictorySimulator={onVictorySimulator}
+        onViewProfile={onViewProfile}
+        onViewDLCStore={() => {}} // Already on DLC store page
+      />
       {/* Header */}
       <div className="w-full mb-8">
         <Button onClick={onBack} variant="outline" className="mb-4 font-chapeau">

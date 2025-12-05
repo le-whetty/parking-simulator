@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabase"
 import { Card } from "@/components/ui/card"
+import Menu from "./menu"
 
 interface Achievement {
   code: string
@@ -45,9 +46,13 @@ interface UserStats {
 
 interface ProfilePageProps {
   onBack: () => void
+  onLogout?: () => void
+  onEditUsername?: () => void
+  onVictorySimulator?: () => void
+  onViewDLCStore?: () => void
 }
 
-export default function ProfilePage({ onBack }: ProfilePageProps) {
+export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictorySimulator, onViewDLCStore }: ProfilePageProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -210,6 +215,13 @@ export default function ProfilePage({ onBack }: ProfilePageProps) {
 
   return (
     <div className="flex flex-col items-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
+      <Menu 
+        onLogout={onLogout} 
+        onEditUsername={onEditUsername} 
+        onVictorySimulator={onVictorySimulator}
+        onViewProfile={() => {}} // Already on profile page
+        onViewDLCStore={onViewDLCStore}
+      />
       {/* Header */}
       <div className="w-full mb-8">
         <Button onClick={onBack} variant="outline" className="mb-4 font-chapeau">

@@ -45,40 +45,28 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onV
               Parking Simulator
             </h2>
           </div>
-          <div className="flex items-center gap-3">
-            {onVictorySimulator && (
-              <Button
-                onClick={onVictorySimulator}
-                className="font-chapeau text-sm px-4"
-                style={{ backgroundColor: '#E4dcf8', color: '#4d3777' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d4c4f0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#E4dcf8'}
-              >
-                🥇 Victory Simulator
-              </Button>
-            )}
-            {onViewProfile && (
-              <Button
-                onClick={onViewProfile}
-                className="font-chapeau text-sm px-4"
-                style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
-              >
-                👤 Profile
-              </Button>
-            )}
-            {onViewDLCStore && (
-              <Button
-                onClick={onViewDLCStore}
-                className="font-chapeau text-sm px-4"
-                style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
-              >
-                🎮 DLC Store
-              </Button>
-            )}
+          <nav className="flex items-center gap-2">
+            <Button
+              onClick={() => onVictorySimulator?.()}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
+            >
+              🥇 Victory Simulator
+            </Button>
+            <Button
+              onClick={() => onViewProfile?.()}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
+            >
+              👤 Profile
+            </Button>
+            <Button
+              onClick={() => onViewDLCStore?.()}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
+            >
+              🎮 DLC Store
+            </Button>
             <Button
               onClick={async () => {
                 // Track Leaderboard Viewed event
@@ -96,19 +84,15 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onV
                 }
                 setShowLeaderboard(true)
               }}
-              className="font-chapeau text-sm px-4"
-              style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
             >
               🏆 Leaderboard
             </Button>
-            {onLogout && (
-              <div className="flex items-center">
-                <ProfileMenu onLogout={onLogout} onEditUsername={onEditUsername} />
-              </div>
-            )}
-          </div>
+            <div className="flex items-center ml-2 pl-2 border-l border-tracksuit-purple-200">
+              <ProfileMenu onLogout={onLogout} onEditUsername={onEditUsername} />
+            </div>
+          </nav>
         </div>
       </div>
 

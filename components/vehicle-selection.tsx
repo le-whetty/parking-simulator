@@ -13,6 +13,7 @@ interface VehicleSelectionProps {
   onLogout?: () => void
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewProfile?: () => void
   onViewDLCStore?: () => void
   username?: string | null
 }
@@ -32,6 +33,7 @@ export default function VehicleSelection({
   onLogout, 
   onEditUsername, 
   onVictorySimulator,
+  onViewProfile,
   onViewDLCStore,
   username 
 }: VehicleSelectionProps) {
@@ -173,7 +175,13 @@ export default function VehicleSelection({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
-      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+      <Menu 
+        onLogout={onLogout} 
+        onEditUsername={onEditUsername} 
+        onVictorySimulator={onVictorySimulator}
+        onViewProfile={onViewProfile}
+        onViewDLCStore={onViewDLCStore}
+      />
 
       {/* Back Button */}
       {onBack && (

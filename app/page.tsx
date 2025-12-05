@@ -525,124 +525,131 @@ ${file}
   const startGame = async () => {
     console.log("startGame called!")
     
-    // Check for DLC unlocks
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user?.email) {
-        console.log("🔍 Checking DLC unlocks for:", session.user.email)
-        const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
-          hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
-          hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
-          hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
-          hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
-        ])
-        
-        // Sync enabled status from database to localStorage for unlocked packs
-        if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
-        if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
-        if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
-        if (hasBossBattle) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOSS_BATTLE)
-        
-        // Check individual item enable status (AFTER sync)
-        console.log(`🔍 Checking FM Radio after sync...`)
-        const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
-        const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
-        const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
-        const hasBossBattleItem = hasBossBattle && isDLCItemEnabled(DLC_CODES.BOSS_BATTLE, DLC_ITEM_IDS.CONNOR_BOSS, hasBossBattle)
-        console.log(`📻 FM Radio check result: hasAudio=${hasAudio}, hasFMRadio=${hasFMRadio}`)
-        
-        console.log("✅ DLC Status:", {
-          accessories: hasLicensePlate,
-          boosts: hasBoosts,
-          audio: hasAudio,
-          bossBattle: hasBossBattle,
-          bossBattleItem: hasBossBattleItem,
-          fmRadio: hasFMRadio,
-          carHorn: hasCarHorn,
-          licensePlate: hasLicensePlateItem
-        })
-        setHasLicensePlateDLC(hasLicensePlateItem)
-        setHasBoostsDLC(hasBoosts)
-        setHasAudioDLC(hasAudio) // Keep pack-level check for UI
-        setHasBossBattleDLC(hasBossBattleItem)
-        
-        // Load horn selection from localStorage
-        const savedHorn = getSelectedHorn()
-        setSelectedHorn(savedHorn)
-        
-        // If boosts DLC is unlocked, determine which boost to apply based on vehicle
-        if (hasBoosts && selectedVehicle) {
-          // Apply boost based on vehicle's weakest stat (to balance it out)
-          const stats = [
-            { type: 'speed' as const, value: selectedVehicle.pace },
-            { type: 'armor' as const, value: selectedVehicle.armor },
-            { type: 'attack' as const, value: selectedVehicle.impact },
-          ]
-          const weakestStat = stats.reduce((min, stat) => stat.value < min.value ? stat : min)
-          setBoostType(weakestStat.type)
-          console.log(`🚀 BOOST DLC: Applying ${weakestStat.type} boost to ${selectedVehicle.name}`, {
-            vehicle: selectedVehicle.name,
-            stats: {
-              pace: selectedVehicle.pace,
-              armor: selectedVehicle.armor,
-              impact: selectedVehicle.impact,
-            },
-            weakestStat: weakestStat.type,
-            weakestValue: weakestStat.value,
-            hasBoostsDLC: hasBoosts,
-          })
-        } else {
-          setBoostType(null)
-          console.log(`🚀 BOOST DLC: No boost applied`, {
-            hasBoosts: hasBoosts,
-            hasSelectedVehicle: !!selectedVehicle,
-          })
-        }
-      } else {
-        console.log("⚠️ No session or email found, skipping DLC check")
-      }
-    } catch (error) {
-      console.error("❌ Error checking DLC:", error)
-      // Set all DLC to false on error to prevent issues
-      setHasLicensePlateDLC(false)
-      setHasBoostsDLC(false)
-      setHasAudioDLC(false)
-      setHasBossBattleDLC(false)
-    }
+    // Load horn selection from localStorage (synchronous, no delay)
+    const savedHorn = getSelectedHorn()
+    setSelectedHorn(savedHorn)
     
-    // Create game session and track Game Started event
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        mixpanel.identify(session.user.id)
-        mixpanel.track('Game Started', {
-          user_id: session.user.id,
-          vehicle_type: selectedVehicle?.id || null,
-          vehicle_name: selectedVehicle?.name || null,
-        })
-        
-        // Create game session
-        try {
-          const sessionResponse = await fetch('/api/create-game-session', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              user_email: session.user.email,
-              user_id: session.user.id,
-            }),
+    // Start countdown immediately - don't wait for async operations
+    // DLC check and session creation will happen in background
+    
+    // Check for DLC unlocks (non-blocking - run in background)
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          console.log("🔍 Checking DLC unlocks for:", session.user.email)
+          const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
+            hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
+            hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
+            hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
+            hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
+          ])
+          
+          // Sync enabled status from database to localStorage for unlocked packs
+          if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
+          if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
+          if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
+          if (hasBossBattle) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOSS_BATTLE)
+          
+          // Check individual item enable status (AFTER sync)
+          console.log(`🔍 Checking FM Radio after sync...`)
+          const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
+          const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
+          const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+          const hasBossBattleItem = hasBossBattle && isDLCItemEnabled(DLC_CODES.BOSS_BATTLE, DLC_ITEM_IDS.CONNOR_BOSS, hasBossBattle)
+          console.log(`📻 FM Radio check result: hasAudio=${hasAudio}, hasFMRadio=${hasFMRadio}`)
+          
+          console.log("✅ DLC Status:", {
+            accessories: hasLicensePlate,
+            boosts: hasBoosts,
+            audio: hasAudio,
+            bossBattle: hasBossBattle,
+            bossBattleItem: hasBossBattleItem,
+            fmRadio: hasFMRadio,
+            carHorn: hasCarHorn,
+            licensePlate: hasLicensePlateItem
           })
-          if (sessionResponse.ok) {
-            const { session_id } = await sessionResponse.json()
-            gameSessionIdRef.current = session_id
-            console.log('✅ Game session created:', session_id)
+          setHasLicensePlateDLC(hasLicensePlateItem)
+          setHasBoostsDLC(hasBoosts)
+          setHasAudioDLC(hasAudio) // Keep pack-level check for UI
+          setHasBossBattleDLC(hasBossBattleItem)
+          
+          // If boosts DLC is unlocked, determine which boost to apply based on vehicle
+          if (hasBoosts && selectedVehicle) {
+            // Apply boost based on vehicle's weakest stat (to balance it out)
+            const stats = [
+              { type: 'speed' as const, value: selectedVehicle.pace },
+              { type: 'armor' as const, value: selectedVehicle.armor },
+              { type: 'attack' as const, value: selectedVehicle.impact },
+            ]
+            const weakestStat = stats.reduce((min, stat) => stat.value < min.value ? stat : min)
+            setBoostType(weakestStat.type)
+            console.log(`🚀 BOOST DLC: Applying ${weakestStat.type} boost to ${selectedVehicle.name}`, {
+              vehicle: selectedVehicle.name,
+              stats: {
+                pace: selectedVehicle.pace,
+                armor: selectedVehicle.armor,
+                impact: selectedVehicle.impact,
+              },
+              weakestStat: weakestStat.type,
+              weakestValue: weakestStat.value,
+              hasBoostsDLC: hasBoosts,
+            })
+          } else {
+            setBoostType(null)
+            console.log(`🚀 BOOST DLC: No boost applied`, {
+              hasBoosts: hasBoosts,
+              hasSelectedVehicle: !!selectedVehicle,
+            })
           }
-        } catch (error) {
-          console.error('Error creating game session:', error)
+        } else {
+          console.log("⚠️ No session or email found, skipping DLC check")
         }
+      } catch (error) {
+        console.error("❌ Error checking DLC:", error)
+        // Set all DLC to false on error to prevent issues
+        setHasLicensePlateDLC(false)
+        setHasBoostsDLC(false)
+        setHasAudioDLC(false)
+        setHasBossBattleDLC(false)
       }
-    } catch (error) {
-      console.error("Error tracking game started:", error)
-    }
+    })()
+    
+    // Create game session and track Game Started event (non-blocking - run in background)
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          mixpanel.identify(session.user.id)
+          mixpanel.track('Game Started', {
+            user_id: session.user.id,
+            vehicle_type: selectedVehicle?.id || null,
+            vehicle_name: selectedVehicle?.name || null,
+          })
+          
+          // Create game session
+          try {
+            const sessionResponse = await fetch('/api/create-game-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_email: session.user.email,
+                user_id: session.user.id,
+              }),
+            })
+            if (sessionResponse.ok) {
+              const { session_id } = await sessionResponse.json()
+              gameSessionIdRef.current = session_id
+              console.log('✅ Game session created:', session_id)
+            }
+          } catch (error) {
+            console.error('Error creating game session:', error)
+          }
+        }
+      } catch (error) {
+        console.error("Error tracking game started:", error)
+      }
+    })()
     
     // Stop menu theme music first - do this before anything else
     console.log("Stopping menu theme music before starting game...")
@@ -785,18 +792,14 @@ ${file}
 
     // Reset game ready state
     gameReadyRef.current = false
-    setCountdown(3) // Start countdown at 3
-
-    // Play countdown sound immediately when countdown starts
-    audioManager.play("3-2-1")
-
+    
     // Clear any existing countdown interval
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current)
     }
 
-    // Start countdown - game will start after countdown completes
-    countdownIntervalRef.current = setInterval(() => {
+    // Define countdown function
+    const startCountdown = () => {
       setCountdown((prev) => {
         if (prev === null || prev <= 1) {
           if (countdownIntervalRef.current) {
@@ -847,7 +850,15 @@ ${file}
         }
         return prev - 1
       })
-    }, 1000) // Update every second
+    }
+    
+    // Set countdown to 3 and play audio immediately
+    setCountdown(3)
+    audioManager.play("3-2-1")
+    
+    // Start countdown interval immediately - first tick happens after 1 second
+    // This ensures the countdown shows 3, then after 1s shows 2, then 1, then starts game
+    countdownIntervalRef.current = setInterval(startCountdown, 1000)
     
     // Log container dimensions
     if (gameContainerRef.current) {
@@ -2589,6 +2600,52 @@ ${file}
     trackInitialPageView()
   }, [])
 
+  // Load DLC status when start screen is shown
+  useEffect(() => {
+    if (gameState === "start") {
+      async function loadDLCStatus() {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user?.email) {
+            const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
+              hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
+              hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
+              hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
+              hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
+            ])
+            
+            // Sync enabled status from database to localStorage for unlocked packs
+            if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
+            if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
+            if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
+            if (hasBossBattle) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOSS_BATTLE)
+            
+            // Check individual item enable status (AFTER sync)
+            const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
+            const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
+            const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+            const hasBossBattleItem = hasBossBattle && isDLCItemEnabled(DLC_CODES.BOSS_BATTLE, DLC_ITEM_IDS.CONNOR_BOSS, hasBossBattle)
+            
+            setHasLicensePlateDLC(hasLicensePlateItem)
+            setHasBoostsDLC(hasBoosts)
+            setHasAudioDLC(hasAudio)
+            setHasBossBattleDLC(hasBossBattleItem)
+            
+            console.log("✅ DLC Status loaded for start screen:", {
+              accessories: hasLicensePlateItem,
+              boosts: hasBoosts,
+              audio: hasAudio,
+              bossBattle: hasBossBattleItem,
+            })
+          }
+        } catch (error) {
+          console.error("❌ Error loading DLC status:", error)
+        }
+      }
+      loadDLCStatus()
+    }
+  }, [gameState])
+
   // Play menu theme music when on start screen or vehicle selection (after user interaction from intro screen)
   useEffect(() => {
     if (gameState === "start" || gameState === "vehicle-selection") {
@@ -2805,7 +2862,13 @@ ${file}
             onSave={handleUsernameSaved}
           />
         )}
-        <ProfilePage onBack={() => setGameState("start")} />
+        <ProfilePage 
+          onBack={() => setGameState("start")}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          onViewDLCStore={() => setGameState("dlc-store")}
+        />
       </>
     )
   }
@@ -2821,7 +2884,13 @@ ${file}
             onSave={handleUsernameSaved}
           />
         )}
-        <DLCStore onBack={() => setGameState("start")} />
+        <DLCStore 
+          onBack={() => setGameState("start")}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          onViewProfile={() => setGameState("profile")}
+        />
       </>
     )
   }
@@ -2839,7 +2908,12 @@ ${file}
         )}
         <VehicleSelection
           onBack={() => setGameState("start")}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          onViewProfile={() => setGameState("profile")}
           onViewDLCStore={() => setGameState("dlc-store")}
+          username={username}
           onVehicleSelected={async (vehicle) => {
             setSelectedVehicle(vehicle)
             selectedVehicleRef.current = vehicle // Also update ref for game loop access
