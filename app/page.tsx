@@ -556,9 +556,23 @@ ${file}
           ]
           const weakestStat = stats.reduce((min, stat) => stat.value < min.value ? stat : min)
           setBoostType(weakestStat.type)
-          console.log(`🚀 BOOST DLC: Applying ${weakestStat.type} boost to ${selectedVehicle.name}`)
+          console.log(`🚀 BOOST DLC: Applying ${weakestStat.type} boost to ${selectedVehicle.name}`, {
+            vehicle: selectedVehicle.name,
+            stats: {
+              pace: selectedVehicle.pace,
+              armor: selectedVehicle.armor,
+              impact: selectedVehicle.impact,
+            },
+            weakestStat: weakestStat.type,
+            weakestValue: weakestStat.value,
+            hasBoostsDLC: hasBoosts,
+          })
         } else {
           setBoostType(null)
+          console.log(`🚀 BOOST DLC: No boost applied`, {
+            hasBoosts: hasBoosts,
+            hasSelectedVehicle: !!selectedVehicle,
+          })
         }
       } else {
         console.log("⚠️ No session or email found, skipping DLC check")
@@ -831,6 +845,7 @@ ${file}
     const vehicle = selectedVehicleRef.current
     // Apply boost if DLC enabled
     let effectivePace = vehicle ? vehicle.pace : 5
+    const paceBeforeBoost = effectivePace
     if (hasBoostsDLC && boostType === 'speed' && effectivePace < 10) {
       effectivePace = Math.min(10, effectivePace + 2) // Boost speed by 2 (max 10)
     }
@@ -842,6 +857,10 @@ ${file}
       console.log('🚗 VEHICLE STATS - PACE:', {
         vehicle: vehicle?.name || 'None',
         pace: vehicle?.pace || 'N/A',
+        effectivePace: effectivePace,
+        boostApplied: hasBoostsDLC && boostType === 'speed' && paceBeforeBoost < 10,
+        boostType: boostType,
+        hasBoostsDLC: hasBoostsDLC,
         baseSpeed: baseSpeed,
         paceMultiplier: paceMultiplier.toFixed(2),
         actualSpeed: speed.toFixed(2),
@@ -1648,11 +1667,22 @@ ${file}
             const baseDamage = 20
             const vehicle = selectedVehicleRef.current
             let effectiveImpact = vehicle ? vehicle.impact : 5
+            const impactBeforeBoost = effectiveImpact
             if (hasBoostsDLC && boostType === 'attack' && effectiveImpact < 10) {
               effectiveImpact = Math.min(10, effectiveImpact + 2)
             }
             const impactMultiplier = vehicle ? getImpactMultiplier(effectiveImpact) : 1.0
             const damage = Math.floor(baseDamage * impactMultiplier)
+            
+            // Log boost application for boss battle
+            if (hasBoostsDLC && boostType === 'attack' && impactBeforeBoost < 10) {
+              console.log('🚀 BOOST APPLIED (Boss Battle):', {
+                impactBefore: impactBeforeBoost,
+                impactAfter: effectiveImpact,
+                boostType: boostType,
+                hasBoostsDLC: hasBoostsDLC,
+              })
+            }
             
             const newHealth = Math.max(0, connorHealthRef.current - damage)
             connorHealthRef.current = newHealth
@@ -1733,6 +1763,7 @@ ${file}
                 const vehicle = selectedVehicleRef.current
                 // Apply boost if DLC enabled
                 let effectiveImpact = vehicle ? vehicle.impact : 5
+                const impactBeforeBoost = effectiveImpact
                 if (hasBoostsDLC && boostType === 'attack' && effectiveImpact < 10) {
                   effectiveImpact = Math.min(10, effectiveImpact + 2) // Boost attack by 2 (max 10)
                 }
@@ -1743,6 +1774,10 @@ ${file}
                 console.log('🚗 VEHICLE STATS - IMPACT:', {
                   vehicle: vehicle?.name || 'None',
                   impact: vehicle?.impact || 'N/A',
+                  effectiveImpact: effectiveImpact,
+                  boostApplied: hasBoostsDLC && boostType === 'attack' && impactBeforeBoost < 10,
+                  boostType: boostType,
+                  hasBoostsDLC: hasBoostsDLC,
                   target: driver.name,
                   baseDamage: baseDamage,
                   impactMultiplier: impactMultiplier.toFixed(2),
@@ -1971,6 +2006,7 @@ ${file}
             const vehicle = selectedVehicleRef.current
             // Apply boost if DLC enabled
             let effectiveArmor = vehicle ? vehicle.armor : 5
+            const armorBeforeBoost = effectiveArmor
             if (hasBoostsDLC && boostType === 'armor' && effectiveArmor < 10) {
               effectiveArmor = Math.min(10, effectiveArmor + 2) // Boost armor by 2 (max 10)
             }
@@ -1984,6 +2020,10 @@ ${file}
             console.log('🚗 VEHICLE STATS - ARMOR:', {
               vehicle: vehicle?.name || 'None',
               armor: vehicle?.armor || 'N/A',
+              effectiveArmor: effectiveArmor,
+              boostApplied: hasBoostsDLC && boostType === 'armor' && armorBeforeBoost < 10,
+              boostType: boostType,
+              hasBoostsDLC: hasBoostsDLC,
               baseDamage: baseDamage,
               armorMultiplier: armorMultiplier.toFixed(2),
               actualDamage: damage,
