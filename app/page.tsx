@@ -816,33 +816,39 @@ ${file}
           gameReadyRef.current = true
           setCountdown(null)
           
-          // Start theme music or radio (let countdown sound play out naturally)
-          // Check if FM Radio is enabled (localStorage should already be synced from startGame)
-          // Direct localStorage check - if item is enabled in localStorage, pack must be unlocked
-          const radioKey = `dlc_item_enabled_${DLC_CODES.AUDIO}_${DLC_ITEM_IDS.FM_RADIO}`
-          const directCheck = typeof window !== 'undefined' ? localStorage.getItem(radioKey) : null
-          console.log(`🔍 [COUNTDOWN] Direct localStorage check: key="${radioKey}", value="${directCheck}", hasAudioDLC state=${hasAudioDLC}`)
-          
-          // If localStorage has the key set to 'true', the item is enabled (pack must be unlocked for sync to run)
-          // If localStorage has the key set to 'false', the item is disabled
-          // If localStorage doesn't have the key, use hasAudioDLC state as fallback
-          const fmRadioEnabled = directCheck === 'true' || (directCheck === null && hasAudioDLC)
-          console.log(`🎵 [COUNTDOWN] Final FM Radio check: hasAudioDLC=${hasAudioDLC}, directCheck="${directCheck}", fmRadioEnabled=${fmRadioEnabled}`)
-          
-          if (fmRadioEnabled) {
-            // Play radio instead of theme
-            console.log("📻 [COUNTDOWN] Starting FM Radio (DLC enabled), song index:", currentRadioSongRef.current)
-            try {
-              audioManager.playRadio(currentRadioSongRef.current)
-              console.log("✅ [COUNTDOWN] playRadio called successfully")
-            } catch (error) {
-              console.error("❌ [COUNTDOWN] Error calling playRadio:", error)
-              // Fallback to theme
+          // Start music based on game mode
+          if (gameMode === 'boss-battle' && hasBossBattleDLC) {
+            // Boss battle mode: always play boss battle music, regardless of radio DLC
+            console.log("🎵 [COUNTDOWN] Starting boss battle music")
+            audioManager.play("bossBattle")
+          } else {
+            // Normal mode: Check if FM Radio is enabled (localStorage should already be synced from startGame)
+            // Direct localStorage check - if item is enabled in localStorage, pack must be unlocked
+            const radioKey = `dlc_item_enabled_${DLC_CODES.AUDIO}_${DLC_ITEM_IDS.FM_RADIO}`
+            const directCheck = typeof window !== 'undefined' ? localStorage.getItem(radioKey) : null
+            console.log(`🔍 [COUNTDOWN] Direct localStorage check: key="${radioKey}", value="${directCheck}", hasAudioDLC state=${hasAudioDLC}`)
+            
+            // If localStorage has the key set to 'true', the item is enabled (pack must be unlocked for sync to run)
+            // If localStorage has the key set to 'false', the item is disabled
+            // If localStorage doesn't have the key, use hasAudioDLC state as fallback
+            const fmRadioEnabled = directCheck === 'true' || (directCheck === null && hasAudioDLC)
+            console.log(`🎵 [COUNTDOWN] Final FM Radio check: hasAudioDLC=${hasAudioDLC}, directCheck="${directCheck}", fmRadioEnabled=${fmRadioEnabled}`)
+            
+            if (fmRadioEnabled) {
+              // Play radio instead of theme
+              console.log("📻 [COUNTDOWN] Starting FM Radio (DLC enabled), song index:", currentRadioSongRef.current)
+              try {
+                audioManager.playRadio(currentRadioSongRef.current)
+                console.log("✅ [COUNTDOWN] playRadio called successfully")
+              } catch (error) {
+                console.error("❌ [COUNTDOWN] Error calling playRadio:", error)
+                // Fallback to theme
+                audioManager.play("theme")
+              }
+            } else {
+              console.log("🎵 [COUNTDOWN] Starting theme music (FM Radio not enabled)")
               audioManager.play("theme")
             }
-          } else {
-            console.log("🎵 [COUNTDOWN] Starting theme music (FM Radio not enabled)")
-            audioManager.play("theme")
           }
           
           // Start the game loop after countdown
@@ -1367,8 +1373,9 @@ ${file}
         victoryRef.current = true
         setHasWon(true)
         
-        // Stop game sounds
+        // Stop game sounds (boss battle music or theme/radio)
         audioManager.stop("theme")
+        audioManager.stop("bossBattle")
         audioManager.stopAll()
         
         // Play victory sounds
@@ -1408,6 +1415,7 @@ ${file}
       if (parkingSpotTimerRef.current === 0) {
         console.log("🔊 Starting countdown sound and pausing theme music")
         audioManager.stop("theme")
+        audioManager.stop("bossBattle")
         audioManager.play("countdown")
       }
       
@@ -1482,8 +1490,9 @@ ${file}
         // Hide Slack message
         setShowSlackMessage(false)
 
-        // Stop theme music
+        // Stop theme music and boss battle music
         audioManager.stop("theme")
+        audioManager.stop("bossBattle")
 
         // Play victory anthem (only once - victory-screen will also play it, so we'll remove this)
         // audioManager.play("anthem") // Removed - victory-screen will handle this
@@ -1853,8 +1862,9 @@ ${file}
               victoryRef.current = true
               setHasWon(true)
               
-              // Stop game sounds
+              // Stop game sounds (boss battle music or theme/radio)
               audioManager.stop("theme")
+              audioManager.stop("bossBattle")
               audioManager.stopAll()
               
               // Play victory sounds

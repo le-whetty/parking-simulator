@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "radio5" | "radio6" | "radio7" | "radio8" | "radioStatic" | "connorVoiceover"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "radio5" | "radio6" | "radio7" | "radio8" | "radioStatic" | "connorVoiceover" | "bossBattle"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -86,6 +86,8 @@ export function useAudioManager() {
         ["radioStatic", "/music/radio/radio-static.mp3"],
         // Boss battle voiceover (DLC)
         ["connorVoiceover", "/music/connor-airbnb.mp3"],
+        // Boss battle music (always plays during boss battle mode)
+        ["bossBattle", "/music/boss-battle.mp3"],
       ]
 
       // Pre-load all sounds
@@ -331,6 +333,7 @@ export function useAudioManager() {
   const playRadio = (songIndex: number) => {
     const radioType = `radio${songIndex}` as SoundType
     stop("theme") // Stop regular theme
+    stop("bossBattle") // Stop boss battle music if playing
     play(radioType)
   }
 
@@ -338,7 +341,7 @@ export function useAudioManager() {
   const switchRadioSong = (songIndex: number) => {
     console.log(`📻 switchRadioSong called with songIndex: ${songIndex}`)
     
-    // Stop all current radio songs and theme
+    // Stop all current radio songs, theme, and boss battle music
     stop("radio1")
     stop("radio2")
     stop("radio3")
@@ -348,6 +351,7 @@ export function useAudioManager() {
     stop("radio7")
     stop("radio8")
     stop("theme")
+    stop("bossBattle")
     
     // Play static, then when it ends, play the new song
     const staticSound = soundsRef.current.get("radioStatic")
