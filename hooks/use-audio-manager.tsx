@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "connorVoiceover"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "radioStatic" | "connorVoiceover"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -79,6 +79,7 @@ export function useAudioManager() {
         ["radio2", "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3"],
         ["radio3", "/music/radio/songs/elijah-lee-who-are-you.mp3"],
         ["radio4", "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3"],
+        ["radioStatic", "/music/radio/radio-static.mp3"],
         // Boss battle voiceover (DLC)
         ["connorVoiceover", "/music/connor-airbnb.mp3"],
       ]
@@ -113,10 +114,16 @@ export function useAudioManager() {
           console.log("Menu theme audio element created:", audio.src)
         }
         
-        // Enable looping for radio songs
-        if (type.startsWith("radio")) {
+        // Enable looping for radio songs (but not static)
+        if (type.startsWith("radio") && type !== "radioStatic") {
           audio.loop = true
           console.log(`Radio song ${type} audio element created:`, audio.src)
+        }
+        
+        // Ensure static doesn't loop
+        if (type === "radioStatic") {
+          audio.loop = false
+          console.log(`Radio static audio element created:`, audio.src)
         }
 
         // Store in our map
@@ -323,6 +330,55 @@ export function useAudioManager() {
     play(radioType)
   }
 
+  // Switch radio song with static transition
+  const switchRadioSong = (songIndex: number) => {
+    console.log(`📻 switchRadioSong called with songIndex: ${songIndex}`)
+    
+    // Stop all current radio songs and theme
+    stop("radio1")
+    stop("radio2")
+    stop("radio3")
+    stop("radio4")
+    stop("theme")
+    
+    // Play static, then when it ends, play the new song
+    const staticSound = soundsRef.current.get("radioStatic")
+    const radioType = `radio${songIndex}` as SoundType
+    const newSong = soundsRef.current.get(radioType)
+    
+    if (staticSound && newSong) {
+      // Clean up any previous onended handler
+      staticSound.onended = null
+      
+      // Reset and play static
+      staticSound.currentTime = 0
+      staticSound.loop = false // Ensure static doesn't loop
+      
+      staticSound.play().catch((e) => {
+        console.error(`Error playing radio static:`, e)
+        // Fallback: play song directly if static fails
+        playRadio(songIndex)
+      })
+      
+      // When static ends, play the new song
+      staticSound.onended = () => {
+        console.log(`📻 Static ended, playing song ${songIndex}`)
+        staticSound.onended = null // Clean up
+        newSong.currentTime = 0
+        newSong.loop = true // Ensure song loops
+        newSong.play().catch((e) => {
+          console.error(`Error playing radio song ${songIndex}:`, e)
+        })
+      }
+    } else {
+      // Fallback: play song directly if static or song not found
+      console.warn(`Radio static or song ${songIndex} not found, playing directly`)
+      if (!staticSound) console.warn("radioStatic not found in soundsRef")
+      if (!newSong) console.warn(`radio${songIndex} not found in soundsRef`)
+      playRadio(songIndex)
+    }
+  }
+
   // Play car horn
   const playHorn = (hornIndex: number) => {
     const hornType = `carHorn${hornIndex}` as SoundType
@@ -337,6 +393,7 @@ export function useAudioManager() {
     stop,
     stopAll,
     playRadio,
+    switchRadioSong,
     playHorn,
   }
 }

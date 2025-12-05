@@ -79,7 +79,8 @@ export default function Home() {
   const [boostType, setBoostType] = useState<'speed' | 'armor' | 'attack' | null>(null) // Which boost is active
   const [hasAudioDLC, setHasAudioDLC] = useState(false) // Audio DLC status (radio + horn)
   const [selectedHorn, setSelectedHorn] = useState<1 | 2 | 3 | 'random'>(1) // Selected car horn (1-3 or random)
-  const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-4)
+  const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-4) - for display
+  const currentRadioSongRef = useRef(1) // Ref version for reliable cycling
   const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
   const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
   const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
@@ -488,6 +489,17 @@ ${file}
     return normalizeDirection(dx, dy)
   }
 
+  // Function to switch to the next radio song
+  const switchToNextRadioSong = () => {
+    // Use ref to get current song and calculate next (ensures reliable cycling)
+    const current = currentRadioSongRef.current
+    const nextSong = ((current % 4) + 1) as 1 | 2 | 3 | 4
+    currentRadioSongRef.current = nextSong
+    setCurrentRadioSong(nextSong) // Update state for display
+    console.log(`📻 Switching radio: ${current} → ${nextSong}`)
+    audioManager.switchRadioSong(nextSong)
+  }
+
   // Also update the startGame function to stop any existing audio
   const startGame = async () => {
     console.log("startGame called!")
@@ -706,6 +718,10 @@ ${file}
     // Reset the score
     setScore(0)
 
+    // Reset radio song to 1
+    currentRadioSongRef.current = 1
+    setCurrentRadioSong(1)
+
     // Reset game ready state
     gameReadyRef.current = false
     setCountdown(3) // Start countdown at 3
@@ -744,9 +760,9 @@ ${file}
           
           if (fmRadioEnabled) {
             // Play radio instead of theme
-            console.log("📻 [COUNTDOWN] Starting FM Radio (DLC enabled), song index:", currentRadioSong)
+            console.log("📻 [COUNTDOWN] Starting FM Radio (DLC enabled), song index:", currentRadioSongRef.current)
             try {
-              audioManager.playRadio(currentRadioSong)
+              audioManager.playRadio(currentRadioSongRef.current)
               console.log("✅ [COUNTDOWN] playRadio called successfully")
             } catch (error) {
               console.error("❌ [COUNTDOWN] Error calling playRadio:", error)
@@ -2311,17 +2327,11 @@ ${file}
       }
 
       // Process radio song change (DLC) - press 'R' key (with cooldown)
-      if (hasAudioDLC && (keysPressed.has("r") || keysPressed.has("R"))) {
+      if (hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudioDLC) && (keysPressed.has("r") || keysPressed.has("R"))) {
         const now = Date.now()
-        if (now - lastRadioSwitchTime.current > 300) { // 300ms cooldown
+        if (now - lastRadioSwitchTime.current > 500) { // 500ms cooldown (increased to prevent rapid switching)
           lastRadioSwitchTime.current = now
-          const nextSong = ((currentRadioSong % 4) + 1) as 1 | 2 | 3 | 4
-          setCurrentRadioSong(nextSong)
-          audioManager.stop("radio1")
-          audioManager.stop("radio2")
-          audioManager.stop("radio3")
-          audioManager.stop("radio4")
-          audioManager.playRadio(nextSong)
+          switchToNextRadioSong()
           // Remove 'R' from keysPressed to prevent rapid switching
           keysPressed.delete("r")
           keysPressed.delete("R")
@@ -2821,13 +2831,11 @@ ${file}
           <div className="absolute top-4 right-4 z-50">
             <Button
               onClick={() => {
-                const nextSong = ((currentRadioSong % 4) + 1) as 1 | 2 | 3 | 4
-                setCurrentRadioSong(nextSong)
-                audioManager.stop("radio1")
-                audioManager.stop("radio2")
-                audioManager.stop("radio3")
-                audioManager.stop("radio4")
-                audioManager.playRadio(nextSong)
+                const now = Date.now()
+                if (now - lastRadioSwitchTime.current > 500) { // 500ms cooldown
+                  lastRadioSwitchTime.current = now
+                  switchToNextRadioSong()
+                }
               }}
               className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau px-3 py-1 text-sm mb-2"
             >
