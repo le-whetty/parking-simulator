@@ -134,6 +134,17 @@ export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictor
           if (response.ok) {
             const data = await response.json()
             console.log("✅ ProfilePage: Received data:", data)
+            console.log("📊 ProfilePage: Stats breakdown:", {
+              games_played: data.stats?.games_played,
+              victories: data.stats?.victories,
+              cars_parked: data.stats?.cars_parked,
+              times_late_for_work: data.stats?.times_late_for_work,
+              combos: data.stats?.combos,
+              direct_dog_hits: data.stats?.direct_dog_hits,
+              top_score: data.stats?.top_score,
+              contest_rank: data.stats?.contest_rank,
+              all_time_rank: data.stats?.all_time_rank,
+            })
             setStats(data)
           } else {
             const errorData = await response.json().catch(() => ({}))
