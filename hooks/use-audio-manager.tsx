@@ -256,9 +256,18 @@ export function useAudioManager() {
         sound.loop = false
         sound.volume = 0 // Mute it as well
         
+        // Call load() to completely reset the audio element and stop any active playback
+        // This is critical for looping audio - load() stops the loop immediately
+        try {
+          sound.load()
+          console.log(`🔇 [STOP] Called load() on ${type} to reset audio element`)
+        } catch (loadError) {
+          console.warn(`⚠️ [STOP] Error calling load() on ${type}:`, loadError)
+        }
+        
         // Check if it's actually paused after our operations
         const stillPlaying = !sound.paused
-        console.log(`🔇 [STOP] After pause() - paused: ${sound.paused}, stillPlaying: ${stillPlaying}, currentTime: ${sound.currentTime.toFixed(2)}s`)
+        console.log(`🔇 [STOP] After pause() and load() - paused: ${sound.paused}, stillPlaying: ${stillPlaying}, currentTime: ${sound.currentTime.toFixed(2)}s`)
         
         // Remove any event listeners that might restart it
         sound.onended = null
@@ -273,6 +282,14 @@ export function useAudioManager() {
         newSound.volume = 0.5 // Reset volume for future use
         newSound.pause() // Ensure the new sound is also paused
         newSound.currentTime = 0
+        newSound.loop = false // Ensure loop is false
+        
+        // Call load() on the clone as well to ensure it's completely reset
+        try {
+          newSound.load()
+        } catch (loadError) {
+          console.warn(`⚠️ [STOP] Error calling load() on cloned ${type}:`, loadError)
+        }
         
         // Replace the old sound with the new one (which has no event listeners)
         soundsRef.current.set(type, newSound)
@@ -347,6 +364,15 @@ export function useAudioManager() {
         sound.currentTime = 0
         sound.loop = false
         sound.volume = 0 // Mute all sounds
+        
+        // Call load() to completely reset the audio element and stop any active playback
+        // This is critical for looping audio - load() stops the loop immediately
+        try {
+          sound.load()
+        } catch (loadError) {
+          console.warn(`⚠️ [STOP_ALL] Error calling load() on ${type}:`, loadError)
+        }
+        
         // Remove event listeners
         sound.onended = null
         sound.onplay = null
@@ -385,7 +411,7 @@ export function useAudioManager() {
       console.log(`🔇 [STOP_ALL_RADIO] No radio songs currently playing`)
     }
     
-    // Stop all radio songs
+    // Stop all radio songs using stop() which now calls load() to reset them
     stop("radio1")
     stop("radio2")
     stop("radio3")
@@ -395,6 +421,41 @@ export function useAudioManager() {
     stop("radio7")
     stop("radio8")
     stop("radioStatic")
+    
+    // Also aggressively stop any radio-related audio elements in the DOM
+    // This is a safety net in case there are multiple instances
+    try {
+      const radioSources = [
+        "/music/radio/songs/crackazat-alfa.mp3",
+        "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3",
+        "/music/radio/songs/elijah-lee-who-are-you.mp3",
+        "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3",
+        "/music/radio/songs/dont-look-back-kotomi-and-ryan-elder.mp3",
+        "/music/radio/songs/forsaken-alix-perez.mp3",
+        "/music/radio/songs/julius-rodriguez-all-i-do.mp3",
+        "/music/radio/songs/tourist-run.mp3",
+        "/music/radio/radio-static.mp3",
+      ]
+      
+      const allAudioElements = document.querySelectorAll("audio")
+      allAudioElements.forEach((audio) => {
+        const audioSrc = audio.src || (audio as any).currentSrc || ""
+        if (radioSources.some(src => audioSrc.includes(src))) {
+          console.log(`🔇 [STOP_ALL_RADIO] Found DOM audio element playing radio song, stopping it:`, audioSrc)
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          try {
+            audio.load()
+          } catch (loadError) {
+            console.warn(`⚠️ [STOP_ALL_RADIO] Error calling load() on DOM audio element:`, loadError)
+          }
+        }
+      })
+    } catch (domError) {
+      console.warn(`⚠️ [STOP_ALL_RADIO] Error querying DOM for audio elements:`, domError)
+    }
     
     // Verify they're all stopped
     setTimeout(() => {
