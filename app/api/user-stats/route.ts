@@ -65,7 +65,16 @@ export async function GET(request: NextRequest) {
     // Use allSessions we already fetched
     const sessions = allSessions || []
     const sessionIds = sessions.map(s => s.id)
-    console.log(`📊 [USER_STATS] sessionIds:`, sessionIds)
+    console.log(`📊 [USER_STATS] Found ${sessions.length} sessions for ${userEmail}`)
+    console.log(`📊 [USER_STATS] Session IDs:`, sessionIds)
+    if (sessions.length > 0) {
+      console.log(`📊 [USER_STATS] Sample session:`, {
+        id: sessions[0].id,
+        score_saved: sessions[0].score_saved,
+        final_score: sessions[0].final_score,
+        started_at: sessions[0].started_at,
+      })
+    }
 
     // Get all game events for this user
     let allEvents: any[] = []
@@ -77,9 +86,23 @@ export async function GET(request: NextRequest) {
         .order('timestamp_ms', { ascending: true })
 
       allEvents = events || []
-      console.log(`📊 [USER_STATS] events query - count: ${allEvents.length}, error:`, eventsError)
+      console.log(`📊 [USER_STATS] Found ${allEvents.length} events across ${sessionIds.length} sessions`)
+      if (eventsError) {
+        console.error(`📊 [USER_STATS] Events query error:`, eventsError)
+      }
+      if (allEvents.length > 0) {
+        const eventTypes = allEvents.reduce((acc, e) => {
+          acc[e.event_type] = (acc[e.event_type] || 0) + 1
+          return acc
+        }, {} as Record<string, number>)
+        console.log(`📊 [USER_STATS] Event breakdown by type:`, eventTypes)
+      }
     } else {
-      console.log(`📊 [USER_STATS] No session IDs, skipping events query`)
+      console.log(`📊 [USER_STATS] ⚠️ No session IDs found - this means no game sessions exist for ${userEmail}`)
+      console.log(`📊 [USER_STATS] This could mean:`)
+      console.log(`📊 [USER_STATS]   1. Sessions aren't being created (check create-game-session API)`)
+      console.log(`📊 [USER_STATS]   2. Sessions are being created with a different user_email`)
+      console.log(`📊 [USER_STATS]   3. RLS policies are blocking session reads`)
     }
 
     // Calculate stats

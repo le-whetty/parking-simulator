@@ -645,12 +645,20 @@ ${file}
               }),
             })
             if (sessionResponse.ok) {
-              const { session_id } = await sessionResponse.json()
-              gameSessionIdRef.current = session_id
-              console.log('✅ Game session created:', session_id)
+              const responseData = await sessionResponse.json()
+              const session_id = responseData.session_id || responseData.id
+              if (session_id) {
+                gameSessionIdRef.current = session_id
+                console.log('✅ Game session created:', session_id, 'for user:', session.user.email)
+              } else {
+                console.error('❌ Game session created but no session_id in response:', responseData)
+              }
+            } else {
+              const errorData = await sessionResponse.json().catch(() => ({}))
+              console.error('❌ Failed to create game session:', sessionResponse.status, errorData)
             }
           } catch (error) {
-            console.error('Error creating game session:', error)
+            console.error('❌ Error creating game session:', error)
           }
         }
       } catch (error) {
@@ -1072,7 +1080,7 @@ ${file}
     // Log hotdog fired event to game_events table
     if (gameSessionIdRef.current) {
       try {
-        await fetch('/api/log-game-event', {
+        const eventResponse = await fetch('/api/log-game-event', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1082,9 +1090,15 @@ ${file}
             timestamp_ms: now,
           }),
         })
+        if (!eventResponse.ok) {
+          const errorData = await eventResponse.json().catch(() => ({}))
+          console.error("❌ Failed to log hotdog_fired event:", eventResponse.status, errorData)
+        }
       } catch (error) {
-        console.error("Error logging hotdog fired event:", error)
+        console.error("❌ Error logging hotdog fired event:", error)
       }
+    } else {
+      console.warn("⚠️ Cannot log hotdog_fired event - no session ID")
     }
 
     // Play throw sound effect
@@ -2306,9 +2320,18 @@ ${file}
                   },
                   timestamp_ms: now,
                 }),
-              }).catch((error) => {
-                console.error("Error logging hit event:", error)
               })
+              .then(async (response) => {
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({}))
+                  console.error("❌ Failed to log hit event:", response.status, errorData)
+                }
+              })
+              .catch((error) => {
+                console.error("❌ Error logging hit event:", error)
+              })
+            } else {
+              console.warn("⚠️ Cannot log hit event - no session ID")
             }
             
             // Clear existing combo timeout
@@ -2353,9 +2376,18 @@ ${file}
                     },
                     timestamp_ms: Date.now(),
                   }),
-                }).catch((error) => {
-                  console.error("Error logging combo event:", error)
                 })
+                .then(async (response) => {
+                  if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}))
+                    console.error("❌ Failed to log combo event:", response.status, errorData)
+                  }
+                })
+                .catch((error) => {
+                  console.error("❌ Error logging combo event:", error)
+                })
+              } else {
+                console.warn("⚠️ Cannot log combo event - no session ID")
               }
             } else if (milestone && reachedMilestonesRef.current.has(milestone.hits)) {
               console.log(`⚠️ COMBO MILESTONE ALREADY REACHED: ${milestone.hits} hits (skipping duplicate)`)
