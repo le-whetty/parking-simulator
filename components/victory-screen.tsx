@@ -339,14 +339,20 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
     // Stop theme music, boss battle music, and all radio songs immediately
-    audioManager.stop("radio1")
-    audioManager.stop("radio2")
-    audioManager.stop("radio3")
-    audioManager.stop("radio4")
-    audioManager.stop("radio5")
-    audioManager.stop("radio6")
-    audioManager.stop("radio7")
-    audioManager.stop("radio8")
+    if (audioManager.stopAllRadio) {
+      audioManager.stopAllRadio()
+    } else {
+      // Fallback to individual stops if stopAllRadio is not available
+      audioManager.stop("radio1")
+      audioManager.stop("radio2")
+      audioManager.stop("radio3")
+      audioManager.stop("radio4")
+      audioManager.stop("radio5")
+      audioManager.stop("radio6")
+      audioManager.stop("radio7")
+      audioManager.stop("radio8")
+      audioManager.stop("radioStatic")
+    }
     audioManager.stop("theme")
     audioManager.stop("bossBattle")
     audioManager.stopAll()
@@ -393,14 +399,20 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   useEffect(() => {
     // Stop theme music, boss battle music, and all radio songs when component mounts (only once)
     console.log("VictoryScreen mounted - stopping all game music")
-    audioManager.stop("radio1")
-    audioManager.stop("radio2")
-    audioManager.stop("radio3")
-    audioManager.stop("radio4")
-    audioManager.stop("radio5")
-    audioManager.stop("radio6")
-    audioManager.stop("radio7")
-    audioManager.stop("radio8")
+    if (audioManager.stopAllRadio) {
+      audioManager.stopAllRadio()
+    } else {
+      // Fallback to individual stops if stopAllRadio is not available
+      audioManager.stop("radio1")
+      audioManager.stop("radio2")
+      audioManager.stop("radio3")
+      audioManager.stop("radio4")
+      audioManager.stop("radio5")
+      audioManager.stop("radio6")
+      audioManager.stop("radio7")
+      audioManager.stop("radio8")
+      audioManager.stop("radioStatic")
+    }
     audioManager.stop("theme")
     audioManager.stop("bossBattle")
     audioManager.stopAll()

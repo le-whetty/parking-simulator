@@ -1406,14 +1406,20 @@ ${file}
           
           // Stop game sounds (boss battle music or theme/radio)
           // Explicitly stop all radio songs
-          audioManager.stop("radio1")
-          audioManager.stop("radio2")
-          audioManager.stop("radio3")
-          audioManager.stop("radio4")
-          audioManager.stop("radio5")
-          audioManager.stop("radio6")
-          audioManager.stop("radio7")
-          audioManager.stop("radio8")
+          if (audioManager.stopAllRadio) {
+            audioManager.stopAllRadio()
+          } else {
+            // Fallback to individual stops if stopAllRadio is not available
+            audioManager.stop("radio1")
+            audioManager.stop("radio2")
+            audioManager.stop("radio3")
+            audioManager.stop("radio4")
+            audioManager.stop("radio5")
+            audioManager.stop("radio6")
+            audioManager.stop("radio7")
+            audioManager.stop("radio8")
+            audioManager.stop("radioStatic")
+          }
           audioManager.stop("theme")
           audioManager.stop("bossBattle")
           audioManager.stopAll()
@@ -2408,14 +2414,20 @@ ${file}
       })
 
         // Stop theme music, boss battle music, and all radio songs
-        audioManager.stop("radio1")
-        audioManager.stop("radio2")
-        audioManager.stop("radio3")
-        audioManager.stop("radio4")
-        audioManager.stop("radio5")
-        audioManager.stop("radio6")
-        audioManager.stop("radio7")
-        audioManager.stop("radio8")
+        if (audioManager.stopAllRadio) {
+          audioManager.stopAllRadio()
+        } else {
+          // Fallback to individual stops if stopAllRadio is not available
+          audioManager.stop("radio1")
+          audioManager.stop("radio2")
+          audioManager.stop("radio3")
+          audioManager.stop("radio4")
+          audioManager.stop("radio5")
+          audioManager.stop("radio6")
+          audioManager.stop("radio7")
+          audioManager.stop("radio8")
+          audioManager.stop("radioStatic")
+        }
         audioManager.stop("theme")
         audioManager.stop("bossBattle")
         

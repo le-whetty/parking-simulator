@@ -246,10 +246,11 @@ export function useAudioManager() {
       const sound = soundsRef.current.get(type)
       if (sound) {
         console.log(`Stopping ${type} sound - paused: ${sound.paused}, currentTime: ${sound.currentTime}, src: ${sound.src}`)
-        // Aggressively stop the audio
+        // Aggressively stop the audio - pause first, then reset
         sound.pause()
         sound.currentTime = 0
         sound.loop = false
+        sound.volume = 0 // Mute it as well
         // Remove any event listeners that might restart it
         sound.onended = null
         sound.onplay = null
@@ -259,6 +260,7 @@ export function useAudioManager() {
         const newSound = sound.cloneNode(false) as HTMLAudioElement
         newSound.src = sound.src
         newSound.preload = sound.preload
+        newSound.volume = 0.5 // Reset volume for future use
         // Replace the old sound with the new one (which has no event listeners)
         soundsRef.current.set(type, newSound)
         console.log(`Stopped ${type} sound successfully - replaced with clean instance`)
@@ -320,13 +322,35 @@ export function useAudioManager() {
     if (soundsRef.current.size === 0) return
 
     try {
-      soundsRef.current.forEach((sound) => {
+      soundsRef.current.forEach((sound, type) => {
         sound.pause()
         sound.currentTime = 0
+        sound.loop = false
+        sound.volume = 0 // Mute all sounds
+        // Remove event listeners
+        sound.onended = null
+        sound.onplay = null
+        sound.oncanplay = null
+        sound.oncanplaythrough = null
       })
+      console.log("Stopped all sounds")
     } catch (e) {
       console.log("Error stopping all sounds:", e)
     }
+  }
+
+  // Stop all radio songs (helper function)
+  const stopAllRadio = () => {
+    console.log("Stopping all radio songs")
+    stop("radio1")
+    stop("radio2")
+    stop("radio3")
+    stop("radio4")
+    stop("radio5")
+    stop("radio6")
+    stop("radio7")
+    stop("radio8")
+    stop("radioStatic")
   }
 
   // Play radio song (replaces theme music when radio DLC is enabled)
@@ -443,6 +467,7 @@ export function useAudioManager() {
     play,
     stop,
     stopAll,
+    stopAllRadio,
     playRadio,
     switchRadioSong,
     playHorn,
