@@ -81,19 +81,32 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all game events for this user
+    // Use RPC function to bypass RLS (works even without service role key)
     let allEvents: any[] = []
     if (sessionIds.length > 0) {
-      const { data: events, error: eventsError } = await supabase
-        .from('game_events')
-        .select('*')
-        .in('session_id', sessionIds)
-        .order('timestamp_ms', { ascending: true })
+      // Try RPC function first (bypasses RLS)
+      const { data: rpcEvents, error: rpcError } = await supabase
+        .rpc('get_user_game_events', { user_email_param: userEmail })
+      
+      if (!rpcError && rpcEvents) {
+        allEvents = rpcEvents
+        console.log(`📊 [USER_STATS] Found ${allEvents.length} events via RPC function`)
+      } else {
+        // Fallback to direct query (requires service role key)
+        console.log(`📊 [USER_STATS] RPC function failed, trying direct query:`, rpcError)
+        const { data: events, error: eventsError } = await supabase
+          .from('game_events')
+          .select('*')
+          .in('session_id', sessionIds)
+          .order('timestamp_ms', { ascending: true })
 
-      allEvents = events || []
-      console.log(`📊 [USER_STATS] Found ${allEvents.length} events across ${sessionIds.length} sessions`)
-      if (eventsError) {
-        console.error(`📊 [USER_STATS] Events query error:`, eventsError)
+        allEvents = events || []
+        if (eventsError) {
+          console.error(`📊 [USER_STATS] Direct query also failed:`, eventsError)
+        }
       }
+      
+      console.log(`📊 [USER_STATS] Found ${allEvents.length} events across ${sessionIds.length} sessions`)
       if (allEvents.length > 0) {
         const eventTypes = allEvents.reduce((acc, e) => {
           acc[e.event_type] = (acc[e.event_type] || 0) + 1
