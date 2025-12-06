@@ -1,5 +1,8 @@
 -- RPC function to get game sessions for a user by email
 -- This bypasses RLS by using SECURITY DEFINER
+-- Note: duration_ms is INTEGER in the table, not BIGINT
+DROP FUNCTION IF EXISTS get_user_game_sessions(TEXT);
+
 CREATE OR REPLACE FUNCTION get_user_game_sessions(user_email_param TEXT)
 RETURNS TABLE (
   id UUID,
@@ -8,7 +11,7 @@ RETURNS TABLE (
   vehicle_type TEXT,
   started_at TIMESTAMPTZ,
   ended_at TIMESTAMPTZ,
-  duration_ms BIGINT,
+  duration_ms INTEGER,
   final_score INTEGER,
   score_saved BOOLEAN,
   game_mode TEXT
