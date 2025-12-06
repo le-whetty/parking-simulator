@@ -1405,6 +1405,15 @@ ${file}
           setHasWon(true)
           
           // Stop game sounds (boss battle music or theme/radio)
+          // Explicitly stop all radio songs
+          audioManager.stop("radio1")
+          audioManager.stop("radio2")
+          audioManager.stop("radio3")
+          audioManager.stop("radio4")
+          audioManager.stop("radio5")
+          audioManager.stop("radio6")
+          audioManager.stop("radio7")
+          audioManager.stop("radio8")
           audioManager.stop("theme")
           audioManager.stop("bossBattle")
           audioManager.stopAll()
