@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     
     if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json(
@@ -25,7 +26,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+    // Use service role key for reading game_events (bypasses RLS)
+    // This is safe because we're validating user_email and only reading data
+    const supabaseKey = supabaseServiceRoleKey || supabaseAnonKey
+    const supabase = createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
