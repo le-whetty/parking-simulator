@@ -391,9 +391,18 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   }, [triggerFireworks, audioManager])
 
   useEffect(() => {
-    // Stop theme music when component mounts (only once)
-    console.log("VictoryScreen mounted - stopping theme music")
+    // Stop theme music, boss battle music, and all radio songs when component mounts (only once)
+    console.log("VictoryScreen mounted - stopping all game music")
+    audioManager.stop("radio1")
+    audioManager.stop("radio2")
+    audioManager.stop("radio3")
+    audioManager.stop("radio4")
+    audioManager.stop("radio5")
+    audioManager.stop("radio6")
+    audioManager.stop("radio7")
+    audioManager.stop("radio8")
     audioManager.stop("theme")
+    audioManager.stop("bossBattle")
     audioManager.stopAll()
 
     // Animate the flag
