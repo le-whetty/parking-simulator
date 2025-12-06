@@ -43,14 +43,35 @@ export async function GET(request: NextRequest) {
       .eq('user_email', userEmail)
       .maybeSingle()
 
-    // Get all game sessions for this user
-    const { data: allSessions, error: sessionsQueryError } = await supabase
-      .from('game_sessions')
-      .select('id, final_score, score_saved, started_at, ended_at')
-      .eq('user_email', userEmail)
-      .order('started_at', { ascending: false })
+    // Get all game sessions for this user using RPC function (bypasses RLS)
+    console.log(`📊 [USER_STATS] Calling RPC function get_user_game_sessions for ${userEmail}`)
+    const { data: rpcSessions, error: rpcSessionsError } = await supabase
+      .rpc('get_user_game_sessions', { user_email_param: userEmail })
     
-    console.log(`📊 [USER_STATS] allSessions query - count: ${allSessions?.length || 0}, error:`, sessionsQueryError)
+    console.log(`📊 [USER_STATS] RPC sessions response - data:`, rpcSessions ? `${rpcSessions.length} sessions` : 'null', 'error:', rpcSessionsError)
+    
+    let allSessions: any[] = []
+    if (!rpcSessionsError && rpcSessions && Array.isArray(rpcSessions)) {
+      allSessions = rpcSessions
+      console.log(`📊 [USER_STATS] ✅ Found ${allSessions.length} sessions via RPC function`)
+    } else {
+      // Fallback to direct query (requires service role key)
+      console.log(`📊 [USER_STATS] RPC function failed, trying direct query:`, rpcSessionsError)
+      const { data: sessions, error: sessionsQueryError } = await supabase
+        .from('game_sessions')
+        .select('id, final_score, score_saved, started_at, ended_at')
+        .eq('user_email', userEmail)
+        .order('started_at', { ascending: false })
+      
+      allSessions = sessions || []
+      if (sessionsQueryError) {
+        console.error(`📊 [USER_STATS] Direct query also failed:`, sessionsQueryError)
+      } else {
+        console.log(`📊 [USER_STATS] ✅ Found ${allSessions.length} sessions via direct query`)
+      }
+    }
+    
+    console.log(`📊 [USER_STATS] Final session count: ${allSessions.length}`)
     
     // Calculate stats from sessions
     const gamesPlayed = allSessions?.length || 0
