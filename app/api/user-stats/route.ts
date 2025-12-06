@@ -40,24 +40,30 @@ export async function GET(request: NextRequest) {
       .maybeSingle()
 
     // Get game sessions count (metric 1: games played)
-    const { count: gamesPlayed } = await supabase
+    const { count: gamesPlayed, error: gamesPlayedError } = await supabase
       .from('game_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_email', userEmail)
+    
+    console.log(`📊 [USER_STATS] gamesPlayed query - count: ${gamesPlayed}, error:`, gamesPlayedError)
 
     // Get times late for work (metric 2: score_saved = false)
-    const { count: timesLate } = await supabase
+    const { count: timesLate, error: timesLateError } = await supabase
       .from('game_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_email', userEmail)
       .eq('score_saved', false)
+    
+    console.log(`📊 [USER_STATS] timesLate query - count: ${timesLate}, error:`, timesLateError)
 
     // Get cars parked (metric 3: score_saved = true)
-    const { count: carsParked } = await supabase
+    const { count: carsParked, error: carsParkedError } = await supabase
       .from('game_sessions')
       .select('*', { count: 'exact', head: true })
       .eq('user_email', userEmail)
       .eq('score_saved', true)
+    
+    console.log(`📊 [USER_STATS] carsParked query - count: ${carsParked}, error:`, carsParkedError)
 
     // Get scores for stats
     const { data: scores } = await supabase
@@ -67,24 +73,31 @@ export async function GET(request: NextRequest) {
       .order('score', { ascending: false })
 
     // Get game events for detailed stats
-    const { data: sessions } = await supabase
+    const { data: sessions, error: sessionsError } = await supabase
       .from('game_sessions')
       .select('id, final_score, score_saved, started_at, ended_at')
       .eq('user_email', userEmail)
       .order('started_at', { ascending: false })
 
+    console.log(`📊 [USER_STATS] sessions query - count: ${sessions?.length || 0}, error:`, sessionsError)
+    console.log(`📊 [USER_STATS] sessions data:`, sessions?.map(s => ({ id: s.id, final_score: s.final_score, score_saved: s.score_saved })))
+
     const sessionIds = sessions?.map(s => s.id) || []
+    console.log(`📊 [USER_STATS] sessionIds:`, sessionIds)
 
     // Get all game events for this user
     let allEvents: any[] = []
     if (sessionIds.length > 0) {
-      const { data: events } = await supabase
+      const { data: events, error: eventsError } = await supabase
         .from('game_events')
         .select('*')
         .in('session_id', sessionIds)
         .order('timestamp_ms', { ascending: true })
 
       allEvents = events || []
+      console.log(`📊 [USER_STATS] events query - count: ${allEvents.length}, error:`, eventsError)
+    } else {
+      console.log(`📊 [USER_STATS] No session IDs, skipping events query`)
     }
 
     // Calculate stats
@@ -95,10 +108,12 @@ export async function GET(request: NextRequest) {
     // Count combos (metric 4: event_type = 'combo')
     const comboEvents = allEvents.filter(e => e.event_type === 'combo')
     const combos = comboEvents.length
+    console.log(`📊 [USER_STATS] combos - total events: ${allEvents.length}, combo events: ${combos}`)
 
     // Count direct dog hits (metric 6: event_type = 'hit')
     const hitEvents = allEvents.filter(e => e.event_type === 'hit')
     const directDogHits = hitEvents.length
+    console.log(`📊 [USER_STATS] directDogHits - hit events: ${directDogHits}`)
 
     // Count hotdogs fired (for accuracy calculation)
     // Only count events after a certain date when we started tracking this
@@ -124,6 +139,7 @@ export async function GET(request: NextRequest) {
     const topScoreFromScores = scores?.[0]?.score || 0
     const topScoreFromSessions = sessions?.reduce((max, s) => Math.max(max, s.final_score || 0), 0) || 0
     const topScore = Math.max(topScoreFromScores, topScoreFromSessions)
+    console.log(`📊 [USER_STATS] topScore - from scores: ${topScoreFromScores}, from sessions: ${topScoreFromSessions}, final: ${topScore}`)
 
     // Get or update user title based on top score
     const { data: titleData } = await supabase
@@ -191,7 +207,7 @@ export async function GET(request: NextRequest) {
     }))
 
     // Always return data, even if minimal
-    return NextResponse.json({
+    const responseData = {
       user_email: userEmail,
       username: usernameData?.username || null,
       avatar_url: usernameData?.avatar_url || null,
@@ -223,7 +239,19 @@ export async function GET(request: NextRequest) {
         total_points: 0,
         points_to_next_level: 0,
       }
+    }
+    
+    console.log(`📊 [USER_STATS] Returning response for ${userEmail}:`, {
+      games_played: responseData.stats.games_played,
+      victories: responseData.stats.victories,
+      cars_parked: responseData.stats.cars_parked,
+      times_late_for_work: responseData.stats.times_late_for_work,
+      combos: responseData.stats.combos,
+      direct_dog_hits: responseData.stats.direct_dog_hits,
+      top_score: responseData.stats.top_score,
     })
+    
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error("Error fetching user stats:", error)
     // Return minimal data even on error so profile page can display
