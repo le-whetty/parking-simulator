@@ -85,15 +85,29 @@ export async function GET(request: NextRequest) {
     let allEvents: any[] = []
     if (sessionIds.length > 0) {
       // Try RPC function first (bypasses RLS)
+      console.log(`📊 [USER_STATS] Calling RPC function get_user_game_events for ${userEmail}`)
       const { data: rpcEvents, error: rpcError } = await supabase
         .rpc('get_user_game_events', { user_email_param: userEmail })
       
-      if (!rpcError && rpcEvents) {
+      console.log(`📊 [USER_STATS] RPC response - data:`, rpcEvents ? `${rpcEvents.length} events` : 'null', 'error:', rpcError)
+      
+      if (rpcError) {
+        console.error(`📊 [USER_STATS] RPC function error:`, rpcError)
+      }
+      
+      if (!rpcError && rpcEvents && Array.isArray(rpcEvents)) {
         allEvents = rpcEvents
-        console.log(`📊 [USER_STATS] Found ${allEvents.length} events via RPC function`)
+        console.log(`📊 [USER_STATS] ✅ Found ${allEvents.length} events via RPC function`)
+      } else if (!rpcError && rpcEvents && !Array.isArray(rpcEvents)) {
+        console.error(`📊 [USER_STATS] ⚠️ RPC returned non-array data:`, typeof rpcEvents, rpcEvents)
+        // Try to convert if it's an object
+        if (typeof rpcEvents === 'object') {
+          allEvents = Object.values(rpcEvents) as any[]
+          console.log(`📊 [USER_STATS] Converted to array: ${allEvents.length} events`)
+        }
       } else {
         // Fallback to direct query (requires service role key)
-        console.log(`📊 [USER_STATS] RPC function failed, trying direct query:`, rpcError)
+        console.log(`📊 [USER_STATS] RPC function failed or returned no data, trying direct query`)
         const { data: events, error: eventsError } = await supabase
           .from('game_events')
           .select('*')
@@ -103,16 +117,22 @@ export async function GET(request: NextRequest) {
         allEvents = events || []
         if (eventsError) {
           console.error(`📊 [USER_STATS] Direct query also failed:`, eventsError)
+        } else {
+          console.log(`📊 [USER_STATS] ✅ Found ${allEvents.length} events via direct query`)
         }
       }
       
-      console.log(`📊 [USER_STATS] Found ${allEvents.length} events across ${sessionIds.length} sessions`)
+      console.log(`📊 [USER_STATS] Final event count: ${allEvents.length} events across ${sessionIds.length} sessions`)
       if (allEvents.length > 0) {
         const eventTypes = allEvents.reduce((acc, e) => {
           acc[e.event_type] = (acc[e.event_type] || 0) + 1
           return acc
         }, {} as Record<string, number>)
         console.log(`📊 [USER_STATS] Event breakdown by type:`, eventTypes)
+        // Log a sample event to verify structure
+        console.log(`📊 [USER_STATS] Sample event:`, JSON.stringify(allEvents[0], null, 2))
+      } else {
+        console.warn(`📊 [USER_STATS] ⚠️ No events found despite having ${sessionIds.length} sessions`)
       }
     } else {
       console.log(`📊 [USER_STATS] ⚠️ No session IDs found - this means no game sessions exist for ${userEmail}`)
