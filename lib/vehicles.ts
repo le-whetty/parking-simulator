@@ -65,7 +65,7 @@ export const vehicles: Vehicle[] = [
     pace: 10,
     armor: 3,
     impact: 5,
-    description: 'Lightweight compact car with exceptional speed. Quick acceleration and nimble handling. Lightweight frame means less protection but maximum agility. Perfect for hit-and-run tactics.',
+    description: 'A nimble and zippy compact car, extremely high accumulator of Drake St parking tickets. Lacks heavy armor but makes up for it with unparalleled speed and maneuverability.',
     image: '/images/11-suzuki-swift.png',
     isDLC: true,
     dlcCode: 'DLC_VEHICLES',
