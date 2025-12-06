@@ -1002,9 +1002,18 @@ ${file}
       }
     }
 
-    // Constrain to game area - allow movement across the entire screen
-    x = Math.max(50, Math.min(1150, x))
-    y = Math.max(100, Math.min(700, y))
+    // Constrain to game area
+    // In boss battle mode, enforce the right boundary (prevent movement past maxX)
+    // In normal mode, allow movement across the entire screen (for off-screen tracking)
+    if (gameMode === 'boss-battle') {
+      // Boss battle: enforce boundary on right side
+      x = Math.max(gameBounds.minX, Math.min(gameBounds.maxX - 140, x)) // 140 is Luke's car width
+      y = Math.max(gameBounds.minY, Math.min(gameBounds.maxY - 80, y)) // 80 is Luke's car height
+    } else {
+      // Normal mode: allow movement across entire screen (for off-screen tracking)
+      x = Math.max(50, Math.min(1150, x))
+      y = Math.max(100, Math.min(700, y))
+    }
 
     // Update position reference and state
     lukePositionRef.current = { x, y }
@@ -1562,7 +1571,7 @@ ${file}
               mixpanel.identify(session.user.id)
               mixpanel.track('Victory', {
                 user_id: session.user.id,
-                time_spent_minutes: parseFloat(timeSpentMinutes),
+                time_spent_minutes: parseFloat(String(timeSpentMinutes)),
                 score: score,
                 vehicle_type: selectedVehicle?.id || null,
               })
@@ -2462,7 +2471,7 @@ ${file}
           if (victory) {
             mixpanel.track('Victory', {
               user_id: session.user.id,
-              time_spent_minutes: parseFloat(timeSpentMinutes),
+              time_spent_minutes: parseFloat(String(timeSpentMinutes)),
               score: score,
               vehicle_type: selectedVehicle?.id || null,
             })
@@ -2485,7 +2494,7 @@ ${file}
           } else {
             mixpanel.track('Defeat', {
               user_id: session.user.id,
-              time_spent_minutes: parseFloat(timeSpentMinutes),
+              time_spent_minutes: parseFloat(String(timeSpentMinutes)),
               final_health: lukeHealth,
               vehicle_type: selectedVehicle?.id || null,
             })
@@ -3097,10 +3106,6 @@ ${file}
             // Start the game with selected vehicle
             startGame()
           }}
-          onLogout={handleLogout}
-          onEditUsername={() => setShowUsernameModal(true)}
-          onVictorySimulator={handleVictorySimulator}
-          username={username}
         />
       </>
     )
