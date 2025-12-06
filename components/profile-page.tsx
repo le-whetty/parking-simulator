@@ -161,12 +161,15 @@ export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictor
                 games_played: 0,
                 victories: 0,
                 victory_percent: 0,
-                drivers_defeated: 0,
-                most_defeated_driver: 'None',
+                times_late_for_work: 0,
+                cars_parked: 0,
+                combos: 0,
+                direct_dog_hits: 0,
+                accuracy_percent: null,
+                most_damaged_driver: 'None',
                 contest_rank: 999999,
                 all_time_rank: 999999,
                 top_score: 0,
-                hotdogs_thrown: 0,
               },
               achievements: [],
               title: {
@@ -499,8 +502,9 @@ export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictor
               <div className="mb-4">
                 <div className="flex items-center gap-1 mb-2">
                   {[1, 2, 3, 4, 5, 6, 7].map((level) => {
-                    const isCurrentLevel = stats.title.title_level === level
-                    const isCompleted = stats.title.title_level > level
+                    const titleLevel = stats.title?.title_level ?? 1
+                    const isCurrentLevel = titleLevel === level
+                    const isCompleted = titleLevel > level
                     const levelTitles = [
                       'Parking Manager',
                       'Intermediate Parking Manager',

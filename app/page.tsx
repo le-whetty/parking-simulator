@@ -1693,12 +1693,95 @@ ${file}
       const newX = connorPos.x + Math.sin(timeMs / 2000) * 0.5 // Slow horizontal movement
       const newY = connorPos.y + Math.cos(timeMs / 2000) * 0.5 // Slow vertical movement
       
-      // Keep Connor within bounds (accounting for 4x size)
-      const boundedX = Math.max(gameBounds.minX, Math.min(gameBounds.maxX - 560, newX))
-      const boundedY = Math.max(gameBounds.minY, Math.min(gameBounds.maxY - 320, newY))
+      // Keep Connor within bounds (accounting for 3x size - 420px width, 240px height)
+      const boundedX = Math.max(gameBounds.minX, Math.min(gameBounds.maxX - 420, newX))
+      const boundedY = Math.max(gameBounds.minY, Math.min(gameBounds.maxY - 240, newY))
       
       connorPositionRef.current = { x: boundedX, y: boundedY }
       setConnorPosition({ x: boundedX, y: boundedY })
+      
+      // Check collision between Luke and Connor's car
+      if (lukeCarRef.current) {
+        const connorElement = document.getElementById('connor-boss')
+        if (connorElement) {
+          const lukeRect = lukeCarRef.current.getBoundingClientRect()
+          const connorRect = connorElement.getBoundingClientRect()
+          
+          // Check if Luke's car overlaps with Connor's car
+          if (
+            lukeRect.left < connorRect.right &&
+            lukeRect.right > connorRect.left &&
+            lukeRect.top < connorRect.bottom &&
+            lukeRect.bottom > connorRect.top
+          ) {
+            // Luke touched Connor's car - apply damage
+            // Use a cooldown to prevent rapid damage (damage every 500ms)
+            const lastDamageTime = (lukeCarRef.current as any).lastConnorDamageTime || 0
+            const currentTime = Date.now()
+            
+            if (currentTime - lastDamageTime > 500) {
+              (lukeCarRef.current as any).lastConnorDamageTime = currentTime
+              
+              // RESET COMBO when touching Connor
+              const previousCombo = comboCountRef.current
+              console.log(`💥 LUKE TOUCHED CONNOR: Resetting combo streak (was at ${previousCombo} hits)`)
+              comboCountRef.current = 0
+              reachedMilestonesRef.current = new Set()
+              if (comboTimeoutRef.current) {
+                clearTimeout(comboTimeoutRef.current)
+                comboTimeoutRef.current = null
+              }
+              
+              // Apply damage (Connor's car is dangerous!)
+              setLukeHealth((prev) => {
+                // Connor's car does significant damage: 8 per touch
+                const baseDamage = 8
+                const vehicle = selectedVehicleRef.current
+                // Apply armor boost if DLC enabled
+                let effectiveArmor = vehicle ? vehicle.armor : 5
+                if (hasBoostsDLC && boostType === 'armor' && effectiveArmor < 10) {
+                  effectiveArmor = Math.min(10, effectiveArmor + 2)
+                }
+                const armorMultiplier = vehicle ? getArmorMultiplier(effectiveArmor) : 1.0
+                const damage = Math.ceil(baseDamage * armorMultiplier)
+                const newHealth = prev - damage
+                
+                console.log('💥 CONNOR CAR COLLISION:', {
+                  vehicle: vehicle?.name || 'None',
+                  armor: vehicle?.armor || 'N/A',
+                  effectiveArmor: effectiveArmor,
+                  baseDamage: baseDamage,
+                  armorMultiplier: armorMultiplier.toFixed(2),
+                  actualDamage: damage,
+                  healthBefore: prev,
+                  healthAfter: newHealth,
+                })
+                
+                if (newHealth <= 0) {
+                  endGame(false)
+                  return 0
+                }
+                return newHealth
+              })
+              
+              // Subtract points for touching Connor
+              const hitPenalty = -15
+              setScore((prev) => Math.max(0, prev + hitPenalty))
+              scoreEffect(hitPenalty, lukeX, lukeY)
+              
+              // Show hit effect
+              const hitEffect = document.createElement("div")
+              hitEffect.className = "absolute w-full h-full border-4 border-red-500 animate-pulse opacity-50 z-30"
+              lukeCarRef.current.appendChild(hitEffect)
+              
+              // Remove hit effect after animation
+              setTimeout(() => {
+                hitEffect.remove()
+              }, 300)
+            }
+          }
+        }
+      }
     }
     
     // Update drivers with dynamic movement
