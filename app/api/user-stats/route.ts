@@ -39,31 +39,21 @@ export async function GET(request: NextRequest) {
       .eq('user_email', userEmail)
       .maybeSingle()
 
-    // Get game sessions count (metric 1: games played)
-    const { count: gamesPlayed, error: gamesPlayedError } = await supabase
+    // Get all game sessions for this user
+    const { data: allSessions, error: sessionsQueryError } = await supabase
       .from('game_sessions')
-      .select('*', { count: 'exact', head: true })
+      .select('id, final_score, score_saved, started_at, ended_at')
       .eq('user_email', userEmail)
+      .order('started_at', { ascending: false })
     
-    console.log(`📊 [USER_STATS] gamesPlayed query - count: ${gamesPlayed}, error:`, gamesPlayedError)
-
-    // Get times late for work (metric 2: score_saved = false)
-    const { count: timesLate, error: timesLateError } = await supabase
-      .from('game_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_email', userEmail)
-      .eq('score_saved', false)
+    console.log(`📊 [USER_STATS] allSessions query - count: ${allSessions?.length || 0}, error:`, sessionsQueryError)
     
-    console.log(`📊 [USER_STATS] timesLate query - count: ${timesLate}, error:`, timesLateError)
-
-    // Get cars parked (metric 3: score_saved = true)
-    const { count: carsParked, error: carsParkedError } = await supabase
-      .from('game_sessions')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_email', userEmail)
-      .eq('score_saved', true)
+    // Calculate stats from sessions
+    const gamesPlayed = allSessions?.length || 0
+    const timesLate = allSessions?.filter(s => s.score_saved === false).length || 0
+    const carsParked = allSessions?.filter(s => s.score_saved === true).length || 0
     
-    console.log(`📊 [USER_STATS] carsParked query - count: ${carsParked}, error:`, carsParkedError)
+    console.log(`📊 [USER_STATS] Calculated stats - gamesPlayed: ${gamesPlayed}, timesLate: ${timesLate}, carsParked: ${carsParked}`)
 
     // Get scores for stats
     const { data: scores } = await supabase
@@ -72,17 +62,9 @@ export async function GET(request: NextRequest) {
       .eq('user_email', userEmail)
       .order('score', { ascending: false })
 
-    // Get game events for detailed stats
-    const { data: sessions, error: sessionsError } = await supabase
-      .from('game_sessions')
-      .select('id, final_score, score_saved, started_at, ended_at')
-      .eq('user_email', userEmail)
-      .order('started_at', { ascending: false })
-
-    console.log(`📊 [USER_STATS] sessions query - count: ${sessions?.length || 0}, error:`, sessionsError)
-    console.log(`📊 [USER_STATS] sessions data:`, sessions?.map(s => ({ id: s.id, final_score: s.final_score, score_saved: s.score_saved })))
-
-    const sessionIds = sessions?.map(s => s.id) || []
+    // Use allSessions we already fetched
+    const sessions = allSessions || []
+    const sessionIds = sessions.map(s => s.id)
     console.log(`📊 [USER_STATS] sessionIds:`, sessionIds)
 
     // Get all game events for this user
@@ -101,9 +83,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate stats
-    const victories = sessions?.filter(s => s.score_saved && s.final_score !== null) || []
+    const victories = sessions.filter(s => s.score_saved === true && s.final_score !== null && s.final_score !== undefined)
     const victoryCount = victories.length
-    const victoryPercent = gamesPlayed ? Math.round((victoryCount / gamesPlayed) * 100) : 0
+    const victoryPercent = gamesPlayed > 0 ? Math.round((victoryCount / gamesPlayed) * 100) : 0
+    
+    console.log(`📊 [USER_STATS] Victory stats - victories: ${victoryCount}, gamesPlayed: ${gamesPlayed}, victoryPercent: ${victoryPercent}`)
 
     // Count combos (metric 4: event_type = 'combo')
     const comboEvents = allEvents.filter(e => e.event_type === 'combo')
@@ -255,8 +239,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching user stats:", error)
     // Return minimal data even on error so profile page can display
+    const searchParams = request.nextUrl.searchParams
+    const userEmailParam = searchParams.get('user_email') || 'unknown'
+    
     return NextResponse.json({
-      user_email: userEmail,
+      user_email: userEmailParam,
       username: null,
       avatar_url: null,
       display_name: null,
