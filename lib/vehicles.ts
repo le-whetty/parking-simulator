@@ -1,6 +1,6 @@
 // Vehicle types and stats definitions
 
-export type VehicleType = 'corolla' | 'sedona' | 'impala'
+export type VehicleType = 'corolla' | 'sedona' | 'impala' | 'caravan' | 'swift'
 
 export interface Vehicle {
   id: VehicleType
@@ -11,6 +11,8 @@ export interface Vehicle {
   impact: number // Damage dealt stat (1-10)
   description: string
   image: string
+  isDLC?: boolean // Whether this vehicle requires DLC
+  dlcCode?: string // DLC code required to unlock
 }
 
 export const vehicles: Vehicle[] = [
@@ -43,6 +45,30 @@ export const vehicles: Vehicle[] = [
     impact: 9,
     description: 'Full-size sedan with decent power. Solid build quality. Confident road presence. Moderately quick off the line. Average fuel economy for the segment.',
     image: '/images/04-chevy-impala.png',
+  },
+  {
+    id: 'caravan',
+    name: '1999 Dodge Caravan',
+    nickname: '',
+    pace: 4,
+    armor: 7,
+    impact: 9,
+    description: 'Luke\'s high school car. A reliable minivan with surprising performance. Well-maintained and battle-tested. Excellent all-around stats make it a versatile choice for any parking challenge.',
+    image: '/images/99-dodge-caravan.png',
+    isDLC: true,
+    dlcCode: 'DLC_VEHICLES',
+  },
+  {
+    id: 'swift',
+    name: '2011 Suzuki Swift',
+    nickname: '',
+    pace: 10,
+    armor: 3,
+    impact: 5,
+    description: 'Lightweight compact car with exceptional speed. Quick acceleration and nimble handling. Lightweight frame means less protection but maximum agility. Perfect for hit-and-run tactics.',
+    image: '/images/11-suzuki-swift.png',
+    isDLC: true,
+    dlcCode: 'DLC_VEHICLES',
   },
 ]
 

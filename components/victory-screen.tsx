@@ -28,11 +28,10 @@ interface VictoryScreenProps {
   score?: number // Add optional score prop
   isSimulator?: boolean // Flag to indicate if this is a simulator (shows disclaimer)
   vehicle?: string | null // Vehicle type used for this game
-  sessionId?: string // Game session ID for score validation
-  gameDurationMs?: number // Game duration in milliseconds
+  gameMode?: 'normal' | 'boss-battle' // Game mode to determine which leaderboard and text to show
 }
 
-export default function VictoryScreen({ onRestart, score = 0, isSimulator = false, vehicle = null, sessionId, gameDurationMs }: VictoryScreenProps) {
+export default function VictoryScreen({ onRestart, score = 0, isSimulator = false, vehicle = null, gameMode = 'normal' }: VictoryScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const audioManager = useAudioManager()
   const [userEmail, setUserEmail] = useState<string | null>(null)
@@ -106,13 +105,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             const response = await fetch("/api/save-score", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
+                body: JSON.stringify({
                 userEmail: session.user.email,
                 score: score,
                 accessToken: accessToken,
                 vehicle: vehicle, // Vehicle type from props
-                sessionId: sessionId, // Game session ID for validation
-                gameDurationMs: gameDurationMs, // Game duration for validation
+                gameMode: gameMode === 'boss-battle' ? "Boss Battle" : "I'm Parkin' Here!", // Game mode
               }),
             })
             
@@ -340,9 +338,67 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
 
   // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
-    // Stop theme music immediately
+    console.log("🎵 [VICTORY_SCREEN] useEffect triggered - stopping all game music")
+    
+    // AGGRESSIVE DOM-LEVEL AUDIO STOPPING - Stop ALL game music directly from DOM
+    // This is critical because VictoryScreen creates a new audio manager instance
+    console.log("🔇 [VICTORY_SCREEN] Starting aggressive DOM-level audio stopping")
+    const allAudioElements = document.querySelectorAll("audio")
+    const radioSources = [
+      "/music/radio/songs/",
+      "/music/theme.mp3",
+      "/music/boss-battle.mp3",
+      "/music/countdown.mp3",
+      "/music/3-2-1.mp3",
+    ]
+    
+    let stoppedCount = 0
+    allAudioElements.forEach((audio) => {
+      const audioSrc = audio.src || (audio as any).currentSrc || ""
+      const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+      const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+      
+      // Stop ALL game music (radio, theme, boss battle, countdown)
+      // But allow victory music to continue
+      if (isGameMusic && !isVictoryMusic) {
+        console.log(`🔇 [VICTORY_SCREEN] Stopping game music from DOM: ${audioSrc}`)
+        try {
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          audio.load() // Reset the audio element completely
+          stoppedCount++
+        } catch (e) {
+          console.warn(`⚠️ [VICTORY_SCREEN] Error stopping audio element:`, e)
+        }
+      }
+    })
+    console.log(`🔇 [VICTORY_SCREEN] Stopped ${stoppedCount} audio elements from DOM`)
+    
+    // Also try via audio manager (may not work if it's a new instance, but worth trying)
+    if (audioManager.stopAllRadio) {
+      console.log("🎵 [VICTORY_SCREEN] Using stopAllRadio()")
+      audioManager.stopAllRadio()
+    } else {
+      console.log("🎵 [VICTORY_SCREEN] stopAllRadio not available, using individual stops")
+      // Fallback to individual stops if stopAllRadio is not available
+      audioManager.stop("radio1")
+      audioManager.stop("radio2")
+      audioManager.stop("radio3")
+      audioManager.stop("radio4")
+      audioManager.stop("radio5")
+      audioManager.stop("radio6")
+      audioManager.stop("radio7")
+      audioManager.stop("radio8")
+      audioManager.stop("radioStatic")
+    }
+    console.log("🎵 [VICTORY_SCREEN] Stopping theme and bossBattle")
     audioManager.stop("theme")
+    audioManager.stop("bossBattle")
+    console.log("🎵 [VICTORY_SCREEN] Calling stopAll()")
     audioManager.stopAll()
+    console.log("🎵 [VICTORY_SCREEN] All stop calls completed")
 
     // Only play initial song once when songs become available (don't use anthem fallback)
     if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
@@ -354,15 +410,97 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   }, [murcaSongs])
 
   // Trigger fireworks when victory screen loads (only once)
+  // Ensure audio manager is initialized and fireworks sound is ready
   useEffect(() => {
-    triggerFireworks()
-  }, [triggerFireworks])
+    async function initAndPlayFireworks() {
+      // Initialize audio manager if not already done
+      if (!audioManager.initialized) {
+        audioManager.initialize()
+        // Wait for initialization to complete
+        await new Promise(resolve => setTimeout(resolve, 200))
+      }
+      
+      // Wait for fireworks sound to be ready
+      if (audioManager.waitForSoundReady) {
+        try {
+          const isReady = await audioManager.waitForSoundReady("fireworks")
+          if (!isReady) {
+            console.warn("Fireworks sound not ready after timeout, playing anyway")
+          }
+        } catch (error) {
+          console.error("Error waiting for fireworks sound:", error)
+        }
+      }
+      
+      // Now trigger fireworks
+      triggerFireworks()
+    }
+    
+    initAndPlayFireworks()
+  }, [triggerFireworks, audioManager])
 
   useEffect(() => {
-    // Stop theme music when component mounts (only once)
-    console.log("VictoryScreen mounted - stopping theme music")
+    // Stop theme music, boss battle music, and all radio songs when component mounts (only once)
+    console.log("🎵 [VICTORY_SCREEN] Component mounted - stopping all game music")
+    
+    // AGGRESSIVE DOM-LEVEL AUDIO STOPPING - Stop ALL game music directly from DOM
+    console.log("🔇 [VICTORY_SCREEN] Starting aggressive DOM-level audio stopping on mount")
+    const allAudioElements = document.querySelectorAll("audio")
+    const radioSources = [
+      "/music/radio/songs/",
+      "/music/theme.mp3",
+      "/music/boss-battle.mp3",
+      "/music/countdown.mp3",
+      "/music/3-2-1.mp3",
+    ]
+    
+    let stoppedCount = 0
+    allAudioElements.forEach((audio) => {
+      const audioSrc = audio.src || (audio as any).currentSrc || ""
+      const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+      const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+      
+      // Stop ALL game music (radio, theme, boss battle, countdown)
+      // But allow victory music to continue
+      if (isGameMusic && !isVictoryMusic) {
+        console.log(`🔇 [VICTORY_SCREEN] Stopping game music from DOM on mount: ${audioSrc}`)
+        try {
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          audio.load() // Reset the audio element completely
+          stoppedCount++
+        } catch (e) {
+          console.warn(`⚠️ [VICTORY_SCREEN] Error stopping audio element on mount:`, e)
+        }
+      }
+    })
+    console.log(`🔇 [VICTORY_SCREEN] Stopped ${stoppedCount} audio elements from DOM on mount`)
+    
+    // Also try via audio manager (may not work if it's a new instance, but worth trying)
+    if (audioManager.stopAllRadio) {
+      console.log("🎵 [VICTORY_SCREEN] Using stopAllRadio() on mount")
+      audioManager.stopAllRadio()
+    } else {
+      console.log("🎵 [VICTORY_SCREEN] stopAllRadio not available on mount, using individual stops")
+      // Fallback to individual stops if stopAllRadio is not available
+      audioManager.stop("radio1")
+      audioManager.stop("radio2")
+      audioManager.stop("radio3")
+      audioManager.stop("radio4")
+      audioManager.stop("radio5")
+      audioManager.stop("radio6")
+      audioManager.stop("radio7")
+      audioManager.stop("radio8")
+      audioManager.stop("radioStatic")
+    }
+    console.log("🎵 [VICTORY_SCREEN] Stopping theme and bossBattle on mount")
     audioManager.stop("theme")
+    audioManager.stop("bossBattle")
+    console.log("🎵 [VICTORY_SCREEN] Calling stopAll() on mount")
     audioManager.stopAll()
+    console.log("🎵 [VICTORY_SCREEN] All stop calls completed on mount")
 
     // Animate the flag
     const canvas = canvasRef.current
@@ -546,14 +684,27 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
           </div>
 
           <div className="space-y-4">
-            <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
-
-            <p className="text-tracksuit-purple-700 font-quicksand">
-              While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination.
-            </p>
-            <p className="text-tracksuit-purple-700 font-quicksand">
-              The spot is his. It has always been his 🌭
-            </p>
+            {gameMode === 'boss-battle' ? (
+              <>
+                <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has defeated Connor!</p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  The CEO has been vanquished. Luke's determination knows no bounds.
+                </p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  Victory is his. It has always been his 🌭
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-2xl font-bold font-chapeau text-tracksuit-purple-800">Luke has secured the alpha parking spot!</p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  While others may cite pregnancy, injury, or legitimate medical documentation, Luke cites only one thing: unwavering determination.
+                </p>
+                <p className="text-tracksuit-purple-700 font-quicksand">
+                  The spot is his. It has always been his 🌭
+                </p>
+              </>
+            )}
           </div>
 
           {/* Two-column layout above buttons */}
@@ -586,13 +737,17 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             <div className="p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg">
               <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Win Merch!</p>
               <p className="text-sm text-tracksuit-purple-700 font-quicksand mb-3">
-                Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}
+                {gameMode === 'boss-battle' ? (
+                  <>Top 3 scores by Friday 12th December at 1pm win the coveted{" "}</>
+                ) : (
+                  <>Top 3 scores by Friday, Nov 5th at 1pm NZT win the coveted{" "}</>
+                )}
                 <Dialog open={showMerchCarousel} onOpenChange={setShowMerchCarousel}>
                   <DialogTrigger asChild>
                     <button
                       className="text-tracksuit-purple-600 hover:text-tracksuit-purple-800 underline font-semibold cursor-pointer"
                     >
-                      "I'm parkin' here"
+                      {gameMode === 'boss-battle' ? '"Boss Battle"' : '"I\'m parkin\' here"'}
                     </button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
@@ -686,7 +841,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
             >
               ×
             </button>
-            <Leaderboard userEmail={userEmail || undefined} userScore={score} userRank={userRank || undefined} />
+            <Leaderboard 
+              userEmail={userEmail || undefined} 
+              userScore={score} 
+              userRank={userRank || undefined}
+              gameMode={gameMode === 'boss-battle' ? "Boss Battle" : "I'm Parkin' Here!"}
+            />
           </div>
         </div>
       )}

@@ -10,22 +10,25 @@ interface LeaderboardProps {
   userEmail?: string
   userScore?: number
   userRank?: number
+  gameMode?: string // Game mode to filter leaderboard
 }
 
-export default function Leaderboard({ userEmail, userScore, userRank }: LeaderboardProps) {
+export default function Leaderboard({ userEmail, userScore, userRank, gameMode = "I'm Parkin' Here!" }: LeaderboardProps) {
   const [contestLeaderboard, setContestLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [bossBattleContestLeaderboard, setBossBattleContestLeaderboard] = useState<LeaderboardEntry[]>([])
   const [allTimeLeaderboard, setAllTimeLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<"contest" | "all-time">("contest")
+  const [activeTab, setActiveTab] = useState<"contest" | "boss-battle-contest" | "all-time">("contest")
   const [contestRank, setContestRank] = useState<number | null>(null)
+  const [bossBattleContestRank, setBossBattleContestRank] = useState<number | null>(null)
   const [allTimeRank, setAllTimeRank] = useState<number | null>(null)
 
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        // Fetch contest leaderboard (default)
-        const contestResponse = await fetch("/api/leaderboard?type=contest")
+        // Fetch "I'm Parkin' Here!" contest leaderboard
+        const contestResponse = await fetch(`/api/leaderboard?type=contest&game_mode=${encodeURIComponent("I'm Parkin' Here!")}`)
         if (contestResponse.ok) {
           const contestData = await contestResponse.json()
           console.log("Contest leaderboard data received:", contestData)
@@ -43,8 +46,27 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
           console.error("Error fetching contest leaderboard:", contestResponse.status, errorData)
         }
 
-        // Fetch all-time leaderboard
-        const allTimeResponse = await fetch("/api/leaderboard?type=all-time")
+        // Fetch "Boss Battle" contest leaderboard
+        const bossBattleContestResponse = await fetch(`/api/leaderboard?type=contest&game_mode=${encodeURIComponent("Boss Battle")}`)
+        if (bossBattleContestResponse.ok) {
+          const bossBattleContestData = await bossBattleContestResponse.json()
+          console.log("Boss Battle contest leaderboard data received:", bossBattleContestData)
+          setBossBattleContestLeaderboard(bossBattleContestData)
+          
+          // Calculate user's boss battle contest rank
+          if (userEmail) {
+            const userEntry = bossBattleContestData.find((entry: LeaderboardEntry) => entry.user_email === userEmail)
+            if (userEntry) {
+              setBossBattleContestRank(userEntry.rank)
+            }
+          }
+        } else {
+          const errorData = await bossBattleContestResponse.json().catch(() => ({}))
+          console.error("Error fetching boss battle contest leaderboard:", bossBattleContestResponse.status, errorData)
+        }
+
+        // Fetch all-time leaderboard with game mode filter (use the prop's game mode)
+        const allTimeResponse = await fetch(`/api/leaderboard?type=all-time&game_mode=${encodeURIComponent(gameMode)}`)
         if (allTimeResponse.ok) {
           const allTimeData = await allTimeResponse.json()
           console.log("All-time leaderboard data received:", allTimeData)
@@ -63,7 +85,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
               const userEntries = allTimeData.filter((entry: LeaderboardEntry) => entry.user_email === userEmail)
               if (userEntries.length > 0) {
                 // Sort by rank and take the best (lowest rank number)
-                const bestEntry = userEntries.sort((a, b) => a.rank - b.rank)[0]
+                const bestEntry = userEntries.sort((a: LeaderboardEntry, b: LeaderboardEntry) => a.rank - b.rank)[0]
                 setAllTimeRank(bestEntry.rank)
               }
             }
@@ -80,7 +102,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
     }
 
     fetchLeaderboard()
-  }, [userEmail, userScore])
+  }, [userEmail, userScore, gameMode])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -91,13 +113,11 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
     })
   }
 
-  const getVehicleImage = (vehicleId: string | null): string | null => {
-    if (!vehicleId) return null
-    const vehicle = vehicles.find(v => v.id === vehicleId)
-    return vehicle?.image || null
-  }
-
-  const currentLeaderboard = activeTab === "contest" ? contestLeaderboard : allTimeLeaderboard
+  const currentLeaderboard = activeTab === "contest" 
+    ? contestLeaderboard 
+    : activeTab === "boss-battle-contest"
+    ? bossBattleContestLeaderboard
+    : allTimeLeaderboard
 
   return (
     <div className="bg-white rounded-2xl shadow-xl p-8 max-w-4xl w-full mx-auto border border-gray-200/50 relative overflow-hidden">
@@ -113,7 +133,7 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
         <div className="h-1 w-24 bg-gradient-to-r from-tracksuit-purple-500 to-tracksuit-purple-600 mx-auto rounded-full"></div>
       </div>
 
-      {userEmail && userScore !== undefined && (contestRank !== null || allTimeRank !== null) && (
+      {userEmail && userScore !== undefined && (contestRank !== null || bossBattleContestRank !== null || allTimeRank !== null) && (
         <div className="mb-8 p-6 bg-gradient-to-r from-tracksuit-purple-50 via-tracksuit-purple-100/50 to-tracksuit-purple-50 rounded-xl border-2 border-tracksuit-purple-300/50 shadow-lg relative z-10">
           <div className="text-center">
             <p className="text-sm uppercase tracking-wider text-tracksuit-purple-700 mb-2 font-semibold font-chapeau">Your Score</p>
@@ -123,7 +143,12 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
             <div className="flex items-center justify-center gap-3 text-sm text-tracksuit-purple-700 font-quicksand flex-wrap">
               {contestRank !== null && (
                 <span className="px-3 py-1 bg-tracksuit-purple-200 rounded-full font-semibold text-tracksuit-purple-700">
-                  Contest Rank #{contestRank}
+                  I'm Parkin' Here! Rank #{contestRank}
+                </span>
+              )}
+              {bossBattleContestRank !== null && (
+                <span className="px-3 py-1 bg-tracksuit-purple-200 rounded-full font-semibold text-tracksuit-purple-700">
+                  Boss Battle Rank #{bossBattleContestRank}
                 </span>
               )}
               {allTimeRank !== null && (
@@ -138,13 +163,19 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "contest" | "all-time")} className="relative z-10">
-        <TabsList className="grid w-full grid-cols-2 mb-6 bg-tracksuit-purple-100/50">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "contest" | "boss-battle-contest" | "all-time")} className="relative z-10">
+        <TabsList className="grid w-full grid-cols-3 mb-6 bg-tracksuit-purple-100/50">
           <TabsTrigger 
             value="contest" 
             className="font-chapeau data-[state=active]:bg-tracksuit-purple-600 data-[state=active]:text-white"
           >
             🏆 I'm Parkin' Here! Contest
+          </TabsTrigger>
+          <TabsTrigger 
+            value="boss-battle-contest"
+            className="font-chapeau data-[state=active]:bg-tracksuit-purple-600 data-[state=active]:text-white"
+          >
+            👔 Boss Battle Contest
           </TabsTrigger>
           <TabsTrigger 
             value="all-time"
@@ -155,11 +186,11 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
         </TabsList>
 
         <TabsContent value="contest">
-      {loading ? (
+          {loading ? (
             <div className="text-center py-12 text-tracksuit-purple-600">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
-          <p className="font-quicksand">Loading leaderboard...</p>
-        </div>
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
+              <p className="font-quicksand">Loading leaderboard...</p>
+            </div>
           ) : contestLeaderboard.length === 0 ? (
             <div className="text-center py-12">
           <div className="text-6xl mb-4">🏆</div>
@@ -262,6 +293,110 @@ export default function Leaderboard({ userEmail, userScore, userRank }: Leaderbo
                       
                       {/* Date */}
                       <div className="col-span-3 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
+                        {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="boss-battle-contest">
+          {loading ? (
+            <div className="text-center py-12 text-tracksuit-purple-600">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
+              <p className="font-quicksand">Loading leaderboard...</p>
+            </div>
+          ) : bossBattleContestLeaderboard.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🏆</div>
+              <p className="text-xl text-tracksuit-purple-600 mb-2 font-chapeau">No scores yet</p>
+              <p className="text-sm text-tracksuit-purple-500 font-quicksand">Be the first to claim the top spot!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Header */}
+              <div className="grid grid-cols-12 gap-4 px-6 py-4 text-xs font-bold uppercase tracking-wider text-tracksuit-purple-600 border-b-2 border-tracksuit-purple-200 font-chapeau">
+                <div className="col-span-1 text-center">Rank</div>
+                <div className="col-span-5">Player</div>
+                <div className="col-span-2 text-right">Score</div>
+                <div className="col-span-4 text-right">Date</div>
+              </div>
+              
+              {/* Leaderboard entries */}
+              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-tracksuit-purple-100/30 [&::-webkit-scrollbar-track]:rounded [&::-webkit-scrollbar-thumb]:bg-tracksuit-purple-400/50 [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-tracksuit-purple-500/70">
+                {bossBattleContestLeaderboard.map((entry, index) => {
+                  const isCurrentUser = userEmail && entry.user_email === userEmail
+                  const isTopThree = entry.rank <= 3
+                  
+                  return (
+                    <div
+                      key={`boss-battle-contest-${entry.user_email}-${entry.created_at}`}
+                      className={`grid grid-cols-12 gap-4 px-6 py-4 rounded-xl transition-all duration-200 ${
+                        isCurrentUser
+                          ? "bg-gradient-to-r from-tracksuit-purple-100 via-tracksuit-purple-50 to-tracksuit-purple-100 border-2 border-tracksuit-purple-400/70 shadow-lg scale-[1.02]"
+                          : isTopThree
+                          ? "bg-gradient-to-r from-tracksuit-green-50/50 via-tracksuit-green-100/30 to-tracksuit-green-50/50 border border-tracksuit-green-300/50 hover:border-tracksuit-green-400/70 hover:shadow-md"
+                          : "bg-white/50 border border-tracksuit-purple-100/50 hover:bg-white/80 hover:border-tracksuit-purple-200/70 hover:shadow-sm"
+                      }`}
+                    >
+                      {/* Rank */}
+                      <div className={`col-span-1 flex items-center justify-center ${
+                        entry.rank === 1 ? "text-tracksuit-green-600" : 
+                        entry.rank === 2 ? "text-tracksuit-purple-500" : 
+                        entry.rank === 3 ? "text-tracksuit-purple-400" : 
+                        "text-tracksuit-purple-600"
+                      } font-bold text-lg font-chapeau`}>
+                        {entry.rank === 1 && "🥇"}
+                        {entry.rank === 2 && "🥈"}
+                        {entry.rank === 3 && "🥉"}
+                        {entry.rank > 3 && `#${entry.rank}`}
+                      </div>
+                      
+                      {/* Player Info with Profile Pic and Username */}
+                      <div className={`col-span-5 flex items-center gap-3 ${
+                        isCurrentUser ? "text-tracksuit-purple-700 font-semibold" : "text-tracksuit-purple-800"
+                      } font-quicksand`}>
+                        {/* Profile Picture */}
+                        <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-tracksuit-purple-300 flex-shrink-0">
+                          {entry.avatar_url ? (
+                            <img
+                              src={entry.avatar_url}
+                              alt={entry.username || entry.user_email}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-tracksuit-purple-500 flex items-center justify-center text-white text-xs font-bold">
+                              {(entry.username || entry.user_email).charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        {/* Username and Display Name/Email */}
+                        <div className="flex-1 min-w-0 flex items-center gap-2">
+                          {entry.username && (
+                            <span className="font-semibold">@{entry.username}</span>
+                          )}
+                          <span className={`truncate text-sm ${entry.username ? 'text-tracksuit-purple-600' : ''}`}>
+                            {entry.display_name || entry.user_email}
+                          </span>
+                          {isCurrentUser && (
+                            <span className="px-2 py-0.5 text-xs bg-tracksuit-purple-200 text-tracksuit-purple-700 rounded-full font-chapeau">You</span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Score */}
+                      <div className="col-span-2 text-right flex items-center justify-end">
+                        <span className="font-bold text-tracksuit-green-600 text-lg font-chapeau">
+                          {entry.score.toLocaleString()}
+                        </span>
+                        <span className="ml-1 text-xs text-tracksuit-purple-500 font-quicksand">dawgs</span>
+                      </div>
+                      
+                      {/* Date */}
+                      <div className="col-span-4 text-right text-sm text-tracksuit-purple-600 flex items-center justify-end font-quicksand">
                         {entry.created_at ? formatDate(entry.created_at) : 'N/A'}
                       </div>
                     </div>

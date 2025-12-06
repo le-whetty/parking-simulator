@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { vehicles, Vehicle, VehicleType } from "@/lib/vehicles"
+import { hasDLCUnlocked } from "@/lib/dlc"
+import { supabase } from "@/lib/supabase"
 import Menu from "./menu"
 
 interface VehicleSelectionProps {
@@ -11,6 +13,9 @@ interface VehicleSelectionProps {
   onLogout?: () => void
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewProfile?: () => void
+  onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
   username?: string | null
 }
 
@@ -19,6 +24,8 @@ const vehicleMediaMap: Record<VehicleType, { sound: string; image: string }> = {
   corolla: { sound: '/music/fargo.mp3', image: '/images/fargo.png' },
   sedona: { sound: '/music/matilda.mp3', image: '/images/matilda.png' },
   impala: { sound: '/music/deniro.mp3', image: '/images/deniro.png' },
+  caravan: { sound: '/music/youre-an-owner.mp3', image: '/images/youre-an-owner.png' },
+  swift: { sound: '/music/buy-it-today.mp3', image: '/images/buy-it-today.png' },
 }
 
 export default function VehicleSelection({ 
@@ -27,13 +34,46 @@ export default function VehicleSelection({
   onLogout, 
   onEditUsername, 
   onVictorySimulator,
+  onViewProfile,
+  onViewDLCStore,
+  onGoToMainMenu,
   username 
 }: VehicleSelectionProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType | null>(null)
   const [showOverlay, setShowOverlay] = useState<{ vehicleId: VehicleType; image: string } | null>(null)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [unlockedDLCs, setUnlockedDLCs] = useState<Set<string>>(new Set())
+  const [scrollPosition, setScrollPosition] = useState(0)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const imagesPreloadedRef = useRef(false)
+
+  // Load user email and DLC unlocks
+  useEffect(() => {
+    async function loadUserAndDLC() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          setUserEmail(session.user.email)
+          
+          // Check which DLCs are unlocked
+          const dlcCodes = ['DLC_VEHICLES'] // Add more as needed
+          const unlocked = new Set<string>()
+          for (const code of dlcCodes) {
+            const hasUnlocked = await hasDLCUnlocked(session.user.email, code)
+            if (hasUnlocked) {
+              unlocked.add(code)
+            }
+          }
+          setUnlockedDLCs(unlocked)
+        }
+      } catch (error) {
+        console.error("Error loading user DLC:", error)
+      }
+    }
+    loadUserAndDLC()
+  }, [])
 
   // Preload all overlay images when component mounts
   useEffect(() => {
@@ -137,7 +177,27 @@ export default function VehicleSelection({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-6xl mx-auto pt-24">
-      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+      <Menu 
+        onLogout={onLogout} 
+        onEditUsername={onEditUsername} 
+        onVictorySimulator={onVictorySimulator}
+        onViewProfile={onViewProfile}
+        onViewDLCStore={onViewDLCStore}
+        onGoToMainMenu={onGoToMainMenu}
+      />
+
+      {/* Back Button */}
+      {onBack && (
+        <div className="w-full mb-4 flex justify-start">
+          <Button
+            onClick={onBack}
+            variant="outline"
+            className="font-chapeau border-tracksuit-purple-300 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50"
+          >
+            ← Back
+          </Button>
+        </div>
+      )}
 
       {/* Back Button */}
       {onBack && (
@@ -177,20 +237,67 @@ export default function VehicleSelection({
         </p>
       </div>
 
-      {/* Vehicle Cards Grid */}
-      <div className="grid md:grid-cols-3 gap-6 w-full mb-8">
-        {vehicles.map((vehicle) => {
-          const isSelected = selectedVehicle === vehicle.id
-          return (
-            <div
-              key={vehicle.id}
-              onClick={() => handleSelect(vehicle)}
-              className={`bg-white/80 backdrop-blur-sm rounded-xl border-2 shadow-lg cursor-pointer transition-all duration-200 ${
-                isSelected
-                  ? 'border-tracksuit-purple-500 shadow-xl scale-105'
-                  : 'border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300 hover:shadow-xl'
-              }`}
-            >
+      {/* Vehicle Cards Horizontal Scroll */}
+      <div className="w-full mb-8 relative">
+        {/* Left Arrow */}
+        <button
+          onClick={() => {
+            if (scrollContainerRef.current) {
+              const scrollAmount = scrollContainerRef.current.clientWidth * 0.8
+              scrollContainerRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' })
+            }
+          }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg border-2 border-tracksuit-purple-200 hover:border-tracksuit-purple-400 transition-all"
+          aria-label="Scroll left"
+        >
+          <svg className="w-6 h-6 text-tracksuit-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+
+        {/* Right Arrow */}
+        <button
+          onClick={() => {
+            if (scrollContainerRef.current) {
+              const scrollAmount = scrollContainerRef.current.clientWidth * 0.8
+              scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+            }
+          }}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-3 shadow-lg border-2 border-tracksuit-purple-200 hover:border-tracksuit-purple-400 transition-all"
+          aria-label="Scroll right"
+        >
+          <svg className="w-6 h-6 text-tracksuit-purple-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+
+        {/* Scrollable Container */}
+        <div
+          ref={scrollContainerRef}
+          className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 px-12"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
+          {vehicles.map((vehicle) => {
+            const isSelected = selectedVehicle === vehicle.id
+            const isLocked = vehicle.isDLC && vehicle.dlcCode && !unlockedDLCs.has(vehicle.dlcCode)
+            
+            return (
+              <div
+                key={vehicle.id}
+                onClick={() => !isLocked && handleSelect(vehicle)}
+                className={`bg-white/80 backdrop-blur-sm rounded-xl border-2 shadow-lg transition-all duration-200 flex-shrink-0 w-80 ${
+                  isLocked
+                    ? 'border-tracksuit-purple-200/30 opacity-60 cursor-not-allowed relative'
+                    : isSelected
+                    ? 'border-tracksuit-purple-500 shadow-xl scale-105 cursor-pointer'
+                    : 'border-tracksuit-purple-200/50 hover:border-tracksuit-purple-300 hover:shadow-xl cursor-pointer'
+                }`}
+              >
+                {isLocked && (
+                  <div className="absolute top-2 right-2 bg-tracksuit-purple-600 text-white text-xs px-2 py-1 rounded-full font-chapeau font-semibold z-10">
+                    🔒 DLC
+                  </div>
+                )}
               <div className="p-6 flex flex-col items-center space-y-4">
                 {/* Vehicle Image */}
                 <div className="relative w-full h-32 flex items-center justify-center">
@@ -279,24 +386,39 @@ export default function VehicleSelection({
                   {vehicle.description}
                 </p>
 
-                {/* Select Button */}
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleSelect(vehicle)
-                  }}
-                  className={`w-full ${
-                    isSelected
-                      ? 'bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white'
-                      : 'bg-tracksuit-purple-200 hover:bg-tracksuit-purple-300 text-tracksuit-purple-800'
-                  } font-chapeau`}
-                >
-                  {isSelected ? '✓ Selected' : 'Select'}
-                </Button>
+                {/* Select Button or Locked State */}
+                {isLocked ? (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (onViewDLCStore) {
+                        onViewDLCStore()
+                      }
+                    }}
+                    className="w-full bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau"
+                  >
+                    🔓 Unlock DLC
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleSelect(vehicle)
+                    }}
+                    className={`w-full ${
+                      isSelected
+                        ? 'bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white'
+                        : 'bg-tracksuit-purple-200 hover:bg-tracksuit-purple-300 text-tracksuit-purple-800'
+                    } font-chapeau`}
+                  >
+                    {isSelected ? '✓ Selected' : 'Select'}
+                  </Button>
+                )}
+                </div>
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
 
       {/* Start Game Button */}

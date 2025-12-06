@@ -11,14 +11,18 @@ import StartScreen from "@/components/start-screen"
 import VehicleSelection from "@/components/vehicle-selection"
 import ProfileMenu from "@/components/profile-menu"
 import UsernameModal from "@/components/username-modal"
+import ProfilePage from "@/components/profile-page"
+import DLCStore from "@/components/dlc-store"
 import { useAudioManager } from "@/hooks/use-audio-manager"
 import { ExplosionManager } from "@/components/explosion-manager"
 import { supabase } from "@/lib/supabase"
 import mixpanel from "@/lib/mixpanel"
 import { Vehicle, getPaceMultiplier, getArmorMultiplier, getImpactMultiplier } from "@/lib/vehicles"
+import { ACHIEVEMENT_CODES } from "@/lib/achievements"
+import { hasDLCUnlocked, DLC_CODES, isDLCItemEnabled, getSelectedHorn, setSelectedHorn, DLC_ITEM_IDS, syncDLCItemEnabledStatus } from "@/lib/dlc"
 
 // Game states
-type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat"
+type GameState = "auth" | "intro" | "start" | "vehicle-selection" | "playing" | "victory" | "defeat" | "profile" | "dlc-store"
 
 // Driver types
 type DriverType = "pregnant" | "injured"
@@ -50,6 +54,9 @@ export default function Home() {
       allEnvVars: Object.keys(process.env).filter(k => k.includes('SKIP') || k.includes('AUTH'))
     })
   }, [isDevMode])
+
+  // Note: Preview redirect is now handled by Supabase wildcard redirects
+  // No client-side redirect logic needed - Supabase redirects back to the same origin
   
   // Game state - skip auth in dev mode
   const [gameState, setGameState] = useState<GameState>(isDevMode ? "intro" : "auth")
@@ -67,6 +74,23 @@ export default function Home() {
   const [isSimulatorMode, setIsSimulatorMode] = useState(false) // Simulator mode flag
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null) // Selected vehicle
   const selectedVehicleRef = useRef<Vehicle | null>(null) // Ref for selected vehicle (for game loop closures)
+  const [hasLicensePlateDLC, setHasLicensePlateDLC] = useState(false) // License plate DLC status
+  const [hasBoostsDLC, setHasBoostsDLC] = useState(false) // Stat boosts DLC status
+  const [boostType, setBoostType] = useState<'speed' | 'armor' | 'attack' | null>(null) // Which boost is active
+  const [hasAudioDLC, setHasAudioDLC] = useState(false) // Audio DLC status (radio + horn)
+  const [selectedHorn, setSelectedHorn] = useState<1 | 2 | 3 | 'random'>(1) // Selected car horn (1-3 or random)
+  const [currentRadioSong, setCurrentRadioSong] = useState(1) // Current radio song (1-8) - for display
+  const currentRadioSongRef = useRef(1) // Ref version for reliable cycling
+  const radioShuffleQueueRef = useRef<number[]>([]) // Queue of shuffled songs
+  const radioPlayedSongsRef = useRef<Set<number>>(new Set()) // Track which songs have been played in current shuffle
+  const [hasBossBattleDLC, setHasBossBattleDLC] = useState(false) // Boss battle DLC status
+  const [isDLCLoading, setIsDLCLoading] = useState(true) // Loading state for DLC check - start as true to show loading immediately
+  const [gameMode, setGameMode] = useState<'normal' | 'boss-battle'>('normal') // Game mode selection
+  const [connorHealth, setConnorHealth] = useState(1000) // Connor boss health (much higher than normal drivers)
+  const connorHealthRef = useRef(1000) // Ref version for game loop
+  const [connorPosition, setConnorPosition] = useState({ x: 800, y: 300 }) // Connor's position
+  const connorPositionRef = useRef({ x: 800, y: 300 }) // Ref version for game loop
+  const connorDefeatedRef = useRef(false) // Track if Connor is defeated
   const [lukePosition, setLukePosition] = useState({ x: 600, y: 400 }) // Luke's position (state for re-renders)
   const [explosions, setExplosions] = useState<Array<{id: string, x: number, y: number}>>([]) // Track explosions
   const [parkingSpotTimer, setParkingSpotTimer] = useState(0) // Timer for how long Luke has been in parking spot
@@ -85,6 +109,7 @@ export default function Home() {
   const gameLoopRef = useRef<number | null>(null) // Game loop ref
   const hotdogsRef = useRef<HTMLDivElement[]>([]) // Hotdogs ref
   const lastHotdogTime = useRef(0) // Last hotdog time
+  const lastRadioSwitchTime = useRef(0) // Last radio switch time (for cooldown)
   const enemyProjectilesRef = useRef<HTMLDivElement[]>([]) // Enemy projectiles ref
   // Frame tracking for diagnostics
   const frameCountRef = useRef(0)
@@ -102,6 +127,9 @@ export default function Home() {
 
   // Combo system state
   const comboCountRef = useRef<number>(0) // Current combo streak
+  const maxComboRef = useRef<number>(0) // Maximum combo reached in this game
+  const totalHitsRef = useRef<number>(0) // Total hits/hotdogs that hit targets in this game
+  const totalHotdogsThrownRef = useRef<number>(0) // Total hotdogs thrown (including misses) in this game
   const lastHitTimeRef = useRef<number>(0) // Time of last hit (for combo timeout)
   const comboTimeoutRef = useRef<NodeJS.Timeout | null>(null) // Combo timeout timer
   const [comboBadge, setComboBadge] = useState<{ image: string; points: number; key: number; x: number; y: number } | null>(null) // Current combo badge to display
@@ -123,6 +151,7 @@ export default function Home() {
   const slackIntervalRef = useRef<number | null>(null)
   const menuThemeStoppedRef = useRef<boolean>(false) // Track if menu theme has been stopped
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null) // Ref for countdown interval
+  const gameSessionIdRef = useRef<string | null>(null) // Game session ID for event tracking
 
   // Combo milestone definitions
   const comboMilestones = [
@@ -512,24 +541,179 @@ ${file}
     return normalizeDirection(dx, dy)
   }
 
+  // Function to shuffle radio songs array
+  const shuffleRadioSongs = (): number[] => {
+    const songs = [1, 2, 3, 4, 5, 6, 7, 8]
+    const shuffled = [...songs]
+    // Fisher-Yates shuffle
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+    }
+    return shuffled
+  }
+
+  // Function to switch to the next radio song (shuffle mode)
+  const switchToNextRadioSong = () => {
+    // If queue is empty or all songs have been played, create a new shuffle
+    if (radioShuffleQueueRef.current.length === 0 || radioPlayedSongsRef.current.size >= 8) {
+      radioShuffleQueueRef.current = shuffleRadioSongs()
+      radioPlayedSongsRef.current.clear()
+      console.log(`📻 New shuffle created:`, radioShuffleQueueRef.current)
+    }
+    
+    // Get next song from queue
+    const nextSong = radioShuffleQueueRef.current.shift()! as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+    radioPlayedSongsRef.current.add(nextSong)
+    currentRadioSongRef.current = nextSong
+    setCurrentRadioSong(nextSong) // Update state for display
+    console.log(`📻 Switching radio to shuffled song: ${nextSong} (${radioPlayedSongsRef.current.size}/8 played)`)
+    audioManager.switchRadioSong(nextSong)
+  }
+
   // Also update the startGame function to stop any existing audio
   const startGame = async () => {
     console.log("startGame called!")
     
-    // Track Game Started event
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        mixpanel.identify(session.user.id)
-            mixpanel.track('Game Started', {
-              user_id: session.user.id,
-              vehicle_type: selectedVehicle?.id || null,
-              vehicle_name: selectedVehicle?.name || null,
+    // Load horn selection from localStorage (synchronous, no delay)
+    const savedHorn = getSelectedHorn()
+    setSelectedHorn(savedHorn)
+    
+    // Start countdown immediately - don't wait for async operations
+    // DLC check and session creation will happen in background
+    
+    // Check for DLC unlocks (non-blocking - run in background)
+    setIsDLCLoading(true)
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user?.email) {
+          console.log("🔍 Checking DLC unlocks for:", session.user.email)
+          const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
+            hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
+            hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
+            hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
+            hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
+          ])
+          
+          // Sync enabled status from database to localStorage for unlocked packs
+          if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
+          if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
+          if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
+          if (hasBossBattle) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOSS_BATTLE)
+          
+          // Check individual item enable status (AFTER sync)
+          console.log(`🔍 Checking FM Radio after sync...`)
+          const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
+          const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
+          const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+          const hasBossBattleItem = hasBossBattle && isDLCItemEnabled(DLC_CODES.BOSS_BATTLE, DLC_ITEM_IDS.CONNOR_BOSS, hasBossBattle)
+          console.log(`📻 FM Radio check result: hasAudio=${hasAudio}, hasFMRadio=${hasFMRadio}`)
+          
+          console.log("✅ DLC Status:", {
+            accessories: hasLicensePlate,
+            boosts: hasBoosts,
+            audio: hasAudio,
+            bossBattle: hasBossBattle,
+            bossBattleItem: hasBossBattleItem,
+            fmRadio: hasFMRadio,
+            carHorn: hasCarHorn,
+            licensePlate: hasLicensePlateItem
+          })
+          setHasLicensePlateDLC(hasLicensePlateItem)
+          setHasBoostsDLC(hasBoosts)
+          setHasAudioDLC(hasAudio) // Keep pack-level check for UI
+          setHasBossBattleDLC(hasBossBattleItem)
+          
+          // If boosts DLC is unlocked, determine which boost to apply based on vehicle
+          if (hasBoosts && selectedVehicle) {
+            // Apply boost based on vehicle's weakest stat (to balance it out)
+            const stats = [
+              { type: 'speed' as const, value: selectedVehicle.pace },
+              { type: 'armor' as const, value: selectedVehicle.armor },
+              { type: 'attack' as const, value: selectedVehicle.impact },
+            ]
+            const weakestStat = stats.reduce((min, stat) => stat.value < min.value ? stat : min)
+            setBoostType(weakestStat.type)
+            console.log(`🚀 BOOST DLC: Applying ${weakestStat.type} boost to ${selectedVehicle.name}`, {
+              vehicle: selectedVehicle.name,
+              stats: {
+                pace: selectedVehicle.pace,
+                armor: selectedVehicle.armor,
+                impact: selectedVehicle.impact,
+              },
+              weakestStat: weakestStat.type,
+              weakestValue: weakestStat.value,
+              hasBoostsDLC: hasBoosts,
             })
+          } else {
+            setBoostType(null)
+            console.log(`🚀 BOOST DLC: No boost applied`, {
+              hasBoosts: hasBoosts,
+              hasSelectedVehicle: !!selectedVehicle,
+            })
+          }
+        } else {
+          console.log("⚠️ No session or email found, skipping DLC check")
+          setIsDLCLoading(false)
+        }
+      } catch (error) {
+        console.error("❌ Error checking DLC:", error)
+        // Set all DLC to false on error to prevent issues
+        setHasLicensePlateDLC(false)
+        setHasBoostsDLC(false)
+        setHasAudioDLC(false)
+        setHasBossBattleDLC(false)
+        setIsDLCLoading(false)
+      } finally {
+        setIsDLCLoading(false)
       }
-    } catch (error) {
-      console.error("Error tracking game started:", error)
-    }
+    })()
+    
+    // Create game session and track Game Started event (non-blocking - run in background)
+    ;(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          mixpanel.identify(session.user.id)
+          mixpanel.track('Game Started', {
+            user_id: session.user.id,
+            vehicle_type: selectedVehicle?.id || null,
+            vehicle_name: selectedVehicle?.name || null,
+          })
+          
+          // Create game session
+          try {
+            const sessionResponse = await fetch('/api/create-game-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_email: session.user.email,
+                user_id: session.user.id,
+                game_mode: gameMode === 'boss-battle' ? "Boss Battle" : "I'm Parkin' Here!",
+              }),
+            })
+            if (sessionResponse.ok) {
+              const responseData = await sessionResponse.json()
+              const session_id = responseData.session_id || responseData.id
+              if (session_id) {
+                gameSessionIdRef.current = session_id
+                console.log('✅ Game session created:', session_id, 'for user:', session.user.email)
+              } else {
+                console.error('❌ Game session created but no session_id in response:', responseData)
+              }
+            } else {
+              const errorData = await sessionResponse.json().catch(() => ({}))
+              console.error('❌ Failed to create game session:', sessionResponse.status, errorData)
+            }
+          } catch (error) {
+            console.error('❌ Error creating game session:', error)
+          }
+        }
+      } catch (error) {
+        console.error("Error tracking game started:", error)
+      }
+    })()
     
     // Stop menu theme music first - do this before anything else
     console.log("Stopping menu theme music before starting game...")
@@ -636,20 +820,36 @@ ${file}
     setLukePosition({ x: 600, y: 400 })
     lukeFacingRef.current = "right"
 
-    // Reset drivers with random directions and positions within the visible area
-    const resetDrivers = drivers.map((driver) => ({
-      ...driver,
-      health: 100,
-      defeated: false,
-      position: {
-        x: gameBounds.minX + Math.random() * (gameBounds.maxX - gameBounds.minX),
-        y: gameBounds.minY + Math.random() * (gameBounds.maxY - gameBounds.minY),
-      },
-      direction: getRandomDirection(),
-      directionChangeTimer: Math.random() * 5 + 3,
-    }))
-    setDrivers(resetDrivers)
-    driversRef.current = resetDrivers // Initialize ref
+    // Initialize boss battle or normal mode
+    if (gameMode === 'boss-battle' && hasBossBattleDLC) {
+      // Boss Battle Mode: Initialize Connor
+      setConnorHealth(1000)
+      connorHealthRef.current = 1000
+      connorDefeatedRef.current = false
+      setConnorPosition({ x: 800, y: 300 })
+      connorPositionRef.current = { x: 800, y: 300 }
+      
+      // Clear regular drivers for boss battle
+      setDrivers([])
+      driversRef.current = []
+      
+      // Connor voiceover will play after countdown finishes (see countdown completion logic)
+    } else {
+      // Normal Mode: Reset drivers with random directions and positions
+      const resetDrivers = drivers.map((driver) => ({
+        ...driver,
+        health: 100,
+        defeated: false,
+        position: {
+          x: gameBounds.minX + Math.random() * (gameBounds.maxX - gameBounds.minX),
+          y: gameBounds.minY + Math.random() * (gameBounds.maxY - gameBounds.minY),
+        },
+        direction: getRandomDirection(),
+        directionChangeTimer: Math.random() * 5 + 3,
+      }))
+      setDrivers(resetDrivers)
+      driversRef.current = resetDrivers // Initialize ref
+    }
     
     // Clear any explosions
     setExplosions([])
@@ -689,20 +889,24 @@ ${file}
     // Reset the score
     setScore(0)
 
+    // Reset radio shuffle system and initialize first song
+    radioShuffleQueueRef.current = shuffleRadioSongs()
+    radioPlayedSongsRef.current.clear()
+    const firstSong = radioShuffleQueueRef.current.shift()! as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
+    radioPlayedSongsRef.current.add(firstSong)
+    currentRadioSongRef.current = firstSong
+    setCurrentRadioSong(firstSong)
+
     // Reset game ready state
     gameReadyRef.current = false
-    setCountdown(3) // Start countdown at 3
-
-    // Play countdown sound immediately when countdown starts
-    audioManager.play("3-2-1")
-
+    
     // Clear any existing countdown interval
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current)
     }
 
-    // Start countdown - game will start after countdown completes
-    countdownIntervalRef.current = setInterval(() => {
+    // Define countdown function
+    const startCountdown = () => {
       setCountdown((prev) => {
         if (prev === null || prev <= 1) {
           if (countdownIntervalRef.current) {
@@ -712,8 +916,47 @@ ${file}
           gameReadyRef.current = true
           setCountdown(null)
           
-          // Start theme music (let countdown sound play out naturally)
-          audioManager.play("theme")
+          // Start music based on game mode
+          if (gameMode === 'boss-battle' && hasBossBattleDLC) {
+            // Boss battle mode: always play boss battle music, regardless of radio DLC
+            console.log("🎵 [COUNTDOWN] Starting boss battle music")
+            audioManager.play("bossBattle")
+            
+            // Play Connor voiceover after countdown finishes
+            try {
+              audioManager.play('connorVoiceover')
+            } catch (error) {
+              console.error('Error playing Connor voiceover:', error)
+            }
+          } else {
+            // Normal mode: Check if FM Radio is enabled (localStorage should already be synced from startGame)
+            // Direct localStorage check - if item is enabled in localStorage, pack must be unlocked
+            const radioKey = `dlc_item_enabled_${DLC_CODES.AUDIO}_${DLC_ITEM_IDS.FM_RADIO}`
+            const directCheck = typeof window !== 'undefined' ? localStorage.getItem(radioKey) : null
+            console.log(`🔍 [COUNTDOWN] Direct localStorage check: key="${radioKey}", value="${directCheck}", hasAudioDLC state=${hasAudioDLC}`)
+            
+            // If localStorage has the key set to 'true', the item is enabled (pack must be unlocked for sync to run)
+            // If localStorage has the key set to 'false', the item is disabled
+            // If localStorage doesn't have the key, use hasAudioDLC state as fallback
+            const fmRadioEnabled = directCheck === 'true' || (directCheck === null && hasAudioDLC)
+            console.log(`🎵 [COUNTDOWN] Final FM Radio check: hasAudioDLC=${hasAudioDLC}, directCheck="${directCheck}", fmRadioEnabled=${fmRadioEnabled}`)
+            
+            if (fmRadioEnabled) {
+              // Play radio instead of theme
+              console.log("📻 [COUNTDOWN] Starting FM Radio (DLC enabled), song index:", currentRadioSongRef.current)
+              try {
+                audioManager.playRadio(currentRadioSongRef.current)
+                console.log("✅ [COUNTDOWN] playRadio called successfully")
+              } catch (error) {
+                console.error("❌ [COUNTDOWN] Error calling playRadio:", error)
+                // Fallback to theme
+                audioManager.play("theme")
+              }
+            } else {
+              console.log("🎵 [COUNTDOWN] Starting theme music (FM Radio not enabled)")
+              audioManager.play("theme")
+            }
+          }
           
           // Start the game loop after countdown
           console.log("Starting game loop after countdown...")
@@ -727,7 +970,26 @@ ${file}
         }
         return prev - 1
       })
-    }, 1000) // Update every second
+    }
+    
+    // Wait for countdown audio to be ready before starting countdown
+    audioManager.waitForSoundReady("3-2-1", 5000).then((ready) => {
+      if (ready) {
+        // Set countdown to 3 and play audio
+        setCountdown(3)
+        audioManager.play("3-2-1")
+        
+        // Start countdown interval immediately - first tick happens after 1 second
+        // This ensures the countdown shows 3, then after 1s shows 2, then 1, then starts game
+        countdownIntervalRef.current = setInterval(startCountdown, 1000)
+      } else {
+        // Fallback: start countdown even if audio isn't ready
+        console.warn("Countdown audio not ready, starting countdown anyway")
+        setCountdown(3)
+        audioManager.play("3-2-1")
+        countdownIntervalRef.current = setInterval(startCountdown, 1000)
+      }
+    })
     
     // Log container dimensions
     if (gameContainerRef.current) {
@@ -770,7 +1032,13 @@ ${file}
     // Apply pace multiplier from selected vehicle
     const baseSpeed = 20
     const vehicle = selectedVehicleRef.current
-    const paceMultiplier = vehicle ? getPaceMultiplier(vehicle.pace) : 1.0
+    // Apply boost if DLC enabled
+    let effectivePace = vehicle ? vehicle.pace : 5
+    const paceBeforeBoost = effectivePace
+    if (hasBoostsDLC && boostType === 'speed' && effectivePace < 10) {
+      effectivePace = Math.min(10, effectivePace + 2) // Boost speed by 2 (max 10)
+    }
+    const paceMultiplier = vehicle ? getPaceMultiplier(effectivePace) : 1.0
     const speed = baseSpeed * paceMultiplier
     
     // Vehicle Stats Tracking: PACE (log once per movement to avoid spam)
@@ -778,6 +1046,10 @@ ${file}
       console.log('🚗 VEHICLE STATS - PACE:', {
         vehicle: vehicle?.name || 'None',
         pace: vehicle?.pace || 'N/A',
+        effectivePace: effectivePace,
+        boostApplied: hasBoostsDLC && boostType === 'speed' && paceBeforeBoost < 10,
+        boostType: boostType,
+        hasBoostsDLC: hasBoostsDLC,
         baseSpeed: baseSpeed,
         paceMultiplier: paceMultiplier.toFixed(2),
         actualSpeed: speed.toFixed(2),
@@ -835,9 +1107,18 @@ ${file}
       }
     }
 
-    // Constrain to game area - allow movement across the entire screen
-    x = Math.max(50, Math.min(1150, x))
-    y = Math.max(100, Math.min(700, y))
+    // Constrain to game area
+    // In boss battle mode, enforce the right boundary (prevent movement past maxX)
+    // In normal mode, allow movement across the entire screen (for off-screen tracking)
+    if (gameMode === 'boss-battle') {
+      // Boss battle: enforce boundary on right side
+      x = Math.max(gameBounds.minX, Math.min(gameBounds.maxX - 140, x)) // 140 is Luke's car width
+      y = Math.max(gameBounds.minY, Math.min(gameBounds.maxY - 80, y)) // 80 is Luke's car height
+    } else {
+      // Normal mode: allow movement across entire screen (for off-screen tracking)
+      x = Math.max(50, Math.min(1150, x))
+      y = Math.max(100, Math.min(700, y))
+    }
 
     // Update position reference and state
     lukePositionRef.current = { x, y }
@@ -872,6 +1153,7 @@ ${file}
 
   // Throw a hotdog
   const throwHotdog = async () => {
+    totalHotdogsThrownRef.current += 1 // Track total hotdogs thrown
     if (gameState !== "playing" || hasWon || !gameReadyRef.current) return
 
     const now = Date.now()
@@ -879,7 +1161,7 @@ ${file}
 
     lastHotdogTime.current = now
 
-    // Track Hot Dog Fired event
+    // Track Hot Dog Fired event (Mixpanel)
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
@@ -890,6 +1172,30 @@ ${file}
       }
     } catch (error) {
       console.error("Error tracking hot dog fired:", error)
+    }
+
+    // Log hotdog fired event to game_events table
+    if (gameSessionIdRef.current) {
+      try {
+        const eventResponse = await fetch('/api/log-game-event', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: gameSessionIdRef.current,
+            event_type: 'hotdog_fired',
+            event_data: {},
+            timestamp_ms: now,
+          }),
+        })
+        if (!eventResponse.ok) {
+          const errorData = await eventResponse.json().catch(() => ({}))
+          console.error("❌ Failed to log hotdog_fired event:", eventResponse.status, errorData)
+        }
+      } catch (error) {
+        console.error("❌ Error logging hotdog fired event:", error)
+      }
+    } else {
+      console.warn("⚠️ Cannot log hotdog_fired event - no session ID")
     }
 
     // Play throw sound effect
@@ -944,6 +1250,64 @@ ${file}
   }
 
   // Find the enemyAttack function and update it to use the bottle and crutches images
+
+  // Connor boss attack - fires Tracksuit Values cards from multiple angles
+  const connorAttack = (deltaTimeMs: number) => {
+    if (connorDefeatedRef.current || hasWon || !gameReadyRef.current) return
+    
+    // Connor attacks: 1.5 attacks per second (reduced from 2.5)
+    const attackRatePerSecond = 1.5
+    const attackProbability = attackRatePerSecond * (deltaTimeMs / 1000)
+    if (Math.random() > attackProbability) return
+
+    // Fire 1-2 projectiles at once (reduced from 1-3)
+    const numProjectiles = Math.floor(Math.random() * 2) + 1 // 1 or 2 projectiles
+    
+    for (let i = 0; i < numProjectiles; i++) {
+      // Create projectile element
+      const projectile = document.createElement("div")
+      projectile.className = "absolute z-20"
+
+      // Create image element for Tracksuit Values card (random card 1-6)
+      const projectileImg = document.createElement("img")
+      const cardNumber = Math.floor(Math.random() * 6) + 1
+      projectileImg.src = `/images/tracksuit-value-cards/tracksuit-value-card-${cardNumber}.png`
+      projectileImg.className = "w-16 h-auto"
+      projectileImg.alt = `Tracksuit Value Card ${cardNumber}`
+
+      // Append image to the projectile div
+      projectile.appendChild(projectileImg)
+
+      // Position projectile at Connor's Polestar (center of vehicle, 3x bigger)
+      const connorPos = connorPositionRef.current
+      projectile.style.left = `${connorPos.x + 75}px` // Polestar is 3x bigger, so center offset is 75px
+      projectile.style.top = `${connorPos.y + 75}px`
+
+      // Calculate direction vector towards Luke with angle variation
+      const lukePos = lukePositionRef.current
+      const dx = lukePos.x - connorPos.x
+      const dy = lukePos.y - connorPos.y
+      const distance = Math.sqrt(dx * dx + dy * dy)
+
+      // Add angle variation for multiple projectiles (spread pattern)
+      const baseAngle = Math.atan2(dy, dx)
+      const angleVariation = (i - (numProjectiles - 1) / 2) * 0.3 // Spread angle: -0.3, 0, 0.3 radians
+      const finalAngle = baseAngle + angleVariation
+
+      // Normalize and store direction with angle variation
+      const dirX = Math.cos(finalAngle)
+      const dirY = Math.sin(finalAngle)
+      projectile.dataset.dirX = dirX.toString()
+      projectile.dataset.dirY = dirY.toString()
+      projectile.dataset.isConnorProjectile = "true" // Mark as Connor's projectile for increased damage
+
+      // Add to game container
+      gameContainerRef.current?.appendChild(projectile)
+
+      // Add to enemy projectiles ref
+      enemyProjectilesRef.current.push(projectile)
+    }
+  }
 
   // Enemy attack - frame-rate independent
   const enemyAttack = (driver: Driver, deltaTimeMs: number) => {
@@ -1107,36 +1471,157 @@ ${file}
       }
     }
 
-    // Check if all drivers are defeated
-    // IMPORTANT: Use driversRef.current which is synced immediately when drivers are updated
-    // Check both defeated flag AND health <= 0 to catch any edge cases
-    const allDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => {
-      const isDefeated = driver.defeated || driver.health <= 0
-      return isDefeated
-    })
-    
-    // Debug: Log victory condition status every frame when in spot
-    if (inSpot && !victoryRef.current) {
-      if (parkingSpotTimerRef.current === 0) {
-        console.log("🔍 Checking victory conditions:")
-        console.log("  - inSpot:", inSpot, "| Luke position:", { x: lukeX, y: lukeY })
-        console.log("  - allDefeated:", allDefeated)
-        console.log("  - driversRef.current length:", driversRef.current.length)
-        // Debug logs removed
+    // Boss Battle Mode: Check if Connor is defeated
+    if (gameMode === 'boss-battle' && hasBossBattleDLC) {
+      // Connor attacks
+      connorAttack(deltaTime)
+      
+      // Victory condition: Connor defeated (no parking required)
+      if (connorHealthRef.current <= 0 && !connorDefeatedRef.current && !victoryRef.current) {
+        connorDefeatedRef.current = true
+        
+        // Get Connor's DOM position for explosion (same as driver defeat logic)
+        const connorElement = document.getElementById('connor-boss')
+        let explosionX = connorPositionRef.current.x + 210 // Center of Connor (420px / 2)
+        let explosionY = connorPositionRef.current.y + 120 // Center of Connor (240px / 2)
+        
+        if (connorElement) {
+          const connorRect = connorElement.getBoundingClientRect()
+          const gameArea = document.getElementById('game-area')
+          if (gameArea) {
+            const gameRect = gameArea.getBoundingClientRect()
+            explosionX = connorRect.left - gameRect.left + (connorRect.width / 2)
+            explosionY = connorRect.top - gameRect.top + (connorRect.height / 2)
+            console.log(`📍 Captured Connor DOM position for explosion: (${explosionX}, ${explosionY}) from rect (${connorRect.left}, ${connorRect.top})`)
+          }
+        }
+        
+        // Add explosion animation
+        setExplosions(prev => [...prev, { 
+          id: 'connor', 
+          x: explosionX, 
+          y: explosionY 
+        }])
+        
+        // Play explosion sound effect
+        audioManager.play("explosion")
+        
+        // Calculate time bonus (1 point per second remaining)
+        const currentTime = Date.now()
+        const elapsedTime = currentTime - gameStartTimeRef.current
+        const timeLeftMs = Math.max(0, gameDurationRef.current - elapsedTime)
+        const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
+        const timeBonus = timeLeftSeconds
+        
+        // Calculate score (base score from hits, no parking bonus needed)
+        const baseScore = score
+        const finalScore = baseScore + timeBonus
+        
+        setScore(finalScore)
+        
+        // For boss battle mode, delay victory screen by 3 seconds to allow explosion animation/sound to play
+        setTimeout(() => {
+          // AGGRESSIVE DOM-LEVEL AUDIO STOPPING before showing victory screen
+          console.log("🔇 [BOSS_BATTLE_VICTORY] Stopping all game music before victory screen")
+          const allAudioElements = document.querySelectorAll("audio")
+          const radioSources = [
+            "/music/radio/songs/",
+            "/music/theme.mp3",
+            "/music/boss-battle.mp3",
+            "/music/countdown.mp3",
+            "/music/3-2-1.mp3",
+          ]
+          
+          let stoppedCount = 0
+          allAudioElements.forEach((audio) => {
+            const audioSrc = audio.src || (audio as any).currentSrc || ""
+            const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+            const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+            
+            if (isGameMusic && !isVictoryMusic) {
+              console.log(`🔇 [BOSS_BATTLE_VICTORY] Stopping game music from DOM: ${audioSrc}`)
+              try {
+                audio.pause()
+                audio.currentTime = 0
+                audio.loop = false
+                audio.volume = 0
+                audio.load()
+                stoppedCount++
+              } catch (e) {
+                console.warn(`⚠️ [BOSS_BATTLE_VICTORY] Error stopping audio:`, e)
+              }
+            }
+          })
+          console.log(`🔇 [BOSS_BATTLE_VICTORY] Stopped ${stoppedCount} audio elements from DOM`)
+          
+          victoryRef.current = true
+          setHasWon(true)
+          
+          // Stop game sounds (boss battle music or theme/radio)
+          // Explicitly stop all radio songs
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Stopping all game music via audio manager")
+          if (audioManager.stopAllRadio) {
+            console.log("🎵 [BOSS_BATTLE_VICTORY] Using stopAllRadio()")
+            audioManager.stopAllRadio()
+          } else {
+            console.log("🎵 [BOSS_BATTLE_VICTORY] stopAllRadio not available, using individual stops")
+            // Fallback to individual stops if stopAllRadio is not available
+            audioManager.stop("radio1")
+            audioManager.stop("radio2")
+            audioManager.stop("radio3")
+            audioManager.stop("radio4")
+            audioManager.stop("radio5")
+            audioManager.stop("radio6")
+            audioManager.stop("radio7")
+            audioManager.stop("radio8")
+            audioManager.stop("radioStatic")
+          }
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Stopping theme and bossBattle")
+          audioManager.stop("theme")
+          audioManager.stop("bossBattle")
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Calling stopAll()")
+          audioManager.stopAll()
+          console.log("🎵 [BOSS_BATTLE_VICTORY] All stop calls completed")
+          
+          // Play victory sounds
+          audioManager.play("fireworks")
+          
+          endGame(true)
+        }, 3000) // 3 second delay for boss battle mode
+        return
       }
-    }
-    
-    // Debug: Log when victory conditions are first met
-    const currentAllDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => driver.defeated || driver.health <= 0)
-    
-    // Victory conditions check (no logging)
+    } else {
+      // Normal Mode: Check if all drivers are defeated
+      // IMPORTANT: Use driversRef.current which is synced immediately when drivers are updated
+      // Check both defeated flag AND health <= 0 to catch any edge cases
+      const allDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => {
+        const isDefeated = driver.defeated || driver.health <= 0
+        return isDefeated
+      })
+      
+      // Debug: Log victory condition status every frame when in spot
+      if (inSpot && !victoryRef.current) {
+        if (parkingSpotTimerRef.current === 0) {
+          console.log("🔍 Checking victory conditions:")
+          console.log("  - inSpot:", inSpot, "| Luke position:", { x: lukeX, y: lukeY })
+          console.log("  - allDefeated:", allDefeated)
+          console.log("  - driversRef.current length:", driversRef.current.length)
+          // Debug logs removed
+        }
+      }
+      
+      // Debug: Log when victory conditions are first met
+      const currentAllDefeated = driversRef.current.length > 0 && driversRef.current.every((driver: Driver) => driver.defeated || driver.health <= 0)
+      
+      // Victory conditions check (no logging)
 
-    // VICTORY CHECK - Luke must be in parking spot for 3 seconds AFTER all drivers are defeated
-    if (inSpot && currentAllDefeated && !victoryRef.current) {
+      // VICTORY CHECK - Luke must be in parking spot for 3 seconds AFTER all drivers are defeated
+      if (inSpot && currentAllDefeated && !victoryRef.current) {
       // Start countdown sound when timer begins
       if (parkingSpotTimerRef.current === 0) {
         console.log("🔊 Starting countdown sound and pausing theme music")
         audioManager.stop("theme")
+        audioManager.stop("bossBattle")
         audioManager.play("countdown")
       }
       
@@ -1211,8 +1696,9 @@ ${file}
         // Hide Slack message
         setShowSlackMessage(false)
 
-        // Stop theme music
+        // Stop theme music and boss battle music
         audioManager.stop("theme")
+        audioManager.stop("bossBattle")
 
         // Play victory anthem (only once - victory-screen will also play it, so we'll remove this)
         // audioManager.play("anthem") // Removed - victory-screen will handle this
@@ -1229,7 +1715,7 @@ ${file}
               mixpanel.identify(session.user.id)
               mixpanel.track('Victory', {
                 user_id: session.user.id,
-                time_spent_minutes: parseFloat(timeSpentMinutes),
+                time_spent_minutes: parseFloat(String(timeSpentMinutes)),
                 score: score,
                 vehicle_type: selectedVehicle?.id || null,
               })
@@ -1248,6 +1734,45 @@ ${file}
           cancelAnimationFrame(gameLoopRef.current)
           gameLoopRef.current = null
         }
+
+        // AGGRESSIVE DOM-LEVEL AUDIO STOPPING before showing victory screen
+        console.log("🔇 [NORMAL_VICTORY] Stopping all game music before victory screen")
+        const allAudioElements = document.querySelectorAll("audio")
+        const radioSources = [
+          "/music/radio/songs/",
+          "/music/theme.mp3",
+          "/music/boss-battle.mp3",
+          "/music/countdown.mp3",
+          "/music/3-2-1.mp3",
+        ]
+        
+        let stoppedCount = 0
+        allAudioElements.forEach((audio) => {
+          const audioSrc = audio.src || (audio as any).currentSrc || ""
+          const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+          const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+          
+          if (isGameMusic && !isVictoryMusic) {
+            console.log(`🔇 [NORMAL_VICTORY] Stopping game music from DOM: ${audioSrc}`)
+            try {
+              audio.pause()
+              audio.currentTime = 0
+              audio.loop = false
+              audio.volume = 0
+              audio.load()
+              stoppedCount++
+            } catch (e) {
+              console.warn(`⚠️ [NORMAL_VICTORY] Error stopping audio:`, e)
+            }
+          }
+        })
+        console.log(`🔇 [NORMAL_VICTORY] Stopped ${stoppedCount} audio elements from DOM`)
+        
+        // Also stop via audio manager
+        audioManager.stopAllRadio()
+        audioManager.stop("theme")
+        audioManager.stop("bossBattle")
+        audioManager.stopAll()
 
         // Set hasWon immediately to show victory screen
         setHasWon(true)
@@ -1269,7 +1794,107 @@ ${file}
         audioManager.stop("countdown")
       }
     }
+    }
 
+    // Boss Battle: Update Connor's position (simple movement pattern)
+    if (gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current) {
+      // Connor moves slowly in a pattern (can be enhanced later)
+      const connorPos = connorPositionRef.current
+      const timeMs = Date.now()
+      const newX = connorPos.x + Math.sin(timeMs / 2000) * 0.5 // Slow horizontal movement
+      const newY = connorPos.y + Math.cos(timeMs / 2000) * 0.5 // Slow vertical movement
+      
+      // Keep Connor within bounds (accounting for 3x size - 420px width, 240px height)
+      const boundedX = Math.max(gameBounds.minX, Math.min(gameBounds.maxX - 420, newX))
+      const boundedY = Math.max(gameBounds.minY, Math.min(gameBounds.maxY - 240, newY))
+      
+      connorPositionRef.current = { x: boundedX, y: boundedY }
+      setConnorPosition({ x: boundedX, y: boundedY })
+      
+      // Check collision between Luke and Connor's car
+      if (lukeCarRef.current) {
+        const connorElement = document.getElementById('connor-boss')
+        if (connorElement) {
+          const lukeRect = lukeCarRef.current.getBoundingClientRect()
+          const connorRect = connorElement.getBoundingClientRect()
+          
+          // Check if Luke's car overlaps with Connor's car
+          if (
+            lukeRect.left < connorRect.right &&
+            lukeRect.right > connorRect.left &&
+            lukeRect.top < connorRect.bottom &&
+            lukeRect.bottom > connorRect.top
+          ) {
+            // Luke touched Connor's car - apply damage
+            // Use a cooldown to prevent rapid damage (damage every 500ms)
+            const lastDamageTime = (lukeCarRef.current as any).lastConnorDamageTime || 0
+            const currentTime = Date.now()
+            
+            if (currentTime - lastDamageTime > 500) {
+              (lukeCarRef.current as any).lastConnorDamageTime = currentTime
+              
+              // RESET COMBO when touching Connor
+              const previousCombo = comboCountRef.current
+              console.log(`💥 LUKE TOUCHED CONNOR: Resetting combo streak (was at ${previousCombo} hits)`)
+              comboCountRef.current = 0
+              reachedMilestonesRef.current = new Set()
+              if (comboTimeoutRef.current) {
+                clearTimeout(comboTimeoutRef.current)
+                comboTimeoutRef.current = null
+              }
+              
+              // Apply damage (Connor's car is dangerous!)
+              setLukeHealth((prev) => {
+                // Connor's car does significant damage: 8 per touch
+                const baseDamage = 8
+                const vehicle = selectedVehicleRef.current
+                // Apply armor boost if DLC enabled
+                let effectiveArmor = vehicle ? vehicle.armor : 5
+                if (hasBoostsDLC && boostType === 'armor' && effectiveArmor < 10) {
+                  effectiveArmor = Math.min(10, effectiveArmor + 2)
+                }
+                const armorMultiplier = vehicle ? getArmorMultiplier(effectiveArmor) : 1.0
+                const damage = Math.ceil(baseDamage * armorMultiplier)
+                const newHealth = prev - damage
+                
+                console.log('💥 CONNOR CAR COLLISION:', {
+                  vehicle: vehicle?.name || 'None',
+                  armor: vehicle?.armor || 'N/A',
+                  effectiveArmor: effectiveArmor,
+                  baseDamage: baseDamage,
+                  armorMultiplier: armorMultiplier.toFixed(2),
+                  actualDamage: damage,
+                  healthBefore: prev,
+                  healthAfter: newHealth,
+                })
+                
+                if (newHealth <= 0) {
+                  endGame(false)
+                  return 0
+                }
+                return newHealth
+              })
+              
+              // Subtract points for touching Connor
+              const hitPenalty = -15
+              setScore((prev) => Math.max(0, prev + hitPenalty))
+              scoreEffect(hitPenalty, lukeX, lukeY)
+              
+              // Show hit effect
+              const hitEffect = document.createElement("div")
+              hitEffect.className = "absolute w-full h-full border-4 border-red-500 animate-pulse opacity-50 z-30"
+              lukeCarRef.current.appendChild(hitEffect)
+              
+              // Remove hit effect after animation
+              setTimeout(() => {
+                hitEffect.remove()
+              }, 300)
+            }
+          }
+        }
+      }
+    }
+    
     // Update drivers with dynamic movement
     // DOM updates happen every frame for smooth movement
     // React state is updated every frame but DOM takes precedence (no visual stutter)
@@ -1467,6 +2092,164 @@ ${file}
         }
 
       // Check for collisions with drivers
+      // Boss Battle: Check collision with Connor (using reduced hitbox)
+      if (gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current) {
+        const connorElement = document.getElementById('connor-boss')
+        if (connorElement) {
+          const hotdogRect = hotdog.getBoundingClientRect()
+          const connorRect = connorElement.getBoundingClientRect()
+          
+          // Reduce Connor's hitbox to 70% of his size, centered
+          const hitboxWidth = connorRect.width * 0.7
+          const hitboxHeight = connorRect.height * 0.7
+          const hitboxLeft = connorRect.left + (connorRect.width - hitboxWidth) / 2
+          const hitboxRight = hitboxLeft + hitboxWidth
+          const hitboxTop = connorRect.top + (connorRect.height - hitboxHeight) / 2
+          const hitboxBottom = hitboxTop + hitboxHeight
+          
+          if (
+            hotdogRect.left < hitboxRight &&
+            hotdogRect.right > hitboxLeft &&
+            hotdogRect.top < hitboxBottom &&
+            hotdogRect.bottom > hitboxTop
+          ) {
+            // Hit Connor
+            const baseDamage = 20
+            const vehicle = selectedVehicleRef.current
+            let effectiveImpact = vehicle ? vehicle.impact : 5
+            const impactBeforeBoost = effectiveImpact
+            if (hasBoostsDLC && boostType === 'attack' && effectiveImpact < 10) {
+              effectiveImpact = Math.min(10, effectiveImpact + 2)
+            }
+            const impactMultiplier = vehicle ? getImpactMultiplier(effectiveImpact) : 1.0
+            const damage = Math.floor(baseDamage * impactMultiplier)
+            
+            // Log boost application for boss battle
+            if (hasBoostsDLC && boostType === 'attack' && impactBeforeBoost < 10) {
+              console.log('🚀 BOOST APPLIED (Boss Battle):', {
+                impactBefore: impactBeforeBoost,
+                impactAfter: effectiveImpact,
+                boostType: boostType,
+                hasBoostsDLC: hasBoostsDLC,
+              })
+            }
+            
+            const newHealth = Math.max(0, connorHealthRef.current - damage)
+            connorHealthRef.current = newHealth
+            setConnorHealth(newHealth)
+            
+            // Remove hotdog
+            hotdog.remove()
+            hotdogsRef.current = hotdogsRef.current.filter((h) => h !== hotdog)
+            
+            // Update score
+            setScore((prev) => prev + 10)
+            
+            // Combo system disabled in boss battle mode
+            // Still track total hits for stats
+            totalHitsRef.current += 1
+            
+            // Check if Connor is defeated - trigger explosion and victory
+            if (newHealth <= 0 && !connorDefeatedRef.current && !victoryRef.current) {
+              connorDefeatedRef.current = true
+              
+              // Get Connor's DOM position for explosion (same as driver defeat logic)
+              const connorElement = document.getElementById('connor-boss')
+              let explosionX = connorPositionRef.current.x + 210 // Center of Connor (420px / 2)
+              let explosionY = connorPositionRef.current.y + 120 // Center of Connor (240px / 2)
+              
+              if (connorElement) {
+                const connorRect = connorElement.getBoundingClientRect()
+                const gameArea = document.getElementById('game-area')
+                if (gameArea) {
+                  const gameRect = gameArea.getBoundingClientRect()
+                  explosionX = connorRect.left - gameRect.left + (connorRect.width / 2)
+                  explosionY = connorRect.top - gameRect.top + (connorRect.height / 2)
+                  console.log(`📍 Captured Connor DOM position for explosion: (${explosionX}, ${explosionY}) from rect (${connorRect.left}, ${connorRect.top})`)
+                }
+              }
+              
+              // Add explosion animation
+              setExplosions(prev => [...prev, { 
+                id: 'connor', 
+                x: explosionX, 
+                y: explosionY 
+              }])
+              
+              // Play explosion sound effect
+              audioManager.play("explosion")
+              
+              // Calculate time bonus (1 point per second remaining)
+              const currentTime = Date.now()
+              const elapsedTime = currentTime - gameStartTimeRef.current
+              const timeLeftMs = Math.max(0, gameDurationRef.current - elapsedTime)
+              const timeLeftSeconds = Math.floor(timeLeftMs / 1000)
+              const timeBonus = timeLeftSeconds
+              
+              // Calculate score (base score from hits, no parking bonus needed)
+              // Use setScore callback to get current score and add time bonus
+              setScore((currentScore) => {
+                const finalScore = currentScore + timeBonus
+                return finalScore
+              })
+              
+              // For boss battle mode, delay victory screen by 3 seconds to allow explosion animation/sound to play
+              setTimeout(() => {
+                // AGGRESSIVE DOM-LEVEL AUDIO STOPPING before showing victory screen
+                console.log("🔇 [BOSS_BATTLE_VICTORY_HOTDOG] Stopping all game music before victory screen")
+                const allAudioElements = document.querySelectorAll("audio")
+                const radioSources = [
+                  "/music/radio/songs/",
+                  "/music/theme.mp3",
+                  "/music/boss-battle.mp3",
+                  "/music/countdown.mp3",
+                  "/music/3-2-1.mp3",
+                ]
+                
+                let stoppedCount = 0
+                allAudioElements.forEach((audio) => {
+                  const audioSrc = audio.src || (audio as any).currentSrc || ""
+                  const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+                  const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+                  
+                  if (isGameMusic && !isVictoryMusic) {
+                    console.log(`🔇 [BOSS_BATTLE_VICTORY_HOTDOG] Stopping game music from DOM: ${audioSrc}`)
+                    try {
+                      audio.pause()
+                      audio.currentTime = 0
+                      audio.loop = false
+                      audio.volume = 0
+                      audio.load()
+                      stoppedCount++
+                    } catch (e) {
+                      console.warn(`⚠️ [BOSS_BATTLE_VICTORY_HOTDOG] Error stopping audio:`, e)
+                    }
+                  }
+                })
+                console.log(`🔇 [BOSS_BATTLE_VICTORY_HOTDOG] Stopped ${stoppedCount} audio elements from DOM`)
+                
+                victoryRef.current = true
+                setHasWon(true)
+                
+                // Stop game sounds (boss battle music or theme/radio)
+                audioManager.stop("theme")
+                audioManager.stop("bossBattle")
+                audioManager.stopAllRadio()
+                audioManager.stopAll()
+                
+                // Play victory sounds
+                audioManager.play("fireworks")
+                
+                endGame(true)
+              }, 3000) // 3 second delay for boss battle mode
+            }
+            
+            return // Exit early, hotdog hit Connor
+          }
+        }
+      }
+      
+      // Normal Mode: Check collision with drivers
       drivers.forEach((driver) => {
         if (driver.defeated) return
 
@@ -1489,13 +2272,23 @@ ${file}
                 // Apply impact multiplier from selected vehicle
                 const baseDamage = 20
                 const vehicle = selectedVehicleRef.current
-                const impactMultiplier = vehicle ? getImpactMultiplier(vehicle.impact) : 1.0
+                // Apply boost if DLC enabled
+                let effectiveImpact = vehicle ? vehicle.impact : 5
+                const impactBeforeBoost = effectiveImpact
+                if (hasBoostsDLC && boostType === 'attack' && effectiveImpact < 10) {
+                  effectiveImpact = Math.min(10, effectiveImpact + 2) // Boost attack by 2 (max 10)
+                }
+                const impactMultiplier = vehicle ? getImpactMultiplier(effectiveImpact) : 1.0
                 const damage = Math.floor(baseDamage * impactMultiplier)
                 
                 // Vehicle Stats Tracking: IMPACT
                 console.log('🚗 VEHICLE STATS - IMPACT:', {
                   vehicle: vehicle?.name || 'None',
                   impact: vehicle?.impact || 'N/A',
+                  effectiveImpact: effectiveImpact,
+                  boostApplied: hasBoostsDLC && boostType === 'attack' && impactBeforeBoost < 10,
+                  boostType: boostType,
+                  hasBoostsDLC: hasBoostsDLC,
                   target: driver.name,
                   baseDamage: baseDamage,
                   impactMultiplier: impactMultiplier.toFixed(2),
@@ -1605,11 +2398,38 @@ ${file}
             comboCountRef.current += 1
             lastHitTimeRef.current = now
             const currentCombo = comboCountRef.current
+            totalHitsRef.current += 1 // Track total hits
+            maxComboRef.current = Math.max(maxComboRef.current, currentCombo) // Track max combo
             
             console.log(`🔥 COMBO: Hit #${currentCombo} on ${driver.name} (time since last: ${timeSinceLastHit}ms, Luke at ${lukeX}, ${lukeY})`)
             
-            // Log hit event for score validation
-            logGameEvent('hit', { driverName: driver.name, comboCount: currentCombo })
+            // Log hit event (fire and forget)
+            if (gameSessionIdRef.current) {
+              fetch('/api/log-game-event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  session_id: gameSessionIdRef.current,
+                  event_type: 'hit',
+                  event_data: {
+                    driver_name: driver.name,
+                    combo_count: currentCombo,
+                  },
+                  timestamp_ms: now,
+                }),
+              })
+              .then(async (response) => {
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({}))
+                  console.error("❌ Failed to log hit event:", response.status, errorData)
+                }
+              })
+              .catch((error) => {
+                console.error("❌ Error logging hit event:", error)
+              })
+            } else {
+              console.warn("⚠️ Cannot log hit event - no session ID")
+            }
             
             // Clear existing combo timeout
             if (comboTimeoutRef.current) {
@@ -1637,8 +2457,35 @@ ${file}
               scoreEffect(milestone.points, driver.position.x, driver.position.y)
               // Show combo badge at Luke's position
               handleComboMilestone(milestone.hits, milestone.points, milestone.image, lukeX, lukeY)
-              // Log combo milestone event
-              logGameEvent('combo', { hits: milestone.hits, points: milestone.points })
+              
+              // Log combo event (fire and forget)
+              if (gameSessionIdRef.current) {
+                fetch('/api/log-game-event', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    session_id: gameSessionIdRef.current,
+                    event_type: 'combo',
+                    event_data: {
+                      hits: milestone.hits,
+                      points: milestone.points,
+                      driver_name: driver.name,
+                    },
+                    timestamp_ms: Date.now(),
+                  }),
+                })
+                .then(async (response) => {
+                  if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}))
+                    console.error("❌ Failed to log combo event:", response.status, errorData)
+                  }
+                })
+                .catch((error) => {
+                  console.error("❌ Error logging combo event:", error)
+                })
+              } else {
+                console.warn("⚠️ Cannot log combo event - no session ID")
+              }
             } else if (milestone && reachedMilestonesRef.current.has(milestone.hits)) {
               console.log(`⚠️ COMBO MILESTONE ALREADY REACHED: ${milestone.hits} hits (skipping duplicate)`)
             }
@@ -1684,7 +2531,9 @@ ${file}
       // Move projectile towards Luke - frame-rate independent
       // Speed was 3 px/frame at 60fps (16.67ms per frame)
       // Convert to px/ms: 3 px / 16.67ms = 0.18 px/ms
-      const speedPxPerMs = 0.18
+      // Connor's projectiles are faster: 0.35 px/ms (almost 2x speed)
+      const isConnorProjectile = projectile.dataset.isConnorProjectile === "true"
+      const speedPxPerMs = isConnorProjectile ? 0.35 : 0.18
       const movement = speedPxPerMs * deltaTime
       // Log first projectile movement to verify fix is active
       if (index === 0 && Math.random() < 0.01) { // Log 1% of frames for first projectile
@@ -1726,9 +2575,17 @@ ${file}
           
           setLukeHealth((prev) => {
             // Apply armor multiplier from selected vehicle
-            const baseDamage = 4
+            // Connor's projectiles do more damage: 6 instead of 4 (reduced from 8)
+            const isConnorProjectile = projectile.dataset.isConnorProjectile === "true"
+            const baseDamage = isConnorProjectile ? 6 : 4
             const vehicle = selectedVehicleRef.current
-            const armorMultiplier = vehicle ? getArmorMultiplier(vehicle.armor) : 1.0
+            // Apply boost if DLC enabled
+            let effectiveArmor = vehicle ? vehicle.armor : 5
+            const armorBeforeBoost = effectiveArmor
+            if (hasBoostsDLC && boostType === 'armor' && effectiveArmor < 10) {
+              effectiveArmor = Math.min(10, effectiveArmor + 2) // Boost armor by 2 (max 10)
+            }
+            const armorMultiplier = vehicle ? getArmorMultiplier(effectiveArmor) : 1.0
             const damage = Math.ceil(baseDamage * armorMultiplier)
             const newHealth = prev - damage
             // Calculate actual projectile speed for logging (0.18 px/ms)
@@ -1738,6 +2595,10 @@ ${file}
             console.log('🚗 VEHICLE STATS - ARMOR:', {
               vehicle: vehicle?.name || 'None',
               armor: vehicle?.armor || 'N/A',
+              effectiveArmor: effectiveArmor,
+              boostApplied: hasBoostsDLC && boostType === 'armor' && armorBeforeBoost < 10,
+              boostType: boostType,
+              hasBoostsDLC: hasBoostsDLC,
               baseDamage: baseDamage,
               armorMultiplier: armorMultiplier.toFixed(2),
               actualDamage: damage,
@@ -1837,14 +2698,41 @@ ${file}
       anyWindow.themeAudio.pause()
     }
 
-    // Pause all audio elements except the one we're about to play
-    const audioElements = document.querySelectorAll("audio")
-    audioElements.forEach((audio) => {
-      if (!audio.src.includes("anthem") && !audio.src.includes("no")) {
-        console.log("Pausing audio:", audio.src)
-        audio.pause()
+    // AGGRESSIVE DOM-LEVEL AUDIO STOPPING - Stop ALL audio elements directly from DOM
+    // This is critical because VictoryScreen creates a new audio manager instance
+    console.log("🔇 [END_GAME] Starting aggressive DOM-level audio stopping")
+    const allAudioElements = document.querySelectorAll("audio")
+    const radioSources = [
+      "/music/radio/songs/",
+      "/music/theme.mp3",
+      "/music/boss-battle.mp3",
+      "/music/countdown.mp3",
+      "/music/3-2-1.mp3",
+    ]
+    
+    let stoppedCount = 0
+    allAudioElements.forEach((audio) => {
+      const audioSrc = audio.src || (audio as any).currentSrc || ""
+      const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+      const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+      
+      // Stop ALL game music (radio, theme, boss battle, countdown)
+      // But allow victory music to continue
+      if (isGameMusic && !isVictoryMusic) {
+        console.log(`🔇 [END_GAME] Stopping game music from DOM: ${audioSrc}`)
+        try {
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          audio.load() // Reset the audio element completely
+          stoppedCount++
+        } catch (e) {
+          console.warn(`⚠️ [END_GAME] Error stopping audio element:`, e)
+        }
       }
     })
+    console.log(`🔇 [END_GAME] Stopped ${stoppedCount} audio elements from DOM`)
 
     if (victory) {
       // Calculate time left in seconds
@@ -1888,10 +2776,30 @@ ${file}
         return finalScore
       })
 
-      // Stop theme music
-      audioManager.stop("theme")
-      
-      // Don't play anthem here - victory-screen will handle it
+        // Stop theme music, boss battle music, and all radio songs via audio manager
+        console.log("🎵 [END_GAME] Stopping all game music via audio manager")
+        if (audioManager.stopAllRadio) {
+          console.log("🎵 [END_GAME] Using stopAllRadio()")
+          audioManager.stopAllRadio()
+        } else {
+          console.log("🎵 [END_GAME] stopAllRadio not available, using individual stops")
+          // Fallback to individual stops if stopAllRadio is not available
+          audioManager.stop("radio1")
+          audioManager.stop("radio2")
+          audioManager.stop("radio3")
+          audioManager.stop("radio4")
+          audioManager.stop("radio5")
+          audioManager.stop("radio6")
+          audioManager.stop("radio7")
+          audioManager.stop("radio8")
+          audioManager.stop("radioStatic")
+        }
+        console.log("🎵 [END_GAME] Stopping theme and bossBattle")
+        audioManager.stop("theme")
+        audioManager.stop("bossBattle")
+        console.log("🎵 [END_GAME] All stop calls completed")
+        
+        // Don't play anthem here - victory-screen will handle it
       // audioManager.play("anthem") // Removed - victory-screen will handle this
     } else {
       // Play defeat sound
@@ -1911,16 +2819,47 @@ ${file}
           if (victory) {
             mixpanel.track('Victory', {
               user_id: session.user.id,
-              time_spent_minutes: parseFloat(timeSpentMinutes),
+              time_spent_minutes: parseFloat(String(timeSpentMinutes)),
               score: score,
               vehicle_type: selectedVehicle?.id || null,
             })
+
+            // Check and award achievements on victory
+            const elapsedTimeSeconds = gameStartTimeRef.current > 0 
+              ? (Date.now() - gameStartTimeRef.current) / 1000
+              : 0
+            
+            await checkAndAwardAchievements(
+              session.user.email!,
+              {
+                perfectParking: lukeHealth === 100,
+                speedDemon: elapsedTimeSeconds < 20, // Under 20 seconds
+                tankCommander: lukeHealth <= 10,
+                comboMaster: maxComboRef.current >= 50,
+                gameSessionId: gameSessionIdRef.current || undefined,
+              }
+            )
           } else {
             mixpanel.track('Defeat', {
               user_id: session.user.id,
-              time_spent_minutes: parseFloat(timeSpentMinutes),
+              time_spent_minutes: parseFloat(String(timeSpentMinutes)),
               final_health: lukeHealth,
               vehicle_type: selectedVehicle?.id || null,
+            })
+          }
+          
+          // Update game session
+          if (gameSessionIdRef.current) {
+            fetch('/api/update-game-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                session_id: gameSessionIdRef.current,
+                final_score: victory ? score : null,
+                score_saved: victory,
+              }),
+            }).catch((error) => {
+              console.error("Error updating game session:", error)
             })
           }
         }
@@ -1950,6 +2889,61 @@ ${file}
 
     enemyProjectilesRef.current.forEach((projectile) => projectile.remove())
     enemyProjectilesRef.current = []
+  }
+
+  // Function to check and award achievements
+  async function checkAndAwardAchievements(
+    userEmail: string,
+    conditions: {
+      perfectParking: boolean
+      speedDemon: boolean
+      tankCommander: boolean
+      comboMaster: boolean
+      gameSessionId?: string
+    }
+  ) {
+    try {
+      const achievementsToAward: string[] = []
+
+      if (conditions.perfectParking) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.PERFECT_PARKING)
+      }
+      if (conditions.speedDemon) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.SPEED_DEMON)
+      }
+      if (conditions.tankCommander) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.TANK_COMMANDER)
+      }
+      if (conditions.comboMaster) {
+        achievementsToAward.push(ACHIEVEMENT_CODES.COMBO_MASTER)
+      }
+
+      // Award achievements
+      for (const achievementCode of achievementsToAward) {
+        try {
+          const response = await fetch('/api/award-achievement', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userEmail,
+              achievementCode,
+              gameSessionId: conditions.gameSessionId,
+            }),
+          })
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data.success && !data.alreadyUnlocked) {
+              console.log(`🎉 Achievement unlocked: ${achievementCode}`)
+            }
+          }
+        } catch (error) {
+          console.error(`Error awarding achievement ${achievementCode}:`, error)
+        }
+      }
+    } catch (error) {
+      console.error('Error checking achievements:', error)
+    }
   }
 
   // Toggle debug mode
@@ -1997,6 +2991,29 @@ ${file}
       if (keysPressed.has(" ") || keysPressed.has("Space")) {
         throwHotdog()
       }
+
+      // Process car horn (DLC) - press 'H' key (check individual item enabled)
+      const carHornEnabled = hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudioDLC)
+      if (carHornEnabled && (keysPressed.has("h") || keysPressed.has("H"))) {
+        if (selectedHorn === 'random') {
+          const randomHorn = Math.floor(Math.random() * 3) + 1 as 1 | 2 | 3
+          audioManager.playHorn(randomHorn)
+        } else {
+          audioManager.playHorn(selectedHorn)
+        }
+      }
+
+      // Process radio song change (DLC) - press 'R' key (with cooldown)
+      if (hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudioDLC) && (keysPressed.has("r") || keysPressed.has("R"))) {
+        const now = Date.now()
+        if (now - lastRadioSwitchTime.current > 500) { // 500ms cooldown (increased to prevent rapid switching)
+          lastRadioSwitchTime.current = now
+          switchToNextRadioSong()
+          // Remove 'R' from keysPressed to prevent rapid switching
+          keysPressed.delete("r")
+          keysPressed.delete("R")
+        }
+      }
     }, 50) // Process keys every 50ms
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2006,7 +3023,7 @@ ${file}
       }
 
       // Prevent default for game controls to avoid browser scrolling
-      if (["w", "W", "a", "A", "s", "S", "d", "D", " ", "Space"].includes(e.key) || e.code === "Space") {
+      if (["w", "W", "a", "A", "s", "S", "d", "D", " ", "Space", "r", "R", "h", "H"].includes(e.key) || e.code === "Space") {
         e.preventDefault()
       }
 
@@ -2038,7 +3055,7 @@ ${file}
       window.removeEventListener("keydown", handleKeyDown)
       window.removeEventListener("keyup", handleKeyUp)
     }
-  }, [gameState, showUsernameModal])
+  }, [gameState, showUsernameModal, hasAudioDLC, selectedHorn])
 
   // Render start screen
   const onInitializeAudio = () => {
@@ -2090,6 +3107,60 @@ ${file}
     trackInitialPageView()
   }, [])
 
+  // Load DLC status when start screen is shown
+  useEffect(() => {
+    if (gameState === "start") {
+      setIsDLCLoading(true) // Set loading state immediately when transitioning to start screen
+      async function loadDLCStatus() {
+        try {
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session?.user?.email) {
+            const [hasLicensePlate, hasBoosts, hasAudio, hasBossBattle] = await Promise.all([
+              hasDLCUnlocked(session.user.email, DLC_CODES.ACCESSORIES),
+              hasDLCUnlocked(session.user.email, DLC_CODES.BOOSTS),
+              hasDLCUnlocked(session.user.email, DLC_CODES.AUDIO),
+              hasDLCUnlocked(session.user.email, DLC_CODES.BOSS_BATTLE),
+            ])
+            
+            // Sync enabled status from database to localStorage for unlocked packs
+            if (hasAudio) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.AUDIO)
+            if (hasLicensePlate) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.ACCESSORIES)
+            if (hasBoosts) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOOSTS)
+            if (hasBossBattle) await syncDLCItemEnabledStatus(session.user.email, DLC_CODES.BOSS_BATTLE)
+            
+            // Check individual item enable status (AFTER sync)
+            const hasFMRadio = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudio)
+            const hasCarHorn = hasAudio && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.CAR_HORN, hasAudio)
+            const hasLicensePlateItem = hasLicensePlate && isDLCItemEnabled(DLC_CODES.ACCESSORIES, DLC_ITEM_IDS.LICENSE_PLATE, hasLicensePlate)
+            const hasBossBattleItem = hasBossBattle && isDLCItemEnabled(DLC_CODES.BOSS_BATTLE, DLC_ITEM_IDS.CONNOR_BOSS, hasBossBattle)
+            
+            setHasLicensePlateDLC(hasLicensePlateItem)
+            setHasBoostsDLC(hasBoosts)
+            setHasAudioDLC(hasAudio)
+            setHasBossBattleDLC(hasBossBattleItem)
+            setIsDLCLoading(false)
+            
+            console.log("✅ DLC Status loaded for start screen:", {
+              accessories: hasLicensePlateItem,
+              boosts: hasBoosts,
+              audio: hasAudio,
+              bossBattle: hasBossBattleItem,
+            })
+          } else {
+            setIsDLCLoading(false)
+          }
+        } catch (error) {
+          console.error("❌ Error loading DLC status:", error)
+          setIsDLCLoading(false)
+        }
+      }
+      loadDLCStatus()
+    }
+  }, [gameState])
+
+  // Track if menu theme has been started for this screen session
+  const menuThemeStartedRef = useRef<boolean>(false)
+
   // Play menu theme music when on start screen or vehicle selection (after user interaction from intro screen)
   useEffect(() => {
     if (gameState === "start" || gameState === "vehicle-selection") {
@@ -2102,20 +3173,23 @@ ${file}
       }
       
       // Start menu theme immediately (user has already interacted by clicking intro button)
-      if (gameState === "start") {
+      // Only play once per screen session to avoid restarting
+      if (gameState === "start" && !menuThemeStartedRef.current) {
         console.log("Starting menu theme music...")
         audioManager.play("menuTheme")
+        menuThemeStartedRef.current = true
       }
-      // Keep playing if transitioning to vehicle-selection
+      // Keep playing if transitioning to vehicle-selection (don't restart)
     } else if (gameState === "playing") {
       // Stop menu theme when starting the game (countdown begins)
       if (!menuThemeStoppedRef.current) {
         console.log("Stopping menu theme music...")
         audioManager.stop("menuTheme")
         menuThemeStoppedRef.current = true
+        menuThemeStartedRef.current = false // Reset so it can start again when returning to start screen
       }
     }
-  }, [gameState, audioManager]) // Include audioManager to ensure it's available
+  }, [gameState]) // Only depend on gameState, not audioManager
 
   // Check for username after authentication
   useEffect(() => {
@@ -2279,6 +3353,59 @@ ${file}
           username={username}
           onEditUsername={() => setShowUsernameModal(true)}
           onVictorySimulator={handleVictorySimulator}
+          onViewProfile={() => setGameState("profile")}
+          onViewDLCStore={() => setGameState("dlc-store")}
+          onGoToMainMenu={() => setGameState("start")}
+          hasBossBattleDLC={hasBossBattleDLC}
+          isDLCLoading={isDLCLoading}
+          gameMode={gameMode}
+          onGameModeChange={setGameMode}
+        />
+      </>
+    )
+  }
+
+  // Render profile page
+  if (gameState === "profile") {
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <ProfilePage 
+          onBack={() => setGameState("start")}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          onViewDLCStore={() => setGameState("dlc-store")}
+          onGoToMainMenu={() => setGameState("start")}
+        />
+      </>
+    )
+  }
+
+  // Render DLC store
+  if (gameState === "dlc-store") {
+    return (
+      <>
+        {showUsernameModal && (
+          <UsernameModal
+            isOpen={showUsernameModal}
+            onClose={() => setShowUsernameModal(false)}
+            onSave={handleUsernameSaved}
+          />
+        )}
+        <DLCStore 
+          onBack={() => setGameState("start")}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          onViewProfile={() => setGameState("profile")}
+          onGoToMainMenu={() => setGameState("start")}
         />
       </>
     )
@@ -2296,6 +3423,14 @@ ${file}
           />
         )}
         <VehicleSelection
+          onBack={() => setGameState("start")}
+          onLogout={handleLogout}
+          onEditUsername={() => setShowUsernameModal(true)}
+          onVictorySimulator={handleVictorySimulator}
+          onViewProfile={() => setGameState("profile")}
+          onViewDLCStore={() => setGameState("dlc-store")}
+          onGoToMainMenu={() => setGameState("start")}
+          username={username}
           onVehicleSelected={async (vehicle) => {
             setSelectedVehicle(vehicle)
             selectedVehicleRef.current = vehicle // Also update ref for game loop access
@@ -2319,11 +3454,6 @@ ${file}
             // Start the game with selected vehicle
             startGame()
           }}
-          onBack={() => setGameState("start")}
-          onLogout={handleLogout}
-          onEditUsername={() => setShowUsernameModal(true)}
-          onVictorySimulator={handleVictorySimulator}
-          username={username}
         />
       </>
     )
@@ -2356,8 +3486,7 @@ ${file}
             score={score} 
             isSimulator={isSimulatorMode}
             vehicle={selectedVehicle?.id || null}
-            sessionId={gameSessionIdRef.current || undefined}
-            gameDurationMs={gameStartTimeRef.current > 0 ? Date.now() - gameStartTimeRef.current : undefined}
+            gameMode={gameMode}
           />
         </div>
       </div>
@@ -2444,6 +3573,24 @@ ${file}
           </div>
         )}
 
+        {/* Radio song change button (DLC) - check individual item enabled */}
+        {hasAudioDLC && isDLCItemEnabled(DLC_CODES.AUDIO, DLC_ITEM_IDS.FM_RADIO, hasAudioDLC) && gameState === "playing" && (
+          <div className="absolute top-4 right-4 z-50">
+            <Button
+              onClick={() => {
+                const now = Date.now()
+                if (now - lastRadioSwitchTime.current > 500) { // 500ms cooldown
+                  lastRadioSwitchTime.current = now
+                  switchToNextRadioSong()
+                }
+              }}
+              className="bg-tracksuit-purple-600 hover:bg-tracksuit-purple-700 text-white font-chapeau px-3 py-1 text-sm mb-2"
+            >
+              📻 Next Song
+            </Button>
+          </div>
+        )}
+
         {/* Game UI */}
         <div className="absolute top-4 left-4 right-4 z-40 flex justify-between items-start">
           <div className="bg-black/50 p-2 rounded-md">
@@ -2473,18 +3620,35 @@ ${file}
 
           {/* Driver health bars */}
           <div className="bg-black/50 p-2 rounded-md max-w-xs">
-            <h3 className="text-xs font-bold mb-1">Drivers:</h3>
-            {drivers.map((driver) => (
-              <div key={driver.id} className="flex items-center gap-2 mb-1">
-                <span className="text-xs w-16 truncate">{driver.name}</span>
+            <h3 className="text-xs font-bold mb-1">
+              {gameMode === 'boss-battle' && hasBossBattleDLC ? 'Boss:' : 'Drivers:'}
+            </h3>
+            {gameMode === 'boss-battle' && hasBossBattleDLC ? (
+              // Boss Battle: Show Connor's health
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-xs w-16 truncate">Connor</span>
                 <div className="w-20 h-2 bg-gray-700 rounded">
                   <div
-                    className={`h-full rounded ${driver.defeated ? "bg-gray-500" : "bg-red-500"}`}
-                    style={{ width: `${driver.health}%` }}
+                    className={`h-full rounded ${connorHealth <= 0 ? "bg-gray-500" : "bg-red-500"}`}
+                    style={{ width: `${Math.max(0, Math.min(100, (connorHealth / 1000) * 100))}%` }}
                   ></div>
                 </div>
+                <span className="text-xs">{connorHealth}/1000</span>
               </div>
-            ))}
+            ) : (
+              // Normal Mode: Show driver health bars
+              drivers.map((driver) => (
+                <div key={driver.id} className="flex items-center gap-2 mb-1">
+                  <span className="text-xs w-16 truncate">{driver.name}</span>
+                  <div className="w-20 h-2 bg-gray-700 rounded">
+                    <div
+                      className={`h-full rounded ${driver.defeated ? "bg-gray-500" : "bg-red-500"}`}
+                      style={{ width: `${driver.health}%` }}
+                    ></div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -2505,6 +3669,19 @@ ${file}
             alt={selectedVehicle?.name || "Luke's Car"} 
             className="w-full h-full object-contain" 
           />
+          {/* License Plate Overlay (if DLC unlocked) */}
+          {hasLicensePlateDLC && (
+            <img
+              src="/images/license-plate.png"
+              alt="License Plate"
+              className="absolute bottom-0 left-1/2 transform -translate-x-1/2 z-35"
+              style={{
+                width: '48%', // 4x bigger than before (was 12%)
+                height: 'auto',
+                maxHeight: '60%',
+              }}
+            />
+          )}
           {/* Luke's avatar */}
           <div className="absolute top-[-40px] left-[10px] w-[40px] h-[40px] rounded-full overflow-hidden border-2 border-white bg-white z-40">
             <img
@@ -2537,6 +3714,38 @@ ${file}
             </div>
           )}
         </div>
+
+        {/* Connor Boss (Boss Battle Mode) */}
+        {gameMode === 'boss-battle' && hasBossBattleDLC && !connorDefeatedRef.current && (
+          <div
+            id="connor-boss"
+            className="absolute z-30"
+            style={{
+              left: `${connorPosition.x}px`,
+              top: `${connorPosition.y}px`,
+              width: "420px", // 3x bigger than Luke's car (140px * 3)
+              height: "240px", // 3x bigger than Luke's car (80px * 3)
+            }}
+          >
+            <img
+              src="/images/polestar.png"
+              alt="Connor's Polestar"
+              className="w-full h-full object-contain"
+            />
+            {/* Connor's avatar */}
+            <div className="absolute top-[-40px] left-[10px] w-[40px] h-[40px] rounded-full overflow-hidden border-2 border-white bg-white z-40">
+              <img
+                src="/images/connor.png"
+                alt="Connor"
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Connor's name */}
+            <div className="absolute top-[-60px] left-[10px] text-xs font-bold bg-black/70 px-2 py-1 rounded text-white z-40 whitespace-nowrap">
+              Connor
+            </div>
+          </div>
+        )}
 
         {/* Drivers */}
         {drivers.map((driver) => {

@@ -11,9 +11,16 @@ interface StartScreenProps {
   username?: string | null
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewProfile?: () => void
+  onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
+  hasBossBattleDLC?: boolean
+  isDLCLoading?: boolean
+  gameMode?: 'normal' | 'boss-battle'
+  onGameModeChange?: (mode: 'normal' | 'boss-battle') => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, onGoToMainMenu, hasBossBattleDLC, isDLCLoading = false, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -34,7 +41,7 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} />
+      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} onViewProfile={onViewProfile} onViewDLCStore={onViewDLCStore} onGoToMainMenu={onGoToMainMenu} />
 
       {/* Username Greeting */}
       {username && (
@@ -100,18 +107,64 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
         </div>
       </div>
 
-      {/* Start Game button - always visible */}
+
+      {/* DLC Loading Indicator */}
+      {isDLCLoading && (
+        <div className="w-full mb-6 text-center">
+          <div className="inline-flex items-center gap-3 px-4 py-3 bg-tracksuit-purple-50 rounded-lg border border-tracksuit-purple-200 shadow-sm">
+            <div className="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-tracksuit-purple-600"></div>
+            <span className="text-base font-semibold text-tracksuit-purple-700 font-chapeau">Checking DLC...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Start Game buttons */}
       <div className="flex flex-col sm:flex-row gap-3 items-center justify-center w-full">
-        <Button 
-          size="lg" 
-          onClick={handleStart} 
-          className="font-chapeau shadow-lg px-8"
-          style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
-        >
-          🎮 Start Game
-        </Button>
+        {isDLCLoading ? (
+          <div className="text-tracksuit-purple-600 font-quicksand text-sm opacity-75">
+            Loading game options...
+          </div>
+        ) : hasBossBattleDLC && onGameModeChange ? (
+          <>
+            <Button 
+              size="lg" 
+              onClick={() => {
+                onGameModeChange('normal')
+                handleStart()
+              }}
+              className="font-chapeau shadow-lg px-8"
+              style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+            >
+              🎮 Start I'm Parkin' Here Game
+            </Button>
+            <Button 
+              size="lg" 
+              onClick={() => {
+                onGameModeChange('boss-battle')
+                handleStart()
+              }}
+              className="font-chapeau shadow-lg px-8"
+              style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+            >
+              👔 Start Boss Battle
+            </Button>
+          </>
+        ) : (
+          <Button 
+            size="lg" 
+            onClick={handleStart} 
+            className="font-chapeau shadow-lg px-8"
+            style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+          >
+            🎮 Start Game
+          </Button>
+        )}
       </div>
     </div>
   )

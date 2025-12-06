@@ -4,7 +4,7 @@ import { createAuthenticatedClient } from "@/lib/supabase"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    let { userEmail, score, accessToken, vehicle, sessionId, gameDurationMs } = body
+    const { userEmail, score, accessToken, vehicle, gameMode } = body
 
     if (!userEmail || score === undefined) {
       return NextResponse.json(
@@ -123,6 +123,7 @@ export async function POST(request: NextRequest) {
           score: score,
           username: username,
           vehicle: vehicle || null, // Include vehicle type if provided
+          game_mode: gameMode || "I'm Parkin' Here!", // Include game mode
         },
       ])
       .select()
@@ -136,28 +137,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mark session as used if provided
-    if (sessionId) {
-      const { error: updateError } = await supabase
-        .from('game_sessions')
-        .update({
-          ended_at: new Date().toISOString(),
-          duration_ms: gameDurationMs || null,
-          final_score: score,
-          score_saved: true,
-        })
-        .eq('id', sessionId)
-
-      if (updateError) {
-        console.error('Error updating game session:', updateError)
-        // Don't fail the request, just log the error
-      }
-    }
-
-    // Get the user's all-time rank (count scores higher than this one)
+    // Get the user's all-time rank (count scores higher than this one for the same game mode)
+    const currentGameMode = gameMode || "I'm Parkin' Here!"
     const { count: allTimeCount, error: allTimeCountError } = await supabase
       .from('scores')
       .select('*', { count: 'exact', head: true })
+      .eq('game_mode', currentGameMode) // Filter by game mode
       .gt('score', score)
 
     if (allTimeCountError) {
@@ -167,10 +152,11 @@ export async function POST(request: NextRequest) {
     const allTimeRank = (allTimeCount || 0) + 1
 
     // Get the user's contest rank (count users with personal best scores higher than this one)
-    // First, get all users' personal best scores
+    // First, get all users' personal best scores for the same game mode
     const { data: allScores, error: allScoresError } = await supabase
       .from('scores')
       .select('user_email, score')
+      .eq('game_mode', currentGameMode) // Filter by game mode
       .order('score', { ascending: false })
       .limit(10000) // Get enough records to find all unique users
     

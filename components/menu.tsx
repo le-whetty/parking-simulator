@@ -11,9 +11,12 @@ interface MenuProps {
   onLogout?: () => void
   onEditUsername?: () => void
   onVictorySimulator?: () => void
+  onViewProfile?: () => void
+  onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
 }
 
-export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: MenuProps) {
+export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, onGoToMainMenu }: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -39,22 +42,35 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src="/logos/logo.png" alt="Tracksuit" className="h-8 w-auto" />
-            <h2 className="text-xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">
+            <button
+              onClick={() => onGoToMainMenu?.()}
+              className="text-xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 hover:from-tracksuit-purple-700 hover:to-tracksuit-purple-800 cursor-pointer transition-all"
+            >
               Parking Simulator
-            </h2>
+            </button>
           </div>
-          <div className="flex items-center gap-3">
-            {onVictorySimulator && (
-              <Button
-                onClick={onVictorySimulator}
-                className="font-chapeau text-sm px-4"
-                style={{ backgroundColor: '#E4dcf8', color: '#4d3777' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#d4c4f0'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#E4dcf8'}
-              >
-                🥇 Victory Simulator
-              </Button>
-            )}
+          <nav className="flex items-center gap-2">
+            <Button
+              onClick={() => onVictorySimulator?.()}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
+            >
+              🥇 Victory Simulator
+            </Button>
+            <Button
+              onClick={() => onViewProfile?.()}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
+            >
+              👤 Profile
+            </Button>
+            <Button
+              onClick={() => onViewDLCStore?.()}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
+            >
+              🎮 DLC Store
+            </Button>
             <Button
               onClick={async () => {
                 // Track Leaderboard Viewed event
@@ -72,19 +88,15 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator }: M
                 }
                 setShowLeaderboard(true)
               }}
-              className="font-chapeau text-sm px-4"
-              style={{ backgroundColor: '#8f80cc', color: '#f8f3ff' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7f70bc'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8f80cc'}
+              variant="ghost"
+              className="font-chapeau text-sm px-3 py-2 text-tracksuit-purple-700 hover:bg-tracksuit-purple-50 hover:text-tracksuit-purple-800"
             >
-              🏆 View Leaderboard
+              🏆 Leaderboard
             </Button>
-            {onLogout && (
-              <div className="flex items-center">
-                <ProfileMenu onLogout={onLogout} onEditUsername={onEditUsername} />
-              </div>
-            )}
-          </div>
+            <div className="flex items-center ml-2 pl-2 border-l border-tracksuit-purple-200">
+              <ProfileMenu onLogout={onLogout} onEditUsername={onEditUsername} />
+            </div>
+          </nav>
         </div>
       </div>
 

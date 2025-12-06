@@ -94,6 +94,13 @@ export default function LoginScreen({ onAuthenticated }: LoginScreenProps) {
     try {
       const redirectUrl = `${getURL()}auth/callback`
       
+      console.log('🔐 [LOGIN] Sign in attempt:', {
+        redirectUrl,
+        siteUrl: process.env.NEXT_PUBLIC_SITE_URL,
+        vercelUrl: process.env.NEXT_PUBLIC_VERCEL_URL,
+        currentOrigin: window.location.origin
+      })
+      
       const { error, data } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {

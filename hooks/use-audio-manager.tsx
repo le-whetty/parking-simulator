@@ -3,7 +3,7 @@
 import { useState, useRef } from "react"
 
 // Define the sound types we'll use in the game
-export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks"
+export type SoundType = "throw" | "babyCry" | "ouch" | "no" | "theme" | "slack" | "menuTheme" | "explosion" | "countdown" | "3-2-1" | "fireworks" | "carHorn1" | "carHorn2" | "carHorn3" | "radio1" | "radio2" | "radio3" | "radio4" | "radio5" | "radio6" | "radio7" | "radio8" | "radioStatic" | "connorVoiceover" | "bossBattle"
 
 // Create a simple audio manager hook
 export function useAudioManager() {
@@ -70,6 +70,24 @@ export function useAudioManager() {
         ["countdown", "/music/countdown.mp3"],
         ["3-2-1", "/music/3-2-1.mp3"],
         ["fireworks", "/music/fireworks.mp3"],
+        // Car horns (DLC)
+        ["carHorn1", "/music/car horns/toot-horn.mp3"],
+        ["carHorn2", "/music/car horns/old-car-horn.mp3"],
+        ["carHorn3", "/music/car horns/la-cucaracha-horn.mp3"],
+        // Radio songs (DLC)
+        ["radio1", "/music/radio/songs/crackazat-alfa.mp3"],
+        ["radio2", "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3"],
+        ["radio3", "/music/radio/songs/elijah-lee-who-are-you.mp3"],
+        ["radio4", "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3"],
+        ["radio5", "/music/radio/songs/dont-look-back-kotomi-and-ryan-elder.mp3"],
+        ["radio6", "/music/radio/songs/forsaken-alix-perez.mp3"],
+        ["radio7", "/music/radio/songs/julius-rodriguez-all-i-do.mp3"],
+        ["radio8", "/music/radio/songs/tourist-run.mp3"],
+        ["radioStatic", "/music/radio/radio-static.mp3"],
+        // Boss battle voiceover (DLC)
+        ["connorVoiceover", "/music/connor-airbnb.mp3"],
+        // Boss battle music (always plays during boss battle mode)
+        ["bossBattle", "/music/boss-battle.mp3"],
       ]
 
       // Pre-load all sounds
@@ -100,6 +118,18 @@ export function useAudioManager() {
         if (type === "menuTheme") {
           audio.loop = true
           console.log("Menu theme audio element created:", audio.src)
+        }
+        
+        // Enable looping for radio songs (but not static)
+        if (type.startsWith("radio") && type !== "radioStatic") {
+          audio.loop = true
+          console.log(`Radio song ${type} audio element created:`, audio.src)
+        }
+        
+        // Ensure static doesn't loop
+        if (type === "radioStatic") {
+          audio.loop = false
+          console.log(`Radio static audio element created:`, audio.src)
         }
 
         // Store in our map
@@ -215,28 +245,60 @@ export function useAudioManager() {
     try {
       const sound = soundsRef.current.get(type)
       if (sound) {
-        console.log(`Stopping ${type} sound - paused: ${sound.paused}, currentTime: ${sound.currentTime}, src: ${sound.src}`)
-        // Aggressively stop the audio
+        const wasPlaying = !sound.paused
+        const currentTime = sound.currentTime
+        const src = sound.src
+        console.log(`🔇 [STOP] Stopping ${type} sound - paused: ${sound.paused}, playing: ${wasPlaying}, currentTime: ${currentTime.toFixed(2)}s, src: ${src}`)
+        
+        // Aggressively stop the audio - pause first, then reset
         sound.pause()
         sound.currentTime = 0
         sound.loop = false
+        sound.volume = 0 // Mute it as well
+        
+        // Call load() to completely reset the audio element and stop any active playback
+        // This is critical for looping audio - load() stops the loop immediately
+        try {
+          sound.load()
+          console.log(`🔇 [STOP] Called load() on ${type} to reset audio element`)
+        } catch (loadError) {
+          console.warn(`⚠️ [STOP] Error calling load() on ${type}:`, loadError)
+        }
+        
+        // Check if it's actually paused after our operations
+        const stillPlaying = !sound.paused
+        console.log(`🔇 [STOP] After pause() and load() - paused: ${sound.paused}, stillPlaying: ${stillPlaying}, currentTime: ${sound.currentTime.toFixed(2)}s`)
+        
         // Remove any event listeners that might restart it
         sound.onended = null
         sound.onplay = null
         sound.oncanplay = null
         sound.oncanplaythrough = null
+        
         // Remove all event listeners by cloning the node (removes all listeners)
         const newSound = sound.cloneNode(false) as HTMLAudioElement
         newSound.src = sound.src
         newSound.preload = sound.preload
+        newSound.volume = 0.5 // Reset volume for future use
+        newSound.pause() // Ensure the new sound is also paused
+        newSound.currentTime = 0
+        newSound.loop = false // Ensure loop is false
+        
+        // Call load() on the clone as well to ensure it's completely reset
+        try {
+          newSound.load()
+        } catch (loadError) {
+          console.warn(`⚠️ [STOP] Error calling load() on cloned ${type}:`, loadError)
+        }
+        
         // Replace the old sound with the new one (which has no event listeners)
         soundsRef.current.set(type, newSound)
-        console.log(`Stopped ${type} sound successfully - replaced with clean instance`)
+        console.log(`✅ [STOP] Stopped ${type} sound successfully - replaced with clean instance (wasPlaying: ${wasPlaying})`)
       } else {
-        console.log(`Sound ${type} not found in map when trying to stop`)
+        console.log(`⚠️ [STOP] Sound ${type} not found in map when trying to stop`)
       }
     } catch (e) {
-      console.log(`Error stopping ${type} sound:`, e)
+      console.error(`❌ [STOP] Error stopping ${type} sound:`, e)
     }
   }
 
@@ -287,16 +349,237 @@ export function useAudioManager() {
   // Stop all sounds
   const stopAll = () => {
     // Check if sounds exist in map instead of initialized state
-    if (soundsRef.current.size === 0) return
+    if (soundsRef.current.size === 0) {
+      console.log("🔇 [STOP_ALL] No sounds in map to stop")
+      return
+    }
 
     try {
-      soundsRef.current.forEach((sound) => {
+      const playingSounds: string[] = []
+      soundsRef.current.forEach((sound, type) => {
+        if (!sound.paused) {
+          playingSounds.push(`${type} (currentTime: ${sound.currentTime.toFixed(2)}s)`)
+        }
         sound.pause()
         sound.currentTime = 0
+        sound.loop = false
+        sound.volume = 0 // Mute all sounds
+        
+        // Call load() to completely reset the audio element and stop any active playback
+        // This is critical for looping audio - load() stops the loop immediately
+        try {
+          sound.load()
+        } catch (loadError) {
+          console.warn(`⚠️ [STOP_ALL] Error calling load() on ${type}:`, loadError)
+        }
+        
+        // Remove event listeners
+        sound.onended = null
+        sound.onplay = null
+        sound.oncanplay = null
+        sound.oncanplaythrough = null
       })
+      
+      if (playingSounds.length > 0) {
+        console.log(`🔇 [STOP_ALL] Stopped ${playingSounds.length} playing sounds:`, playingSounds)
+      } else {
+        console.log(`🔇 [STOP_ALL] Stopped all sounds (none were playing)`)
+      }
     } catch (e) {
-      console.log("Error stopping all sounds:", e)
+      console.error("❌ [STOP_ALL] Error stopping all sounds:", e)
     }
+  }
+
+  // Stop all radio songs (helper function)
+  const stopAllRadio = () => {
+    console.log("🔇 [STOP_ALL_RADIO] Starting to stop all radio songs")
+    
+    // First, check which radio songs are currently playing
+    const radioTypes: SoundType[] = ["radio1", "radio2", "radio3", "radio4", "radio5", "radio6", "radio7", "radio8", "radioStatic"]
+    const playingRadios: string[] = []
+    
+    radioTypes.forEach(type => {
+      const sound = soundsRef.current.get(type)
+      if (sound && !sound.paused) {
+        playingRadios.push(`${type} (currentTime: ${sound.currentTime.toFixed(2)}s)`)
+      }
+    })
+    
+    if (playingRadios.length > 0) {
+      console.log(`🔇 [STOP_ALL_RADIO] Found ${playingRadios.length} playing radio songs:`, playingRadios)
+    } else {
+      console.log(`🔇 [STOP_ALL_RADIO] No radio songs currently playing`)
+    }
+    
+    // Stop all radio songs using stop() which now calls load() to reset them
+    stop("radio1")
+    stop("radio2")
+    stop("radio3")
+    stop("radio4")
+    stop("radio5")
+    stop("radio6")
+    stop("radio7")
+    stop("radio8")
+    stop("radioStatic")
+    
+    // Also aggressively stop any radio-related audio elements in the DOM
+    // This is a safety net in case there are multiple instances
+    try {
+      const radioSources = [
+        "/music/radio/songs/crackazat-alfa.mp3",
+        "/music/radio/songs/d'angelo-untitled-how-does-it-feel.mp3",
+        "/music/radio/songs/elijah-lee-who-are-you.mp3",
+        "/music/radio/songs/jacob-collier-never-gonna-be-alone.mp3",
+        "/music/radio/songs/dont-look-back-kotomi-and-ryan-elder.mp3",
+        "/music/radio/songs/forsaken-alix-perez.mp3",
+        "/music/radio/songs/julius-rodriguez-all-i-do.mp3",
+        "/music/radio/songs/tourist-run.mp3",
+        "/music/radio/radio-static.mp3",
+      ]
+      
+      const allAudioElements = document.querySelectorAll("audio")
+      allAudioElements.forEach((audio) => {
+        const audioSrc = audio.src || (audio as any).currentSrc || ""
+        if (radioSources.some(src => audioSrc.includes(src))) {
+          console.log(`🔇 [STOP_ALL_RADIO] Found DOM audio element playing radio song, stopping it:`, audioSrc)
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          try {
+            audio.load()
+          } catch (loadError) {
+            console.warn(`⚠️ [STOP_ALL_RADIO] Error calling load() on DOM audio element:`, loadError)
+          }
+        }
+      })
+    } catch (domError) {
+      console.warn(`⚠️ [STOP_ALL_RADIO] Error querying DOM for audio elements:`, domError)
+    }
+    
+    // Verify they're all stopped
+    setTimeout(() => {
+      const stillPlaying: string[] = []
+      radioTypes.forEach(type => {
+        const sound = soundsRef.current.get(type)
+        if (sound && !sound.paused) {
+          stillPlaying.push(`${type} (currentTime: ${sound.currentTime.toFixed(2)}s)`)
+        }
+      })
+      
+      if (stillPlaying.length > 0) {
+        console.error(`❌ [STOP_ALL_RADIO] WARNING: ${stillPlaying.length} radio songs still playing after stop:`, stillPlaying)
+      } else {
+        console.log(`✅ [STOP_ALL_RADIO] All radio songs stopped successfully`)
+      }
+    }, 100)
+  }
+
+  // Play radio song (replaces theme music when radio DLC is enabled)
+  const playRadio = (songIndex: number) => {
+    const radioType = `radio${songIndex}` as SoundType
+    stop("theme") // Stop regular theme
+    stop("bossBattle") // Stop boss battle music if playing
+    play(radioType)
+  }
+
+  // Switch radio song with static transition
+  const switchRadioSong = (songIndex: number) => {
+    console.log(`📻 switchRadioSong called with songIndex: ${songIndex}`)
+    
+    // Stop all current radio songs, theme, and boss battle music
+    stop("radio1")
+    stop("radio2")
+    stop("radio3")
+    stop("radio4")
+    stop("radio5")
+    stop("radio6")
+    stop("radio7")
+    stop("radio8")
+    stop("theme")
+    stop("bossBattle")
+    
+    // Play static, then when it ends, play the new song
+    const staticSound = soundsRef.current.get("radioStatic")
+    const radioType = `radio${songIndex}` as SoundType
+    const newSong = soundsRef.current.get(radioType)
+    
+    if (staticSound && newSong) {
+      // Clean up any previous onended handler
+      staticSound.onended = null
+      
+      // Reset and play static
+      staticSound.currentTime = 0
+      staticSound.loop = false // Ensure static doesn't loop
+      
+      staticSound.play().catch((e) => {
+        console.error(`Error playing radio static:`, e)
+        // Fallback: play song directly if static fails
+        playRadio(songIndex)
+      })
+      
+      // When static ends, play the new song
+      staticSound.onended = () => {
+        console.log(`📻 Static ended, playing song ${songIndex}`)
+        staticSound.onended = null // Clean up
+        newSong.currentTime = 0
+        newSong.loop = true // Ensure song loops
+        newSong.play().catch((e) => {
+          console.error(`Error playing radio song ${songIndex}:`, e)
+        })
+      }
+    } else {
+      // Fallback: play song directly if static or song not found
+      console.warn(`Radio static or song ${songIndex} not found, playing directly`)
+      if (!staticSound) console.warn("radioStatic not found in soundsRef")
+      if (!newSong) console.warn(`radio${songIndex} not found in soundsRef`)
+      playRadio(songIndex)
+    }
+  }
+
+  // Play car horn
+  const playHorn = (hornIndex: number) => {
+    const hornType = `carHorn${hornIndex}` as SoundType
+    play(hornType)
+  }
+
+  // Wait for a specific sound to be ready to play
+  const waitForSoundReady = async (type: SoundType, timeoutMs: number = 5000): Promise<boolean> => {
+    const sound = soundsRef.current.get(type)
+    if (!sound) {
+      console.log(`Sound ${type} not found in map`)
+      return false
+    }
+
+    // If already ready, return immediately
+    if (sound.readyState >= 3) { // HAVE_FUTURE_DATA or HAVE_ENOUGH_DATA
+      return true
+    }
+
+    // Wait for the sound to be ready
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        console.warn(`Timeout waiting for ${type} to be ready`)
+        resolve(false)
+      }, timeoutMs)
+
+      const checkReady = () => {
+        if (sound.readyState >= 3) {
+          clearTimeout(timeout)
+          sound.removeEventListener('canplaythrough', checkReady)
+          resolve(true)
+        }
+      }
+
+      sound.addEventListener('canplaythrough', checkReady)
+      
+      // Check immediately in case it's already ready
+      if (sound.readyState >= 3) {
+        clearTimeout(timeout)
+        sound.removeEventListener('canplaythrough', checkReady)
+        resolve(true)
+      }
+    })
   }
 
   return {
@@ -306,5 +589,10 @@ export function useAudioManager() {
     play,
     stop,
     stopAll,
+    stopAllRadio,
+    playRadio,
+    switchRadioSong,
+    playHorn,
+    waitForSoundReady,
   }
 }

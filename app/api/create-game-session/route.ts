@@ -1,76 +1,62 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createAuthenticatedClient } from "@/lib/supabase"
+import { createClient } from "@supabase/supabase-js"
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { userEmail, accessToken, vehicle } = body
-
-    if (!userEmail || !accessToken) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
       return NextResponse.json(
-        { error: "userEmail and accessToken are required" },
+        { error: "Server configuration error" },
+        { status: 500 }
+      )
+    }
+
+    const body = await request.json()
+    const { user_email, user_id, game_mode } = body
+
+    if (!user_email) {
+      return NextResponse.json(
+        { error: "user_email is required" },
         { status: 400 }
       )
     }
 
-    // Create authenticated Supabase client
-    const supabase = createAuthenticatedClient(accessToken)
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    })
 
-    // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user || user.email !== userEmail) {
-      console.error('Auth error:', { authError, user: user?.email, userEmail })
-      return NextResponse.json(
-        { error: "Unauthorized", details: authError?.message },
-        { status: 401 }
-      )
-    }
-    
-    console.log('Creating session for user:', user.id, user.email)
-    
-    // Try to insert the session
-    const { data: session, error: insertError } = await supabase
+    // Insert session with game_mode
+    const { data, error } = await supabase
       .from('game_sessions')
-      .insert([
-        {
-          user_id: user.id, // Use user_id for RLS (auth.uid() will match this)
-          user_email: userEmail,
-          vehicle_type: vehicle || null,
-          started_at: new Date().toISOString(),
-        },
-      ])
+      .insert({
+        user_email,
+        user_id: user_id || null,
+        started_at: new Date().toISOString(),
+        game_mode: game_mode || "I'm Parkin' Here!",
+      })
       .select()
       .single()
 
-    if (insertError) {
-      console.error('Error creating game session:', insertError)
-      console.error('Insert error details:', JSON.stringify(insertError, null, 2))
-      console.error('User ID:', user.id)
-      console.error('User email:', user.email)
-      
-      // Return detailed error for debugging
+    if (error) {
+      console.error("Error creating game session:", error)
       return NextResponse.json(
-        { 
-          error: "Failed to create game session", 
-          details: insertError.message, 
-          code: insertError.code,
-          hint: insertError.code === '42501' ? 'RLS policy might be blocking this insert. Check if auth.uid() matches user_id.' : undefined
-        },
+        { error: "Failed to create session" },
         { status: 500 }
       )
     }
-    
-    console.log('Successfully created game session:', session.id)
 
-    return NextResponse.json({
-      success: true,
-      sessionId: session.id,
-    })
+    return NextResponse.json({ session_id: data.id })
   } catch (error) {
-    console.error("Error in create-game-session API:", error)
+    console.error("Error in create-game-session:", error)
     return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+      { error: "Internal server error" },
       { status: 500 }
     )
   }

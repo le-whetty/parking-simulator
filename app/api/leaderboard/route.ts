@@ -17,9 +17,10 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    // Get query parameter for leaderboard type (default to 'contest')
+    // Get query parameters for leaderboard type and game mode
     const searchParams = request.nextUrl.searchParams
     const type = searchParams.get('type') || 'contest' // 'contest' or 'all-time'
+    const gameMode = searchParams.get('game_mode') || "I'm Parkin' Here!" // Game mode filter
     
     // Create a server-side Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -33,11 +34,12 @@ export async function GET(request: NextRequest) {
     let scoresError: any = null
 
     if (type === 'contest') {
-      // Contest leaderboard: Get each user's personal best (MAX score per user)
+      // Contest leaderboard: Get each user's personal best (MAX score per user) for the game mode
       // Use a subquery to get MAX(score) grouped by user_email, then order by score DESC
       const { data, error } = await supabase
         .from('scores')
-        .select('user_email, score, created_at, username, vehicle')
+        .select('user_email, score, created_at, username')
+        .eq('game_mode', gameMode) // Filter by game mode
         .order('score', { ascending: false })
         .limit(1000) // Get more records to ensure we can find unique users
       
@@ -66,10 +68,11 @@ export async function GET(request: NextRequest) {
           .slice(0, 10)
       }
     } else {
-      // All-time leaderboard: Current behavior - top 10 individual runs
+      // All-time leaderboard: Current behavior - top 10 individual runs for the game mode
       const { data, error } = await supabase
         .from('scores')
-        .select('user_email, score, created_at, username, vehicle')
+        .select('user_email, score, created_at, username')
+        .eq('game_mode', gameMode) // Filter by game mode
         .order('score', { ascending: false })
         .limit(10)
       
