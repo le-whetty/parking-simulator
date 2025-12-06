@@ -1398,18 +1398,22 @@ ${file}
         const finalScore = baseScore + timeBonus
         
         setScore(finalScore)
-        victoryRef.current = true
-        setHasWon(true)
         
-        // Stop game sounds (boss battle music or theme/radio)
-        audioManager.stop("theme")
-        audioManager.stop("bossBattle")
-        audioManager.stopAll()
-        
-        // Play victory sounds
-        audioManager.play("fireworks")
-        
-        endGame(true)
+        // For boss battle mode, delay victory screen by 3 seconds to allow explosion animation/sound to play
+        setTimeout(() => {
+          victoryRef.current = true
+          setHasWon(true)
+          
+          // Stop game sounds (boss battle music or theme/radio)
+          audioManager.stop("theme")
+          audioManager.stop("bossBattle")
+          audioManager.stopAll()
+          
+          // Play victory sounds
+          audioManager.play("fireworks")
+          
+          endGame(true)
+        }, 3000) // 3 second delay for boss battle mode
         return
       }
     } else {
