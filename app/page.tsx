@@ -1410,12 +1410,45 @@ ${file}
         
         // For boss battle mode, delay victory screen by 3 seconds to allow explosion animation/sound to play
         setTimeout(() => {
+          // AGGRESSIVE DOM-LEVEL AUDIO STOPPING before showing victory screen
+          console.log("🔇 [BOSS_BATTLE_VICTORY] Stopping all game music before victory screen")
+          const allAudioElements = document.querySelectorAll("audio")
+          const radioSources = [
+            "/music/radio/songs/",
+            "/music/theme.mp3",
+            "/music/boss-battle.mp3",
+            "/music/countdown.mp3",
+            "/music/3-2-1.mp3",
+          ]
+          
+          let stoppedCount = 0
+          allAudioElements.forEach((audio) => {
+            const audioSrc = audio.src || (audio as any).currentSrc || ""
+            const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+            const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+            
+            if (isGameMusic && !isVictoryMusic) {
+              console.log(`🔇 [BOSS_BATTLE_VICTORY] Stopping game music from DOM: ${audioSrc}`)
+              try {
+                audio.pause()
+                audio.currentTime = 0
+                audio.loop = false
+                audio.volume = 0
+                audio.load()
+                stoppedCount++
+              } catch (e) {
+                console.warn(`⚠️ [BOSS_BATTLE_VICTORY] Error stopping audio:`, e)
+              }
+            }
+          })
+          console.log(`🔇 [BOSS_BATTLE_VICTORY] Stopped ${stoppedCount} audio elements from DOM`)
+          
           victoryRef.current = true
           setHasWon(true)
           
           // Stop game sounds (boss battle music or theme/radio)
           // Explicitly stop all radio songs
-          console.log("🎵 [BOSS_BATTLE_VICTORY] Stopping all game music before victory screen")
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Stopping all game music via audio manager")
           if (audioManager.stopAllRadio) {
             console.log("🎵 [BOSS_BATTLE_VICTORY] Using stopAllRadio()")
             audioManager.stopAllRadio()
@@ -1590,6 +1623,45 @@ ${file}
           cancelAnimationFrame(gameLoopRef.current)
           gameLoopRef.current = null
         }
+
+        // AGGRESSIVE DOM-LEVEL AUDIO STOPPING before showing victory screen
+        console.log("🔇 [NORMAL_VICTORY] Stopping all game music before victory screen")
+        const allAudioElements = document.querySelectorAll("audio")
+        const radioSources = [
+          "/music/radio/songs/",
+          "/music/theme.mp3",
+          "/music/boss-battle.mp3",
+          "/music/countdown.mp3",
+          "/music/3-2-1.mp3",
+        ]
+        
+        let stoppedCount = 0
+        allAudioElements.forEach((audio) => {
+          const audioSrc = audio.src || (audio as any).currentSrc || ""
+          const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+          const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+          
+          if (isGameMusic && !isVictoryMusic) {
+            console.log(`🔇 [NORMAL_VICTORY] Stopping game music from DOM: ${audioSrc}`)
+            try {
+              audio.pause()
+              audio.currentTime = 0
+              audio.loop = false
+              audio.volume = 0
+              audio.load()
+              stoppedCount++
+            } catch (e) {
+              console.warn(`⚠️ [NORMAL_VICTORY] Error stopping audio:`, e)
+            }
+          }
+        })
+        console.log(`🔇 [NORMAL_VICTORY] Stopped ${stoppedCount} audio elements from DOM`)
+        
+        // Also stop via audio manager
+        audioManager.stopAllRadio()
+        audioManager.stop("theme")
+        audioManager.stop("bossBattle")
+        audioManager.stopAll()
 
         // Set hasWon immediately to show victory screen
         setHasWon(true)
@@ -1929,12 +2001,46 @@ ${file}
               
               // For boss battle mode, delay victory screen by 3 seconds to allow explosion animation/sound to play
               setTimeout(() => {
+                // AGGRESSIVE DOM-LEVEL AUDIO STOPPING before showing victory screen
+                console.log("🔇 [BOSS_BATTLE_VICTORY_HOTDOG] Stopping all game music before victory screen")
+                const allAudioElements = document.querySelectorAll("audio")
+                const radioSources = [
+                  "/music/radio/songs/",
+                  "/music/theme.mp3",
+                  "/music/boss-battle.mp3",
+                  "/music/countdown.mp3",
+                  "/music/3-2-1.mp3",
+                ]
+                
+                let stoppedCount = 0
+                allAudioElements.forEach((audio) => {
+                  const audioSrc = audio.src || (audio as any).currentSrc || ""
+                  const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+                  const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+                  
+                  if (isGameMusic && !isVictoryMusic) {
+                    console.log(`🔇 [BOSS_BATTLE_VICTORY_HOTDOG] Stopping game music from DOM: ${audioSrc}`)
+                    try {
+                      audio.pause()
+                      audio.currentTime = 0
+                      audio.loop = false
+                      audio.volume = 0
+                      audio.load()
+                      stoppedCount++
+                    } catch (e) {
+                      console.warn(`⚠️ [BOSS_BATTLE_VICTORY_HOTDOG] Error stopping audio:`, e)
+                    }
+                  }
+                })
+                console.log(`🔇 [BOSS_BATTLE_VICTORY_HOTDOG] Stopped ${stoppedCount} audio elements from DOM`)
+                
                 victoryRef.current = true
                 setHasWon(true)
                 
                 // Stop game sounds (boss battle music or theme/radio)
                 audioManager.stop("theme")
                 audioManager.stop("bossBattle")
+                audioManager.stopAllRadio()
                 audioManager.stopAll()
                 
                 // Play victory sounds
@@ -2377,14 +2483,41 @@ ${file}
       anyWindow.themeAudio.pause()
     }
 
-    // Pause all audio elements except the one we're about to play
-    const audioElements = document.querySelectorAll("audio")
-    audioElements.forEach((audio) => {
-      if (!audio.src.includes("anthem") && !audio.src.includes("no")) {
-        console.log("Pausing audio:", audio.src)
-        audio.pause()
+    // AGGRESSIVE DOM-LEVEL AUDIO STOPPING - Stop ALL audio elements directly from DOM
+    // This is critical because VictoryScreen creates a new audio manager instance
+    console.log("🔇 [END_GAME] Starting aggressive DOM-level audio stopping")
+    const allAudioElements = document.querySelectorAll("audio")
+    const radioSources = [
+      "/music/radio/songs/",
+      "/music/theme.mp3",
+      "/music/boss-battle.mp3",
+      "/music/countdown.mp3",
+      "/music/3-2-1.mp3",
+    ]
+    
+    let stoppedCount = 0
+    allAudioElements.forEach((audio) => {
+      const audioSrc = audio.src || (audio as any).currentSrc || ""
+      const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+      const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+      
+      // Stop ALL game music (radio, theme, boss battle, countdown)
+      // But allow victory music to continue
+      if (isGameMusic && !isVictoryMusic) {
+        console.log(`🔇 [END_GAME] Stopping game music from DOM: ${audioSrc}`)
+        try {
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          audio.load() // Reset the audio element completely
+          stoppedCount++
+        } catch (e) {
+          console.warn(`⚠️ [END_GAME] Error stopping audio element:`, e)
+        }
       }
     })
+    console.log(`🔇 [END_GAME] Stopped ${stoppedCount} audio elements from DOM`)
 
     if (victory) {
       // Calculate time left in seconds
@@ -2428,8 +2561,8 @@ ${file}
         return finalScore
       })
 
-        // Stop theme music, boss battle music, and all radio songs
-        console.log("🎵 [END_GAME] Stopping all game music before victory screen")
+        // Stop theme music, boss battle music, and all radio songs via audio manager
+        console.log("🎵 [END_GAME] Stopping all game music via audio manager")
         if (audioManager.stopAllRadio) {
           console.log("🎵 [END_GAME] Using stopAllRadio()")
           audioManager.stopAllRadio()

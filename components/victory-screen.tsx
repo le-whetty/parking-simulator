@@ -339,7 +339,44 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
     console.log("🎵 [VICTORY_SCREEN] useEffect triggered - stopping all game music")
-    // Stop theme music, boss battle music, and all radio songs immediately
+    
+    // AGGRESSIVE DOM-LEVEL AUDIO STOPPING - Stop ALL game music directly from DOM
+    // This is critical because VictoryScreen creates a new audio manager instance
+    console.log("🔇 [VICTORY_SCREEN] Starting aggressive DOM-level audio stopping")
+    const allAudioElements = document.querySelectorAll("audio")
+    const radioSources = [
+      "/music/radio/songs/",
+      "/music/theme.mp3",
+      "/music/boss-battle.mp3",
+      "/music/countdown.mp3",
+      "/music/3-2-1.mp3",
+    ]
+    
+    let stoppedCount = 0
+    allAudioElements.forEach((audio) => {
+      const audioSrc = audio.src || (audio as any).currentSrc || ""
+      const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+      const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+      
+      // Stop ALL game music (radio, theme, boss battle, countdown)
+      // But allow victory music to continue
+      if (isGameMusic && !isVictoryMusic) {
+        console.log(`🔇 [VICTORY_SCREEN] Stopping game music from DOM: ${audioSrc}`)
+        try {
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          audio.load() // Reset the audio element completely
+          stoppedCount++
+        } catch (e) {
+          console.warn(`⚠️ [VICTORY_SCREEN] Error stopping audio element:`, e)
+        }
+      }
+    })
+    console.log(`🔇 [VICTORY_SCREEN] Stopped ${stoppedCount} audio elements from DOM`)
+    
+    // Also try via audio manager (may not work if it's a new instance, but worth trying)
     if (audioManager.stopAllRadio) {
       console.log("🎵 [VICTORY_SCREEN] Using stopAllRadio()")
       audioManager.stopAllRadio()
@@ -405,6 +442,43 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
   useEffect(() => {
     // Stop theme music, boss battle music, and all radio songs when component mounts (only once)
     console.log("🎵 [VICTORY_SCREEN] Component mounted - stopping all game music")
+    
+    // AGGRESSIVE DOM-LEVEL AUDIO STOPPING - Stop ALL game music directly from DOM
+    console.log("🔇 [VICTORY_SCREEN] Starting aggressive DOM-level audio stopping on mount")
+    const allAudioElements = document.querySelectorAll("audio")
+    const radioSources = [
+      "/music/radio/songs/",
+      "/music/theme.mp3",
+      "/music/boss-battle.mp3",
+      "/music/countdown.mp3",
+      "/music/3-2-1.mp3",
+    ]
+    
+    let stoppedCount = 0
+    allAudioElements.forEach((audio) => {
+      const audioSrc = audio.src || (audio as any).currentSrc || ""
+      const isGameMusic = radioSources.some(src => audioSrc.includes(src))
+      const isVictoryMusic = audioSrc.includes("anthem") || audioSrc.includes("murca")
+      
+      // Stop ALL game music (radio, theme, boss battle, countdown)
+      // But allow victory music to continue
+      if (isGameMusic && !isVictoryMusic) {
+        console.log(`🔇 [VICTORY_SCREEN] Stopping game music from DOM on mount: ${audioSrc}`)
+        try {
+          audio.pause()
+          audio.currentTime = 0
+          audio.loop = false
+          audio.volume = 0
+          audio.load() // Reset the audio element completely
+          stoppedCount++
+        } catch (e) {
+          console.warn(`⚠️ [VICTORY_SCREEN] Error stopping audio element on mount:`, e)
+        }
+      }
+    })
+    console.log(`🔇 [VICTORY_SCREEN] Stopped ${stoppedCount} audio elements from DOM on mount`)
+    
+    // Also try via audio manager (may not work if it's a new instance, but worth trying)
     if (audioManager.stopAllRadio) {
       console.log("🎵 [VICTORY_SCREEN] Using stopAllRadio() on mount")
       audioManager.stopAllRadio()
