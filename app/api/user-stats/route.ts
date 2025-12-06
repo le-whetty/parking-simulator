@@ -120,8 +120,10 @@ export async function GET(request: NextRequest) {
     const mostDamagedDriver = Object.entries(driverHits)
       .sort(([, a], [, b]) => b - a)[0]?.[0] || 'None'
 
-    // Top score
-    const topScore = scores?.[0]?.score || 0
+    // Top score - use max from scores table, or fallback to max from game_sessions
+    const topScoreFromScores = scores?.[0]?.score || 0
+    const topScoreFromSessions = sessions?.reduce((max, s) => Math.max(max, s.final_score || 0), 0) || 0
+    const topScore = Math.max(topScoreFromScores, topScoreFromSessions)
 
     // Get or update user title based on top score
     const { data: titleData } = await supabase
