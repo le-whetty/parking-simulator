@@ -101,7 +101,6 @@ export default function Home() {
   const lukePositionRef = useRef<{ x: number; y: number; lastPaceLog?: number }>({ x: 600, y: 400 }) // Luke's position (ref for game loop)
   const lukeFacingRef = useRef("right") // Luke's facing direction
   const gameDurationRef = useRef(120000) // Game duration (2 minutes)
-  const gameSessionIdRef = useRef<string | null>(null) // Game session ID for score validation
   const gameEventsRef = useRef<Array<{type: string, data: any, timestamp: number}>>([]) // Game events for validation
   const lukeCarRef = useRef<HTMLDivElement | null>(null) // Luke's car ref
   const parkingSpotRef = useRef<HTMLDivElement | null>(null) // Parking spot ref
