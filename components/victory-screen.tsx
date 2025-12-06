@@ -338,10 +338,13 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
 
   // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
+    console.log("🎵 [VICTORY_SCREEN] useEffect triggered - stopping all game music")
     // Stop theme music, boss battle music, and all radio songs immediately
     if (audioManager.stopAllRadio) {
+      console.log("🎵 [VICTORY_SCREEN] Using stopAllRadio()")
       audioManager.stopAllRadio()
     } else {
+      console.log("🎵 [VICTORY_SCREEN] stopAllRadio not available, using individual stops")
       // Fallback to individual stops if stopAllRadio is not available
       audioManager.stop("radio1")
       audioManager.stop("radio2")
@@ -353,9 +356,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
       audioManager.stop("radio8")
       audioManager.stop("radioStatic")
     }
+    console.log("🎵 [VICTORY_SCREEN] Stopping theme and bossBattle")
     audioManager.stop("theme")
     audioManager.stop("bossBattle")
+    console.log("🎵 [VICTORY_SCREEN] Calling stopAll()")
     audioManager.stopAll()
+    console.log("🎵 [VICTORY_SCREEN] All stop calls completed")
 
     // Only play initial song once when songs become available (don't use anthem fallback)
     if (!initialSongPlayedRef.current && murcaSongs.length > 0) {
@@ -398,10 +404,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
 
   useEffect(() => {
     // Stop theme music, boss battle music, and all radio songs when component mounts (only once)
-    console.log("VictoryScreen mounted - stopping all game music")
+    console.log("🎵 [VICTORY_SCREEN] Component mounted - stopping all game music")
     if (audioManager.stopAllRadio) {
+      console.log("🎵 [VICTORY_SCREEN] Using stopAllRadio() on mount")
       audioManager.stopAllRadio()
     } else {
+      console.log("🎵 [VICTORY_SCREEN] stopAllRadio not available on mount, using individual stops")
       // Fallback to individual stops if stopAllRadio is not available
       audioManager.stop("radio1")
       audioManager.stop("radio2")
@@ -413,9 +421,12 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
       audioManager.stop("radio8")
       audioManager.stop("radioStatic")
     }
+    console.log("🎵 [VICTORY_SCREEN] Stopping theme and bossBattle on mount")
     audioManager.stop("theme")
     audioManager.stop("bossBattle")
+    console.log("🎵 [VICTORY_SCREEN] Calling stopAll() on mount")
     audioManager.stopAll()
+    console.log("🎵 [VICTORY_SCREEN] All stop calls completed on mount")
 
     // Animate the flag
     const canvas = canvasRef.current

@@ -245,30 +245,43 @@ export function useAudioManager() {
     try {
       const sound = soundsRef.current.get(type)
       if (sound) {
-        console.log(`Stopping ${type} sound - paused: ${sound.paused}, currentTime: ${sound.currentTime}, src: ${sound.src}`)
+        const wasPlaying = !sound.paused
+        const currentTime = sound.currentTime
+        const src = sound.src
+        console.log(`🔇 [STOP] Stopping ${type} sound - paused: ${sound.paused}, playing: ${wasPlaying}, currentTime: ${currentTime.toFixed(2)}s, src: ${src}`)
+        
         // Aggressively stop the audio - pause first, then reset
         sound.pause()
         sound.currentTime = 0
         sound.loop = false
         sound.volume = 0 // Mute it as well
+        
+        // Check if it's actually paused after our operations
+        const stillPlaying = !sound.paused
+        console.log(`🔇 [STOP] After pause() - paused: ${sound.paused}, stillPlaying: ${stillPlaying}, currentTime: ${sound.currentTime.toFixed(2)}s`)
+        
         // Remove any event listeners that might restart it
         sound.onended = null
         sound.onplay = null
         sound.oncanplay = null
         sound.oncanplaythrough = null
+        
         // Remove all event listeners by cloning the node (removes all listeners)
         const newSound = sound.cloneNode(false) as HTMLAudioElement
         newSound.src = sound.src
         newSound.preload = sound.preload
         newSound.volume = 0.5 // Reset volume for future use
+        newSound.pause() // Ensure the new sound is also paused
+        newSound.currentTime = 0
+        
         // Replace the old sound with the new one (which has no event listeners)
         soundsRef.current.set(type, newSound)
-        console.log(`Stopped ${type} sound successfully - replaced with clean instance`)
+        console.log(`✅ [STOP] Stopped ${type} sound successfully - replaced with clean instance (wasPlaying: ${wasPlaying})`)
       } else {
-        console.log(`Sound ${type} not found in map when trying to stop`)
+        console.log(`⚠️ [STOP] Sound ${type} not found in map when trying to stop`)
       }
     } catch (e) {
-      console.log(`Error stopping ${type} sound:`, e)
+      console.error(`❌ [STOP] Error stopping ${type} sound:`, e)
     }
   }
 
@@ -319,10 +332,17 @@ export function useAudioManager() {
   // Stop all sounds
   const stopAll = () => {
     // Check if sounds exist in map instead of initialized state
-    if (soundsRef.current.size === 0) return
+    if (soundsRef.current.size === 0) {
+      console.log("🔇 [STOP_ALL] No sounds in map to stop")
+      return
+    }
 
     try {
+      const playingSounds: string[] = []
       soundsRef.current.forEach((sound, type) => {
+        if (!sound.paused) {
+          playingSounds.push(`${type} (currentTime: ${sound.currentTime.toFixed(2)}s)`)
+        }
         sound.pause()
         sound.currentTime = 0
         sound.loop = false
@@ -333,15 +353,39 @@ export function useAudioManager() {
         sound.oncanplay = null
         sound.oncanplaythrough = null
       })
-      console.log("Stopped all sounds")
+      
+      if (playingSounds.length > 0) {
+        console.log(`🔇 [STOP_ALL] Stopped ${playingSounds.length} playing sounds:`, playingSounds)
+      } else {
+        console.log(`🔇 [STOP_ALL] Stopped all sounds (none were playing)`)
+      }
     } catch (e) {
-      console.log("Error stopping all sounds:", e)
+      console.error("❌ [STOP_ALL] Error stopping all sounds:", e)
     }
   }
 
   // Stop all radio songs (helper function)
   const stopAllRadio = () => {
-    console.log("Stopping all radio songs")
+    console.log("🔇 [STOP_ALL_RADIO] Starting to stop all radio songs")
+    
+    // First, check which radio songs are currently playing
+    const radioTypes: SoundType[] = ["radio1", "radio2", "radio3", "radio4", "radio5", "radio6", "radio7", "radio8", "radioStatic"]
+    const playingRadios: string[] = []
+    
+    radioTypes.forEach(type => {
+      const sound = soundsRef.current.get(type)
+      if (sound && !sound.paused) {
+        playingRadios.push(`${type} (currentTime: ${sound.currentTime.toFixed(2)}s)`)
+      }
+    })
+    
+    if (playingRadios.length > 0) {
+      console.log(`🔇 [STOP_ALL_RADIO] Found ${playingRadios.length} playing radio songs:`, playingRadios)
+    } else {
+      console.log(`🔇 [STOP_ALL_RADIO] No radio songs currently playing`)
+    }
+    
+    // Stop all radio songs
     stop("radio1")
     stop("radio2")
     stop("radio3")
@@ -351,6 +395,23 @@ export function useAudioManager() {
     stop("radio7")
     stop("radio8")
     stop("radioStatic")
+    
+    // Verify they're all stopped
+    setTimeout(() => {
+      const stillPlaying: string[] = []
+      radioTypes.forEach(type => {
+        const sound = soundsRef.current.get(type)
+        if (sound && !sound.paused) {
+          stillPlaying.push(`${type} (currentTime: ${sound.currentTime.toFixed(2)}s)`)
+        }
+      })
+      
+      if (stillPlaying.length > 0) {
+        console.error(`❌ [STOP_ALL_RADIO] WARNING: ${stillPlaying.length} radio songs still playing after stop:`, stillPlaying)
+      } else {
+        console.log(`✅ [STOP_ALL_RADIO] All radio songs stopped successfully`)
+      }
+    }, 100)
   }
 
   // Play radio song (replaces theme music when radio DLC is enabled)

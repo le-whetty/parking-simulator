@@ -1406,9 +1406,12 @@ ${file}
           
           // Stop game sounds (boss battle music or theme/radio)
           // Explicitly stop all radio songs
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Stopping all game music before victory screen")
           if (audioManager.stopAllRadio) {
+            console.log("🎵 [BOSS_BATTLE_VICTORY] Using stopAllRadio()")
             audioManager.stopAllRadio()
           } else {
+            console.log("🎵 [BOSS_BATTLE_VICTORY] stopAllRadio not available, using individual stops")
             // Fallback to individual stops if stopAllRadio is not available
             audioManager.stop("radio1")
             audioManager.stop("radio2")
@@ -1420,9 +1423,12 @@ ${file}
             audioManager.stop("radio8")
             audioManager.stop("radioStatic")
           }
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Stopping theme and bossBattle")
           audioManager.stop("theme")
           audioManager.stop("bossBattle")
+          console.log("🎵 [BOSS_BATTLE_VICTORY] Calling stopAll()")
           audioManager.stopAll()
+          console.log("🎵 [BOSS_BATTLE_VICTORY] All stop calls completed")
           
           // Play victory sounds
           audioManager.play("fireworks")
@@ -2414,9 +2420,12 @@ ${file}
       })
 
         // Stop theme music, boss battle music, and all radio songs
+        console.log("🎵 [END_GAME] Stopping all game music before victory screen")
         if (audioManager.stopAllRadio) {
+          console.log("🎵 [END_GAME] Using stopAllRadio()")
           audioManager.stopAllRadio()
         } else {
+          console.log("🎵 [END_GAME] stopAllRadio not available, using individual stops")
           // Fallback to individual stops if stopAllRadio is not available
           audioManager.stop("radio1")
           audioManager.stop("radio2")
@@ -2428,8 +2437,10 @@ ${file}
           audioManager.stop("radio8")
           audioManager.stop("radioStatic")
         }
+        console.log("🎵 [END_GAME] Stopping theme and bossBattle")
         audioManager.stop("theme")
         audioManager.stop("bossBattle")
+        console.log("🎵 [END_GAME] All stop calls completed")
         
         // Don't play anthem here - victory-screen will handle it
       // audioManager.play("anthem") // Removed - victory-screen will handle this
