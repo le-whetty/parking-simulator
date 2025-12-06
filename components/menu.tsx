@@ -13,9 +13,10 @@ interface MenuProps {
   onVictorySimulator?: () => void
   onViewProfile?: () => void
   onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
 }
 
-export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore }: MenuProps) {
+export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, onGoToMainMenu }: MenuProps) {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -41,9 +42,12 @@ export default function Menu({ onLogout, onEditUsername, onVictorySimulator, onV
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <img src="/logos/logo.png" alt="Tracksuit" className="h-8 w-auto" />
-            <h2 className="text-xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700">
+            <button
+              onClick={() => onGoToMainMenu?.()}
+              className="text-xl font-bold font-chapeau text-transparent bg-clip-text bg-gradient-to-r from-tracksuit-purple-600 to-tracksuit-purple-700 hover:from-tracksuit-purple-700 hover:to-tracksuit-purple-800 cursor-pointer transition-all"
+            >
               Parking Simulator
-            </h2>
+            </button>
           </div>
           <nav className="flex items-center gap-2">
             <Button

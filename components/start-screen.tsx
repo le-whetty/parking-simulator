@@ -13,13 +13,14 @@ interface StartScreenProps {
   onVictorySimulator?: () => void
   onViewProfile?: () => void
   onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
   hasBossBattleDLC?: boolean
   isDLCLoading?: boolean
   gameMode?: 'normal' | 'boss-battle'
   onGameModeChange?: (mode: 'normal' | 'boss-battle') => void
 }
 
-export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, hasBossBattleDLC, isDLCLoading = false, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
+export default function StartScreen({ onStart, onInitializeAudio, onLogout, username, onEditUsername, onVictorySimulator, onViewProfile, onViewDLCStore, onGoToMainMenu, hasBossBattleDLC, isDLCLoading = false, gameMode = 'normal', onGameModeChange }: StartScreenProps) {
   const audioManager = useAudioManager()
 
   // Handle start game
@@ -40,7 +41,7 @@ export default function StartScreen({ onStart, onInitializeAudio, onLogout, user
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6 max-w-5xl mx-auto pt-24">
-      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} onViewProfile={onViewProfile} onViewDLCStore={onViewDLCStore} />
+      <Menu onLogout={onLogout} onEditUsername={onEditUsername} onVictorySimulator={onVictorySimulator} onViewProfile={onViewProfile} onViewDLCStore={onViewDLCStore} onGoToMainMenu={onGoToMainMenu} />
 
       {/* Username Greeting */}
       {username && (

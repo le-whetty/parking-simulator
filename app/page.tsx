@@ -2998,6 +2998,7 @@ ${file}
           onVictorySimulator={handleVictorySimulator}
           onViewProfile={() => setGameState("profile")}
           onViewDLCStore={() => setGameState("dlc-store")}
+          onGoToMainMenu={() => setGameState("start")}
           hasBossBattleDLC={hasBossBattleDLC}
           isDLCLoading={isDLCLoading}
           gameMode={gameMode}
@@ -3024,6 +3025,7 @@ ${file}
           onEditUsername={() => setShowUsernameModal(true)}
           onVictorySimulator={handleVictorySimulator}
           onViewDLCStore={() => setGameState("dlc-store")}
+          onGoToMainMenu={() => setGameState("start")}
         />
       </>
     )
@@ -3046,6 +3048,7 @@ ${file}
           onEditUsername={() => setShowUsernameModal(true)}
           onVictorySimulator={handleVictorySimulator}
           onViewProfile={() => setGameState("profile")}
+          onGoToMainMenu={() => setGameState("start")}
         />
       </>
     )
@@ -3069,6 +3072,7 @@ ${file}
           onVictorySimulator={handleVictorySimulator}
           onViewProfile={() => setGameState("profile")}
           onViewDLCStore={() => setGameState("dlc-store")}
+          onGoToMainMenu={() => setGameState("start")}
           username={username}
           onVehicleSelected={async (vehicle) => {
             setSelectedVehicle(vehicle)

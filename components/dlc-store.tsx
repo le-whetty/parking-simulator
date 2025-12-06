@@ -17,9 +17,10 @@ interface DLCStoreProps {
   onEditUsername?: () => void
   onVictorySimulator?: () => void
   onViewProfile?: () => void
+  onGoToMainMenu?: () => void
 }
 
-export default function DLCStore({ onBack, onLogout, onEditUsername, onVictorySimulator, onViewProfile }: DLCStoreProps) {
+export default function DLCStore({ onBack, onLogout, onEditUsername, onVictorySimulator, onViewProfile, onGoToMainMenu }: DLCStoreProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [dlcItems, setDlcItems] = useState<(DLCItem & { unlocked: boolean; enabled: boolean; unlocked_at?: string })[]>([])
   const [loading, setLoading] = useState(true)
@@ -131,6 +132,7 @@ Email: ${email || 'null'}
           onVictorySimulator={onVictorySimulator}
           onViewProfile={onViewProfile}
           onViewDLCStore={() => {}} // Already on DLC store page
+          onGoToMainMenu={onGoToMainMenu}
         />
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-tracksuit-purple-500 mb-3"></div>
@@ -154,6 +156,7 @@ Email: ${email || 'null'}
           onVictorySimulator={onVictorySimulator}
           onViewProfile={onViewProfile}
           onViewDLCStore={() => {}} // Already on DLC store page
+          onGoToMainMenu={onGoToMainMenu}
         />
         {/* Header */}
         <div className="w-full mb-8">

@@ -50,9 +50,10 @@ interface ProfilePageProps {
   onEditUsername?: () => void
   onVictorySimulator?: () => void
   onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
 }
 
-export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictorySimulator, onViewDLCStore }: ProfilePageProps) {
+export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictorySimulator, onViewDLCStore, onGoToMainMenu }: ProfilePageProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -232,6 +233,7 @@ export default function ProfilePage({ onBack, onLogout, onEditUsername, onVictor
         onVictorySimulator={onVictorySimulator}
         onViewProfile={() => {}} // Already on profile page
         onViewDLCStore={onViewDLCStore}
+        onGoToMainMenu={onGoToMainMenu}
       />
       {/* Header */}
       <div className="w-full mb-8">

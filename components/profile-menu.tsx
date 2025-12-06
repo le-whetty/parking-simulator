@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
 
 interface ProfileMenuProps {
-  onLogout: () => void
+  onLogout?: () => void
   onEditUsername?: () => void
 }
 
@@ -71,7 +71,7 @@ export default function ProfileMenu({ onLogout, onEditUsername }: ProfileMenuPro
     try {
       await supabase.auth.signOut()
       setShowMenu(false)
-      onLogout()
+      onLogout?.()
     } catch (error) {
       console.error("Error signing out:", error)
     }

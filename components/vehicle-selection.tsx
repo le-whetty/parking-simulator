@@ -15,6 +15,7 @@ interface VehicleSelectionProps {
   onVictorySimulator?: () => void
   onViewProfile?: () => void
   onViewDLCStore?: () => void
+  onGoToMainMenu?: () => void
   username?: string | null
 }
 
@@ -35,6 +36,7 @@ export default function VehicleSelection({
   onVictorySimulator,
   onViewProfile,
   onViewDLCStore,
+  onGoToMainMenu,
   username 
 }: VehicleSelectionProps) {
   const [selectedVehicle, setSelectedVehicle] = useState<VehicleType | null>(null)
@@ -181,6 +183,7 @@ export default function VehicleSelection({
         onVictorySimulator={onVictorySimulator}
         onViewProfile={onViewProfile}
         onViewDLCStore={onViewDLCStore}
+        onGoToMainMenu={onGoToMainMenu}
       />
 
       {/* Back Button */}
