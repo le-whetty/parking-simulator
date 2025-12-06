@@ -338,8 +338,17 @@ export default function VictoryScreen({ onRestart, score = 0, isSimulator = fals
 
   // Handle initial song playback when murcaSongs are loaded
   useEffect(() => {
-    // Stop theme music immediately
+    // Stop theme music, boss battle music, and all radio songs immediately
+    audioManager.stop("radio1")
+    audioManager.stop("radio2")
+    audioManager.stop("radio3")
+    audioManager.stop("radio4")
+    audioManager.stop("radio5")
+    audioManager.stop("radio6")
+    audioManager.stop("radio7")
+    audioManager.stop("radio8")
     audioManager.stop("theme")
+    audioManager.stop("bossBattle")
     audioManager.stopAll()
 
     // Only play initial song once when songs become available (don't use anthem fallback)
