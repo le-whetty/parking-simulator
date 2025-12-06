@@ -33,7 +33,7 @@ export const DLC_PACKS: Record<string, DLCPack> = {
       {
         id: 'swift',
         name: '2011 Suzuki Swift',
-        description: 'A nimble and zippy compact car, perfect for tight spots and quick getaways. Lacks heavy armor but makes up for it with unparalleled speed and maneuverability.',
+        description: 'A nimble and zippy compact car, extremely high accumulator of Drake St parking tickets. Lacks heavy armor but makes up for it with unparalleled speed and maneuverability.',
         image_url: '/images/dlc-items/11-suzuki-swift-dlc-item.png',
         type: 'vehicle',
       },
@@ -48,7 +48,7 @@ export const DLC_PACKS: Record<string, DLCPack> = {
       {
         id: 'license-plate',
         name: 'Washington State License Plate',
-        description: 'Show your Washington pride with this custom license plate accessory. Displays on your vehicle in-game and on your profile.',
+        description: 'Show your Washington pride with this custom license plate accessory. Displays on your vehicle in-game.',
         image_url: '/images/dlc-items/license-plate-dlc-item.png',
         type: 'accessory',
       },
@@ -63,7 +63,7 @@ export const DLC_PACKS: Record<string, DLCPack> = {
       {
         id: 'fm-radio',
         name: 'FM Radio',
-        description: 'Replace the game theme music with your own radio station. Switch between 4 curated songs during gameplay. Click the "📻 Next Song" button in the top right or press R to change songs.',
+        description: 'Replace the game theme music with a radio station. Switch between curated songs during gameplay. Click the "📻 Next Song" button in the top right or press R to change songs.',
         image_url: '/images/dlc-items/radio-dlc-item.png',
         type: 'audio',
       },
@@ -85,21 +85,21 @@ export const DLC_PACKS: Record<string, DLCPack> = {
       {
         id: 'red-bull-fridge',
         name: "Hawkey's Red Bull Minifridge",
-        description: 'Speed boost - Increases your vehicle\'s speed stat by 2 points (max 10). Automatically applied to your weakest stat.',
+        description: 'Increases your vehicle\'s speed stat with a 6:37am Hawkey Red Bull.',
         image_url: '/images/dlc-items/hawkeys-fridge-dlc-item.png',
         type: 'boost',
       },
       {
         id: 'trucoat',
         name: 'Trucoat',
-        description: 'Armor boost - Increases your vehicle\'s armor stat by 2 points (max 10). Automatically applied to your weakest stat.',
+        description: 'Increases your vehicle\'s armor stat by taking Gerry\'s advice and buying that Trucoat.',
         image_url: '/images/dlc-items/trucoat-dlc-item.png',
         type: 'boost',
       },
       {
         id: 'costco-card',
         name: 'Costco Membership Card',
-        description: 'Attack boost - Increases your vehicle\'s attack stat by 2 points (max 10). Automatically applied to your weakest stat.',
+        description: 'Increases your vehicle\'s attack stat with more affordable Kirkland Hotdogs through Costco\'s membership programme.',
         image_url: '/images/dlc-items/costco-dlc-item.png',
         type: 'boost',
       },
@@ -114,7 +114,7 @@ export const DLC_PACKS: Record<string, DLCPack> = {
       {
         id: 'connor-boss',
         name: 'Connor Boss Battle',
-        description: 'Face off against Connor in an epic boss battle! Features Connor\'s Polestar vehicle (4x bigger), Tracksuit Values projectiles, and special voiceover.',
+        description: 'Face off against Connor in an epic boss battle! Features Connor\'s Polestar, Tracksuit Values projectiles, and educational voiceover.',
         image_url: '/images/dlc-items/boss-battle-dlc-item.png',
         type: 'boss',
       },
