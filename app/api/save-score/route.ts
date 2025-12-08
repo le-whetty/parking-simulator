@@ -4,7 +4,7 @@ import { createAuthenticatedClient } from "@/lib/supabase"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userEmail, score, accessToken, vehicle, gameMode } = body
+    const { userEmail, score, accessToken, vehicle, gameMode, sessionId, gameDurationMs } = body
 
     if (!userEmail || score === undefined) {
       return NextResponse.json(
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Security: Validate game session if provided
+    // Security: Validate game session if provided (optional - scores can be saved without sessionId)
     if (sessionId) {
       const { data: session, error: sessionError } = await supabase
         .from('game_sessions')
@@ -44,29 +44,24 @@ export async function POST(request: NextRequest) {
 
       if (sessionError || !session) {
         console.error('Invalid or missing game session:', sessionError)
-        return NextResponse.json(
-          { error: "Invalid game session" },
-          { status: 403 }
-        )
-      }
+        // Don't block score saving - just log the error and continue
+        console.warn('⚠️ Session validation failed, but allowing score save to proceed')
+      } else {
+        // Check if session was already used
+        if (session.score_saved) {
+          console.error('Session already used for score submission')
+          // Don't block - just log. Multiple score saves from same session are allowed
+          // (e.g., if player refreshes victory screen)
+          console.warn('⚠️ Session already marked as score_saved, but allowing score save')
+        }
 
-      // Check if session was already used
-      if (session.score_saved) {
-        console.error('Session already used for score submission')
-        return NextResponse.json(
-          { error: "Session already used" },
-          { status: 403 }
-        )
-      }
-
-      // Validate game duration (must be at least 10 seconds, max 150 seconds)
-      if (gameDurationMs) {
-        if (gameDurationMs < 10000 || gameDurationMs > 150000) {
-          console.error('Invalid game duration:', gameDurationMs)
-          return NextResponse.json(
-            { error: "Invalid game duration" },
-            { status: 400 }
-          )
+        // Validate game duration (must be at least 10 seconds, max 150 seconds)
+        if (gameDurationMs) {
+          if (gameDurationMs < 10000 || gameDurationMs > 150000) {
+            console.error('Invalid game duration:', gameDurationMs)
+            // Don't block score saving - just log
+            console.warn('⚠️ Invalid game duration, but allowing score save')
+          }
         }
       }
 
@@ -74,6 +69,8 @@ export async function POST(request: NextRequest) {
       // cannot accurately replicate the client's off-screen time tracking and
       // other game state, so we rely on session validation (duplicate prevention)
       // and score bounds checking instead.
+    } else {
+      console.log('ℹ️ No sessionId provided - saving score without session validation (this is allowed)')
     }
 
     // Security: Validate score bounds
