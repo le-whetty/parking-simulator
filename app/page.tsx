@@ -1621,6 +1621,7 @@ ${file}
         console.log("🔊 Starting countdown sound and pausing theme music")
         audioManager.stop("theme")
         audioManager.stop("bossBattle")
+        audioManager.stopAllRadio() // Stop all radio music when countdown starts
         audioManager.play("countdown")
       }
       

@@ -13,6 +13,13 @@ interface LeaderboardProps {
   gameMode?: string // Game mode to filter leaderboard
 }
 
+// Helper function to get vehicle image path from vehicle type
+const getVehicleImage = (vehicleType: string | null | undefined): string | null => {
+  if (!vehicleType) return null
+  const vehicle = vehicles.find(v => v.id === vehicleType)
+  return vehicle?.image || null
+}
+
 export default function Leaderboard({ userEmail, userScore, userRank, gameMode = "I'm Parkin' Here!" }: LeaderboardProps) {
   const [contestLeaderboard, setContestLeaderboard] = useState<LeaderboardEntry[]>([])
   const [bossBattleContestLeaderboard, setBossBattleContestLeaderboard] = useState<LeaderboardEntry[]>([])
